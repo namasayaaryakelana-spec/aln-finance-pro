@@ -1,0 +1,53 @@
+{
+  "entities": {
+    "Wallet": {
+      "title": "Wallet",
+      "description": "User financial wallet or bank account",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string", "maxLength": 100 },
+        "type": { "type": "string" },
+        "balance": { "type": "number" },
+        "currency": { "type": "string" },
+        "accountNumber": { "type": "string" },
+        "scope": { "type": "string" },
+        "color": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "name", "type", "balance", "currency", "scope"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Income, expense, or transfer transaction record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string", "maxLength": 200 },
+        "amount": { "type": "number" },
+        "type": { "type": "string" },
+        "category": { "type": "string" },
+        "subcategory": { "type": "string" },
+        "walletId": { "type": "string" },
+        "date": { "type": "string" },
+        "scope": { "type": "string" },
+        "note": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "title", "amount", "type", "category", "walletId", "date", "scope"]
+    }
+  },
+  "firestore": {
+    "/wallets/{walletId}": {
+      "schema": { "$ref": "#/entities/Wallet" },
+      "description": "User wallets collection"
+    },
+    "/transactions/{transactionId}": {
+      "schema": { "$ref": "#/entities/Transaction" },
+      "description": "User financial transactions collection"
+    }
+  }
+}
