@@ -196,7 +196,7 @@ MASTER KATEGORI & SUB-KATEGORI ACUAN:
 ATURAN UTAMA EKSTRAKSI MULTI-TRANSAKSI (SANGAT PENTING):
 ===============================================================
 1. WAJIB SPLIT BANYAK TRANSAKSI:
-   - Jika terdapat kata penghubung seperti: "terus", "lalu", "kemudian", "habis itu", "setelah itu", "selanjutnya", "dan", "&", "plus", "sama", "lanjut", "berikutnya", koma (,), atau titik koma (;), ATAU terdapat lebih dari 1 nominal/aktivitas dalam kalimat, WAJIB MEMECAHNYA menjadi beberapa objek transaksi terpisah di dalam array `transactions`.
+   - Jika terdapat kata penghubung seperti: "terus", "lalu", "kemudian", "habis itu", "setelah itu", "selanjutnya", "dan", "&", "plus", "sama", "lanjut", "berikutnya", koma (,), atau titik koma (;), ATAU terdapat lebih dari 1 nominal/aktivitas dalam kalimat, WAJIB MEMECAHNYA menjadi beberapa objek transaksi terpisah di dalam array 'transactions'.
    - CONTOH: "Lana bayar bensin 50rb pake bca, terus beli gas lpg 22k cash" -> HARUS MENJADI 2 TRANSAKSI DALAM ARRAY:
      * Transaksi 1: title="Bayar bensin", credit=50000, paid_by="Lana", account="BCA", category="Transportasi", subcategory="Bensin"
      * Transaksi 2: title="Beli gas LPG", credit=22000, paid_by="Lana", account="Cash", category="Bill & Utilitas", subcategory="Gas LPG"
