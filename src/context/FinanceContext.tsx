@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
-import { User, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
+import { User, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from 'firebase/auth';
 import { auth, googleProvider, testFirestoreConnection } from '../lib/firebase';
 import { FirestoreSyncService, UserFinancialBundle } from '../services/firestoreSync';
 import {
@@ -136,9 +136,15 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [isCloudSyncing, setIsCloudSyncing] = useState<boolean>(false);
   const isRemoteUpdateRef = useRef<boolean>(false);
 
-  // Test connection & Auth state observer
+  // Test connection, catch redirect auth result & Auth state observer
   useEffect(() => {
     testFirestoreConnection();
+
+    getRedirectResult(auth).catch((err: any) => {
+      if (err && err.code !== 'auth/popup-closed-by-user') {
+        console.warn('Firebase Auth Redirect Result Warning:', err);
+      }
+    });
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
@@ -251,11 +257,16 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         err?.code === 'auth/popup-closed-by-user' ||
         err?.code === 'auth/cancelled-popup-request'
       ) {
-        // User intentionally closed or cancelled popup window
         return;
       }
-      console.error('Google Sign-In Error:', err);
-      addToast('error', 'Login Gagal', 'Gagal masuk dengan Google.');
+      console.warn('Google Sign-In Popup failed, attempting redirect fallback:', err);
+      try {
+        await signInWithRedirect(auth, googleProvider);
+      } catch (redirectErr: any) {
+        console.error('Google Sign-In Error:', redirectErr);
+        const errDetail = redirectErr?.code || err?.code || redirectErr?.message || String(err);
+        addToast('error', 'Login Gagal', `Detail Error: ${errDetail}`);
+      }
     }
   };
 
