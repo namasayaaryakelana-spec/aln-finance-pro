@@ -57,18 +57,18 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-20 bg-[#080E1A]/90 backdrop-blur-md border-b border-slate-800/80 px-4 lg:px-8 py-3.5 flex items-center justify-between">
+    <header className="sticky top-0 z-20 bg-[#080E1A]/95 backdrop-blur-md border-b border-slate-800/80 px-3 sm:px-4 lg:px-8 pt-8 pb-3 lg:py-3.5 flex items-center justify-between transition-all">
       {/* Left: Tab Title & Scope Badge */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
         {/* Mobile Logo */}
-        <div className="lg:hidden w-8 h-8 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center p-1">
-          <img src="/logo.svg" alt="ALN Logo" className="w-5 h-5" />
+        <div className="lg:hidden w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center p-1 flex-shrink-0">
+          <img src="/logo.svg" alt="ALN Logo" className="w-4 h-4 sm:w-5 sm:h-5" />
         </div>
 
-        <div>
-          <h2 className="text-sm lg:text-base font-extrabold text-white tracking-tight flex items-center gap-2">
-            {getTabTitle(activeTab)}
-            <span className="hidden sm:inline-block text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-slate-800 text-emerald-400 border border-slate-700">
+        <div className="min-w-0">
+          <h2 className="text-xs sm:text-sm lg:text-base font-extrabold text-white tracking-tight flex items-center gap-1.5 truncate">
+            <span className="truncate">{getTabTitle(activeTab)}</span>
+            <span className="hidden sm:inline-block text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-slate-800 text-emerald-400 border border-slate-700 flex-shrink-0">
               Pribadi
             </span>
           </h2>
