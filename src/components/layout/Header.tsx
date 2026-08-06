@@ -1,11 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Download,
   Bell,
   Sparkles,
   Plus,
   LogOut,
-  User as UserIcon
+  User as UserIcon,
+  RefreshCw,
+  CloudDownload,
+  CloudUpload
 } from 'lucide-react';
 import { useFinance } from '../../context/FinanceContext';
 
@@ -26,7 +29,8 @@ export const Header: React.FC<HeaderProps> = ({
   pwaPromptEvent,
   triggerPwaInstall
 }) => {
-  const { currentScope, healthScore, debts, budgets, currentUser, loginWithGoogle, logout } = useFinance();
+  const { currentScope, healthScore, debts, budgets, currentUser, loginWithGoogle, logout, pushCloudData, pullCloudData, isCloudSyncing } = useFinance();
+  const [showSyncMenu, setShowSyncMenu] = useState(false);
 
   const pendingAlerts = debts.filter(d => d.status === 'pending' || d.status === 'overdue').length +
     budgets.filter(b => b.spent >= b.amount * 0.8).length;
@@ -126,28 +130,73 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Firebase Auth & Sync Status Button */}
         {currentUser ? (
-          <div className="flex items-center gap-2 bg-slate-900/80 border border-slate-800 rounded-xl px-2.5 py-1">
-            {currentUser.photoURL ? (
-              <img src={currentUser.photoURL} alt="Avatar" className="w-5 h-5 rounded-full border border-emerald-500/50" />
-            ) : (
-              <UserIcon className="w-4 h-4 text-emerald-400" />
-            )}
-            <div className="flex flex-col text-left hidden xl:block">
-              <span className="text-xs font-semibold text-slate-200 max-w-[100px] truncate block leading-tight">
-                {currentUser.displayName || currentUser.email?.split('@')[0]}
-              </span>
-              <span className="text-[9px] font-bold text-emerald-400 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block" />
-                Cloud Synced
-              </span>
-            </div>
+          <div className="relative">
             <button
-              onClick={logout}
-              className="p-1 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-rose-400 transition-colors ml-1"
-              title="Logout Firebase"
+              onClick={() => setShowSyncMenu(!showSyncMenu)}
+              className="flex items-center gap-2 bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 rounded-xl px-2.5 py-1 transition-all active:scale-95 shadow-sm"
+              title="Menu Sinkronisasi Cloud"
             >
-              <LogOut className="w-3.5 h-3.5" />
+              {currentUser.photoURL ? (
+                <img src={currentUser.photoURL} alt="Avatar" className="w-5 h-5 rounded-full border border-emerald-500/50" />
+              ) : (
+                <UserIcon className="w-4 h-4 text-emerald-400" />
+              )}
+              <div className="flex flex-col text-left hidden xl:block">
+                <span className="text-xs font-semibold text-slate-200 max-w-[100px] truncate block leading-tight">
+                  {currentUser.displayName || currentUser.email?.split('@')[0]}
+                </span>
+                <span className="text-[9px] font-bold text-emerald-400 flex items-center gap-1">
+                  <span className={`w-1.5 h-1.5 rounded-full ${isCloudSyncing ? 'bg-amber-400 animate-spin' : 'bg-emerald-400 animate-ping'} inline-block`} />
+                  {isCloudSyncing ? 'Syncing...' : 'Cloud Synced'}
+                </span>
+              </div>
+              <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${isCloudSyncing ? 'animate-spin' : ''}`} />
             </button>
+
+            {/* Sync Dropdown Popup */}
+            {showSyncMenu && (
+              <div className="absolute right-0 mt-2 w-56 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                <div className="px-3 py-2 border-b border-slate-800 mb-1">
+                  <p className="text-xs font-bold text-white truncate">{currentUser.displayName || 'Akun Cloud'}</p>
+                  <p className="text-[10px] text-slate-400 truncate">{currentUser.email}</p>
+                </div>
+
+                <button
+                  onClick={async () => {
+                    setShowSyncMenu(false);
+                    await pullCloudData();
+                  }}
+                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-slate-200 hover:bg-emerald-500/10 hover:text-emerald-300 flex items-center gap-2 transition-colors mb-1"
+                >
+                  <CloudDownload className="w-4 h-4 text-emerald-400" />
+                  <span>Tarik Data dari Cloud</span>
+                </button>
+
+                <button
+                  onClick={async () => {
+                    setShowSyncMenu(false);
+                    await pushCloudData();
+                  }}
+                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-slate-200 hover:bg-purple-500/10 hover:text-purple-300 flex items-center gap-2 transition-colors mb-1"
+                >
+                  <CloudUpload className="w-4 h-4 text-purple-400" />
+                  <span>Unggah Data ke Cloud</span>
+                </button>
+
+                <div className="border-t border-slate-800 pt-1 mt-1">
+                  <button
+                    onClick={() => {
+                      setShowSyncMenu(false);
+                      logout();
+                    }}
+                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 transition-colors"
+                  >
+                    <LogOut className="w-4 h-4 text-rose-400" />
+                    <span>Keluar Akun (Logout)</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <button

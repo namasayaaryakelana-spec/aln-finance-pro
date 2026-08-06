@@ -42,6 +42,8 @@ export const FirestoreSyncService = {
         if (snapshot.exists()) {
           const data = snapshot.data() as UserFinancialBundle;
           onDataReceived(data);
+        } else {
+          onDataReceived(null as any);
         }
       },
       (error) => {
