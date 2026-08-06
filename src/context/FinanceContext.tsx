@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { User, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { auth, googleProvider, testFirestoreConnection } from '../lib/firebase';
+import { FirestoreSyncService, UserFinancialBundle } from '../services/firestoreSync';
 import {
   Scope,
   Currency,
@@ -23,6 +24,8 @@ interface Toast {
   message: string;
 }
 
+export type SyncStatus = 'synced' | 'syncing' | 'local_only' | 'error';
+
 interface FinanceContextType {
   currentUser: User | null;
   loginWithGoogle: () => Promise<void>;
@@ -31,6 +34,9 @@ interface FinanceContextType {
   setScope: (scope: Scope) => void;
   currentCurrency: Currency;
   setCurrency: (currency: Currency) => void;
+
+  syncStatus: SyncStatus;
+  isCloudSyncing: boolean;
 
   wallets: Wallet[];
   transactions: Transaction[];
@@ -126,6 +132,10 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [isOffline, setIsOffline] = useState<boolean>(!navigator.onLine);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('local_only');
+  const [isCloudSyncing, setIsCloudSyncing] = useState<boolean>(false);
+  const isRemoteUpdateRef = useRef<boolean>(false);
+
   // Test connection & Auth state observer
   useEffect(() => {
     testFirestoreConnection();
@@ -134,11 +144,104 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
       setCurrentUser(user);
       if (user) {
         addToast('success', 'Firebase Auth', `Terhubung sebagai ${user.displayName || user.email}`);
+      } else {
+        setSyncStatus('local_only');
       }
     });
 
     return () => unsubscribe();
   }, []);
+
+  // Real-time Firestore Listener
+  useEffect(() => {
+    if (!currentUser) {
+      setSyncStatus('local_only');
+      return;
+    }
+
+    setSyncStatus('syncing');
+    let isInitial = true;
+
+    const unsubscribe = FirestoreSyncService.subscribeToUserData(
+      currentUser.uid,
+      (remoteData) => {
+        if (remoteData) {
+          isRemoteUpdateRef.current = true;
+          if (remoteData.wallets) { setWallets(remoteData.wallets); StorageService.saveWallets(remoteData.wallets); }
+          if (remoteData.transactions) { setTransactions(remoteData.transactions); StorageService.saveTransactions(remoteData.transactions); }
+          if (remoteData.categories) { setCategories(remoteData.categories); StorageService.saveCategories(remoteData.categories); }
+          if (remoteData.budgets) { setBudgets(remoteData.budgets); StorageService.saveBudgets(remoteData.budgets); }
+          if (remoteData.goals) { setGoals(remoteData.goals); StorageService.saveGoals(remoteData.goals); }
+          if (remoteData.debts) { setDebts(remoteData.debts); StorageService.saveDebts(remoteData.debts); }
+          if (remoteData.invoices) { setInvoices(remoteData.invoices); StorageService.saveInvoices(remoteData.invoices); }
+          if (remoteData.investments) { setInvestments(remoteData.investments); StorageService.saveInvestments(remoteData.investments); }
+          if (remoteData.auditLogs) { setAuditLogs(remoteData.auditLogs); StorageService.saveAuditLogs(remoteData.auditLogs); }
+
+          setSyncStatus('synced');
+          if (!isInitial) {
+            addToast('info', 'Cloud Sync', 'Data otomatis tersinkronisasi dari Firestore.');
+          }
+        } else {
+          // Cloud document does not exist yet -> Seed current local data to Firestore
+          const initialBundle: UserFinancialBundle = {
+            wallets,
+            transactions,
+            categories,
+            budgets,
+            goals,
+            debts,
+            invoices,
+            investments,
+            auditLogs
+          };
+          FirestoreSyncService.saveUserData(currentUser.uid, initialBundle).then(() => {
+            setSyncStatus('synced');
+            addToast('success', 'Cloud Setup', 'Data lokal berhasil disinkronkan ke akun Cloud Firebase.');
+          });
+        }
+        isInitial = false;
+      },
+      (err) => {
+        console.error('Cloud Sync Subscription Error:', err);
+        setSyncStatus('error');
+      }
+    );
+
+    return () => unsubscribe();
+  }, [currentUser]);
+
+  // Auto-push local changes to Cloud Firestore when authenticated
+  useEffect(() => {
+    if (!currentUser) return;
+    if (isRemoteUpdateRef.current) {
+      isRemoteUpdateRef.current = false;
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsCloudSyncing(true);
+      setSyncStatus('syncing');
+      const success = await FirestoreSyncService.saveUserData(currentUser.uid, {
+        wallets,
+        transactions,
+        categories,
+        budgets,
+        goals,
+        debts,
+        invoices,
+        investments,
+        auditLogs
+      });
+      setIsCloudSyncing(false);
+      if (success) {
+        setSyncStatus('synced');
+      } else {
+        setSyncStatus('error');
+      }
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [wallets, transactions, categories, budgets, goals, debts, invoices, investments, auditLogs, currentUser]);
 
   const loginWithGoogle = async () => {
     try {
@@ -729,6 +832,8 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         setScope,
         currentCurrency,
         setCurrency,
+        syncStatus,
+        isCloudSyncing,
         wallets,
         transactions,
         categories,

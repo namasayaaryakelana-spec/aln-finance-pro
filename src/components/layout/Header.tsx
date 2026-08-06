@@ -124,7 +124,7 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </button>
 
-        {/* Firebase Auth Button */}
+        {/* Firebase Auth & Sync Status Button */}
         {currentUser ? (
           <div className="flex items-center gap-2 bg-slate-900/80 border border-slate-800 rounded-xl px-2.5 py-1">
             {currentUser.photoURL ? (
@@ -132,12 +132,18 @@ export const Header: React.FC<HeaderProps> = ({
             ) : (
               <UserIcon className="w-4 h-4 text-emerald-400" />
             )}
-            <span className="text-xs font-semibold text-slate-200 hidden xl:inline max-w-[100px] truncate">
-              {currentUser.displayName || currentUser.email?.split('@')[0]}
-            </span>
+            <div className="flex flex-col text-left hidden xl:block">
+              <span className="text-xs font-semibold text-slate-200 max-w-[100px] truncate block leading-tight">
+                {currentUser.displayName || currentUser.email?.split('@')[0]}
+              </span>
+              <span className="text-[9px] font-bold text-emerald-400 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block" />
+                Cloud Synced
+              </span>
+            </div>
             <button
               onClick={logout}
-              className="p-1 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-rose-400 transition-colors"
+              className="p-1 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-rose-400 transition-colors ml-1"
               title="Logout Firebase"
             >
               <LogOut className="w-3.5 h-3.5" />
@@ -147,10 +153,10 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={loginWithGoogle}
             className="px-2.5 py-1.5 rounded-xl bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-500/30 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95"
-            title="Masuk dengan Google (Firebase)"
+            title="Masuk dengan Google (Firebase Auto Sync)"
           >
             <UserIcon className="w-3.5 h-3.5 text-blue-400" />
-            <span className="hidden sm:inline">Firebase Login</span>
+            <span className="hidden sm:inline">Firebase Sync</span>
           </button>
         )}
       </div>

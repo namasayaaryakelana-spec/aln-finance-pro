@@ -45,6 +45,14 @@ service cloud.firestore {
       allow update, delete: if isSignedIn() && existing().userId == request.auth.uid;
     }
 
+    // User document and subcollections store for real-time auto sync
+    match /users/{userId} {
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+    }
+    match /users/{userId}/{document=**} {
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+    }
+
     // Test connection document for initialization checks
     match /test/connection {
       allow read: if true;
