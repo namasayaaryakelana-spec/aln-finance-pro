@@ -118,39 +118,6 @@ app.post('/api/ai/fast-transaction', async (req, res) => {
       });
     }
 
-    const familyFinanceSchema = {
-      type: Type.OBJECT,
-      properties: {
-        transactions: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              title: { type: Type.STRING, description: "Nama / Keterangan transaksi" },
-              type: { type: Type.STRING, enum: ["EXPENSE", "INCOME"], description: "EXPENSE untuk Kredit / Pengeluaran, INCOME untuk Debet / Pemasukan" },
-              debit: { type: Type.NUMBER, description: "Nominal angka jika PEMASUKAN (Menambah Saldo), 0 jika Pengeluaran" },
-              credit: { type: Type.NUMBER, description: "Nominal angka jika PENGELUARAN (Mengurangi Saldo), 0 jika Pemasukan" },
-              paid_by: { type: Type.STRING, nullable: true, description: "Nama/subjek pembayar (contoh: Lana, Lina, Ayah, Ibu), atau null" },
-              scope: { type: Type.STRING, enum: ["SHARED", "PERSONAL"], description: "SHARED (kebutuhan bersama) atau PERSONAL (kebutuhan pribadi)" },
-              account: { type: Type.STRING, nullable: true, description: "Sumber bank/dompet digital (contoh: BCA, Cash, GoPay, Mandiri), atau null" },
-              category: { 
-                type: Type.STRING, 
-                description: "Kategori utama transaksi sesuai master acuan" 
-              },
-              subcategory: {
-                type: Type.STRING,
-                description: "Sub-kategori transaksi sesuai acuan master"
-              },
-              transaction_date: { type: Type.STRING, nullable: true, description: "Tanggal transaksi format YYYY-MM-DD jika disebutkan, atau null" },
-              is_high_impact: { type: Type.BOOLEAN, description: "Set true jika berupa EXPENSE bernominal besar (> 200rb), else false" }
-            },
-            required: ["title", "type", "debit", "credit", "scope", "category", "subcategory", "is_high_impact"]
-          }
-        }
-      },
-      required: ["transactions"]
-    };
-
     const textInstruction = `Anda adalah modul AI parser pencatatan Buku Kas Keuangan Keluarga/Rumah Tangga. Tugas Anda adalah mengubah teks catatan transaksi kasual menjadi format pencatatan Buku Kas terstruktur (Debet & Kredit).
 
 ===============================================================
@@ -171,7 +138,6 @@ PRINSIP BUKU KAS (DEBET & KREDIT):
 ===============================================================
 MASTER KATEGORI & SUB-KATEGORI ACUAN:
 ===============================================================
-
 1. MASTER PEMASUKAN (DEBET / INCOME):
    - Kategori: "Penghasilan Utama"
      └─ Sub-kategori: "Gaji Suami", "Gaji Istri", "Transport Bulanan", "Insentif / Tunjangan"
@@ -197,43 +163,74 @@ ATURAN UTAMA EKSTRAKSI MULTI-TRANSAKSI (SANGAT PENTING):
 ===============================================================
 1. WAJIB SPLIT BANYAK TRANSAKSI:
    - Jika terdapat kata penghubung seperti: "terus", "lalu", "kemudian", "habis itu", "setelah itu", "selanjutnya", "dan", "&", "plus", "sama", "lanjut", "berikutnya", koma (,), atau titik koma (;), ATAU terdapat lebih dari 1 nominal/aktivitas dalam kalimat, WAJIB MEMECAHNYA menjadi beberapa objek transaksi terpisah di dalam array 'transactions'.
-   - CONTOH: "Lana bayar bensin 50rb pake bca, terus beli gas lpg 22k cash" -> HARUS MENJADI 2 TRANSAKSI DALAM ARRAY:
-     * Transaksi 1: title="Bayar bensin", credit=50000, paid_by="Lana", account="BCA", category="Transportasi", subcategory="Bensin"
-     * Transaksi 2: title="Beli gas LPG", credit=22000, paid_by="Lana", account="Cash", category="Bill & Utilitas", subcategory="Gas LPG"
-   - Jumlah nominal / aktivitas = Jumlah objek transaksi dalam array. JANGAN PERNAH menggabungkan beberapa aktivitas terpisah menjadi 1 transaksi tunggal.
+   - JIKA TERDAPAT N AKTIVITAS / NOMINAL ANGKA, ARRAY TRANSACTIONS HARUS BERISI TEPAT N OBJEK TRANSAKSI.
+   - JANGAN PERNAH menggabungkan dua atau lebih aktivitas terpisah menjadi 1 objek transaksi tunggal.
 
 2. ATURAN PEWARISAN KONTEKS (INHERITANCE):
    - Jika transaksi berikutnya TIDAK menyebutkan nama pembayar ("paid_by") atau sumber akun ("account") secara spesifik, transaksi tersebut WAJIB MEWARISI (inherit) nilai "paid_by" dan/atau "account" dari transaksi sebelumnya dalam urutan kalimat!
    - CONTOH: "Lana beli bensin 50rb bca terus beli kopi 20rb"
-     * Transaksi 1: paid_by="Lana", account="BCA"
-     * Transaksi 2: paid_by="Lana" (mewarisi), account="BCA" (mewarisi)
+     * Transaksi 1: title="Beli bensin", credit=50000, paid_by="Lana", account="BCA"
+     * Transaksi 2: title="Beli kopi", credit=20000, paid_by="Lana", account="BCA"
    - Namun jika transaksi berikutnya menyebutkan akun lain (misal: "cash", "gopay", "mandiri"), gunakan akun baru tersebut untuk transaksi itu.
-     * CONTOH: "Lana beli bensin 50rb BCA terus beli LPG 22rb cash" -> Tx 1 account="BCA", Tx 2 account="Cash", kedua transaksi paid_by="Lana".
+     * CONTOH: "Lana beli bensin 50rb BCA terus beli LPG 22rb cash"
+       -> Transaksi 1: title="Beli bensin", credit=50000, paid_by="Lana", account="BCA"
+       -> Transaksi 2: title="Beli LPG", credit=22000, paid_by="Lana", account="Cash"
 
 3. PEMASANGAN NOMINAL & AKUN:
    - Pasangkan nominal angka dengan deskripsi aktivitas terdekat.
-   - Kenali berbagai format nominal angka: 50rb, 50 rb, 50ribu, 50 ribu, 22k, 22 k, 1jt, 1.5jt, 2 juta, 250000, 250.000, 250,000 -> Konversi menjadi integer rupiah.
-   - Akun pembayaran (account): BCA, Mandiri, GoPay, OVO, ShopeePay, Cash/Tunai, Kredit, dll.
+   - Kenali berbagai format nominal angka: 50rb, 50 rb, 50ribu, 50 ribu, 22k, 22 k, 1jt, 1.5jt, 2 juta, 250000, 250.000, 250,000 -> Konversi menjadi integer rupiah.`;
 
-4. KATALOG AKTIVITAS & TIPE:
-   - Pemasukan (INCOME/DEBIT): transfer masuk, terima, dapat, gaji, bonus, honor, refund, omzet, jualan.
-   - Pengeluaran (EXPENSE/CREDIT): bayar, beli, isi, topup, top up, setor, tarik, cicilan, listrik, air, internet, bensin, makan, jajan, gas, dll.
+    const familyFinanceSchema = {
+      type: Type.OBJECT,
+      properties: {
+        transactions: {
+          type: Type.ARRAY,
+          description: "Daftar seluruh transaksi terpisah. Buat 1 objek per aktivitas/nominal angka.",
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              title: { type: Type.STRING, description: "Deskripsi singkat aktivitas spesifik (misal: 'Bayar bensin', 'Beli gas LPG')" },
+              type: { type: Type.STRING, enum: ["EXPENSE", "INCOME"], description: "EXPENSE atau INCOME" },
+              debit: { type: Type.NUMBER, description: "Nominal jika PEMASUKAN, else 0" },
+              credit: { type: Type.NUMBER, description: "Nominal jika PENGELUARAN, else 0" },
+              paid_by: { type: Type.STRING, nullable: true, description: "Nama pembayar (contoh: Lana). Mewarisi transaksi sebelumnya jika null" },
+              scope: { type: Type.STRING, enum: ["SHARED", "PERSONAL"], description: "SHARED atau PERSONAL" },
+              account: { type: Type.STRING, nullable: true, description: "Sumber bank/dompet (contoh: BCA, Cash). Mewarisi transaksi sebelumnya jika null" },
+              category: { type: Type.STRING, description: "Kategori utama transaksi" },
+              subcategory: { type: Type.STRING, description: "Sub-kategori transaksi" },
+              transaction_date: { type: Type.STRING, nullable: true, description: "Tanggal YYYY-MM-DD atau null" },
+              is_high_impact: { type: Type.BOOLEAN, description: "Set true jika EXPENSE > 200rb" }
+            },
+            required: ["title", "type", "debit", "credit", "scope", "category", "subcategory", "is_high_impact"]
+          }
+        }
+      },
+      required: ["transactions"]
+    };
 
-Input Pengguna: ${prompt ? `"${prompt}"` : 'Gambar Struk/Nota'}`;
+    // Pre-check for multi-clause inputs
+    const conjunctionRegex = /\b(?:terus|lalu|kemudian|habis\s+itu|setelah\s+itu|selanjutnya|dan|&|plus|sama|lanjut|berikutnya)\b|[,;]/gi;
+    const splitClauses = prompt ? prompt.split(conjunctionRegex).map((s: string) => s.trim()).filter(Boolean) : [];
 
-    contentsParts.push({ text: textInstruction });
+    let promptUserInstruction = prompt ? `Input Pengguna: "${prompt}"` : 'Gambar Struk/Nota';
+    if (splitClauses.length > 1) {
+      promptUserInstruction += `\n\nPERHATIAN SANGAT PENTING: Input tersebut memiliki ${splitClauses.length} bagian aktivitas (${JSON.stringify(splitClauses)}). Anda WAJIB mengembalikan TEPAT ${splitClauses.length} objek transaksi terpisah di dalam array transactions!`;
+    }
+
+    contentsParts.push({ text: promptUserInstruction });
 
     const response = await ai.models.generateContent({
       model: 'gemini-3.6-flash',
       contents: { parts: contentsParts },
       config: {
+        systemInstruction: textInstruction,
         responseMimeType: 'application/json',
         responseSchema: familyFinanceSchema
       }
     });
 
     const parsedData = JSON.parse(response.text || '{"transactions":[]}');
-    const transactionsList = (parsedData.transactions || []).map((t: any) => {
+    let transactionsList = (parsedData.transactions || []).map((t: any) => {
       const isIncome = (t.type || 'EXPENSE').toUpperCase() === 'INCOME';
       const debitVal = isIncome ? (t.debit || t.amount || 0) : 0;
       const creditVal = !isIncome ? (t.credit || t.amount || 0) : 0;
@@ -255,6 +252,22 @@ Input Pengguna: ${prompt ? `"${prompt}"` : 'Gambar Struk/Nota'}`;
         is_high_impact: Boolean(t.is_high_impact),
         date: t.transaction_date || t.date || new Date().toISOString().split('T')[0]
       };
+    });
+
+    // Apply context inheritance pass to ensure paid_by and account inherit properly
+    let runningPaidBy: string | null = null;
+    let runningAccount: string | null = null;
+
+    transactionsList = transactionsList.map((tx: any) => {
+      if (tx.paid_by) runningPaidBy = tx.paid_by;
+      else tx.paid_by = runningPaidBy;
+
+      if (tx.account) runningAccount = tx.account;
+      else {
+        tx.account = runningAccount;
+        tx.walletName = runningAccount;
+      }
+      return tx;
     });
 
     res.json({ success: true, transactions: transactionsList, transaction: transactionsList[0] || null });
