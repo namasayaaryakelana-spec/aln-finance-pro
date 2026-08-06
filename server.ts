@@ -193,29 +193,31 @@ MASTER KATEGORI & SUB-KATEGORI ACUAN:
      └─ Sub-kategori: "Obat & Vitamin", "Dokter / Rumah Sakit"
 
 ===============================================================
-ATURAN EKSTRAKSI & VALIDASI:
+ATURAN UTAMA EKSTRAKSI MULTI-TRANSAKSI (SANGAT PENTING):
 ===============================================================
+1. WAJIB SPLIT BANYAK TRANSAKSI:
+   - Jika terdapat kata penghubung seperti: "terus", "lalu", "kemudian", "habis itu", "setelah itu", "selanjutnya", "dan", "&", "plus", "sama", "lanjut", "berikutnya", koma (,), atau titik koma (;), ATAU terdapat lebih dari 1 nominal/aktivitas dalam kalimat, WAJIB MEMECAHNYA menjadi beberapa objek transaksi terpisah di dalam array `transactions`.
+   - CONTOH: "Lana bayar bensin 50rb pake bca, terus beli gas lpg 22k cash" -> HARUS MENJADI 2 TRANSAKSI DALAM ARRAY:
+     * Transaksi 1: title="Bayar bensin", credit=50000, paid_by="Lana", account="BCA", category="Transportasi", subcategory="Bensin"
+     * Transaksi 2: title="Beli gas LPG", credit=22000, paid_by="Lana", account="Cash", category="Bill & Utilitas", subcategory="Gas LPG"
+   - Jumlah nominal / aktivitas = Jumlah objek transaksi dalam array. JANGAN PERNAH menggabungkan beberapa aktivitas terpisah menjadi 1 transaksi tunggal.
 
-1. KONVERSI ANGKA:
-   - "k" / "rb" = x 1.000 (contoh: 25k -> 25000, 50rb -> 50000)
-   - "jt" = x 1.000.000 (contoh: 1.5jt -> 1500000)
+2. ATURAN PEWARISAN KONTEKS (INHERITANCE):
+   - Jika transaksi berikutnya TIDAK menyebutkan nama pembayar ("paid_by") atau sumber akun ("account") secara spesifik, transaksi tersebut WAJIB MEWARISI (inherit) nilai "paid_by" dan/atau "account" dari transaksi sebelumnya dalam urutan kalimat!
+   - CONTOH: "Lana beli bensin 50rb bca terus beli kopi 20rb"
+     * Transaksi 1: paid_by="Lana", account="BCA"
+     * Transaksi 2: paid_by="Lana" (mewarisi), account="BCA" (mewarisi)
+   - Namun jika transaksi berikutnya menyebutkan akun lain (misal: "cash", "gopay", "mandiri"), gunakan akun baru tersebut untuk transaksi itu.
+     * CONTOH: "Lana beli bensin 50rb BCA terus beli LPG 22rb cash" -> Tx 1 account="BCA", Tx 2 account="Cash", kedua transaksi paid_by="Lana".
 
-2. HITMAP KALENDER & TANGGAL ("transaction_date"):
-   - Ekstrak keterangan waktu (misal: "kemarin", "tgl 15", "2 hari lalu") dan konversikan ke format YYYY-MM-DD. Tanggal acuan hari ini adalah ${new Date().toISOString().split('T')[0]}.
-   - Jika tidak ada keterangan waktu dalam teks, isi dengan null.
+3. PEMASANGAN NOMINAL & AKUN:
+   - Pasangkan nominal angka dengan deskripsi aktivitas terdekat.
+   - Kenali berbagai format nominal angka: 50rb, 50 rb, 50ribu, 50 ribu, 22k, 22 k, 1jt, 1.5jt, 2 juta, 250000, 250.000, 250,000 -> Konversi menjadi integer rupiah.
+   - Akun pembayaran (account): BCA, Mandiri, GoPay, OVO, ShopeePay, Cash/Tunai, Kredit, dll.
 
-3. INDIKATOR PENGELUARAN BESAR ("is_high_impact"):
-   - Set true jika berupa transaksi Kredit/Pengeluaran bernominal besar (di atas Rp 200.000 / disesuaikan) yang berpotensi menjadi Hari Paling Boros di Kalender Heatmap. Sebaliknya set false.
-
-4. PEMBAYAR / SUBJEK ("paid_by"):
-   - Ekstrak nama jika ada (contoh: "Lana", "Lina", "Ayah", "Ibu"). Jika tidak ada, isi null.
-
-5. CAKUPAN ("scope"):
-   - "SHARED": Kebutuhan Bersama / Rumah Tangga.
-   - "PERSONAL": Kebutuhan Pribadi.
-
-6. MULTI-TRANSAKSI:
-   - Ekstrak seluruh transaksi jika terdapat lebih dari satu dalam 1 teks input.
+4. KATALOG AKTIVITAS & TIPE:
+   - Pemasukan (INCOME/DEBIT): transfer masuk, terima, dapat, gaji, bonus, honor, refund, omzet, jualan.
+   - Pengeluaran (EXPENSE/CREDIT): bayar, beli, isi, topup, top up, setor, tarik, cicilan, listrik, air, internet, bensin, makan, jajan, gas, dll.
 
 Input Pengguna: ${prompt ? `"${prompt}"` : 'Gambar Struk/Nota'}`;
 

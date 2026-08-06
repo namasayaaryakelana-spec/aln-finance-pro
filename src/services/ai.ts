@@ -47,78 +47,102 @@ Maaf, koneksi ke AI Gemini server sedang tidak tersedia atau dalam mode offline.
     } catch (error) {
       console.warn('Fast transaction parsing failed, falling back to basic extraction:', error);
       
-      // Fallback regex parsing supporting "k", "rb", "jt"
-      const matchesAmount = promptText.match(/(\d+(?:[\.,]\d+)?)\s*(rb|ribu|jt|juta|k|m)?/i);
-      let amount = 50000;
-      if (matchesAmount) {
-        let rawNum = parseFloat(matchesAmount[1].replace(',', '.'));
-        const unit = (matchesAmount[2] || '').toLowerCase();
-        if (unit === 'rb' || unit === 'ribu' || unit === 'k') rawNum *= 1000;
-        if (unit === 'jt' || unit === 'juta' || unit === 'm') rawNum *= 1000000;
-        amount = rawNum;
+      // Fallback regex parsing supporting multi-transaction splitting & context inheritance
+      const conjunctionRegex = /\b(?:terus|lalu|kemudian|habis\s+itu|setelah\s+itu|selanjutnya|dan|&|plus|sama|lanjut|berikutnya)\b|[,;]/gi;
+      const rawClauses = promptText.split(conjunctionRegex).map(c => c.trim()).filter(Boolean);
+      const clauses = rawClauses.length > 0 ? rawClauses : [promptText];
+
+      let runningPaidBy: string | null = null;
+      let runningAccount: string | null = null;
+      const parsedTxList: any[] = [];
+
+      for (const clause of clauses) {
+        // Extract amount supporting "k", "rb", "ribu", "jt", "juta", dots and commas
+        const matchesAmount = clause.match(/(\d+(?:[\.,]\d+)?)\s*(rb|ribu|jt|juta|k|m)?/i);
+        let amount = 0;
+        if (matchesAmount) {
+          let rawNum = parseFloat(matchesAmount[1].replace(',', '.'));
+          const unit = (matchesAmount[2] || '').toLowerCase();
+          if (unit === 'rb' || unit === 'ribu' || unit === 'k') rawNum *= 1000;
+          else if (unit === 'jt' || unit === 'juta' || unit === 'm') rawNum *= 1000000;
+          amount = rawNum;
+        }
+
+        const isIncome = /gaji|pemasukan|omzet|dapat|terima|dijual|transfer masuk|bonus|refund|honor/i.test(clause);
+
+        // Extract paid_by (or inherit)
+        if (/lana/i.test(clause)) runningPaidBy = 'Lana';
+        else if (/lina/i.test(clause)) runningPaidBy = 'Lina';
+        else if (/ayah|suami/i.test(clause)) runningPaidBy = 'Ayah';
+        else if (/ibu|istri/i.test(clause)) runningPaidBy = 'Ibu';
+
+        // Extract account (or inherit)
+        if (/bca/i.test(clause)) runningAccount = 'BCA';
+        else if (/mandiri/i.test(clause)) runningAccount = 'Mandiri';
+        else if (/gopay/i.test(clause)) runningAccount = 'GoPay';
+        else if (/ovo/i.test(clause)) runningAccount = 'OVO';
+        else if (/cash|tunai/i.test(clause)) runningAccount = 'Cash';
+
+        // Category & Subcategory Taxonomy
+        let category = isIncome ? 'Penghasilan Utama' : 'Transportasi';
+        let subcategory = isIncome ? 'Gaji Suami' : 'Bensin';
+
+        if (isIncome) {
+          if (/gaji suami/i.test(clause)) { category = 'Penghasilan Utama'; subcategory = 'Gaji Suami'; }
+          else if (/gaji istri/i.test(clause)) { category = 'Penghasilan Utama'; subcategory = 'Gaji Istri'; }
+          else if (/honor|kegiatan/i.test(clause)) { category = 'Penghasilan Sampingan'; subcategory = 'Honorarium Kegiatan'; }
+          else if (/bonus|rapat/i.test(clause)) { category = 'Penghasilan Sampingan'; subcategory = 'Transport Rapat / Bonus'; }
+          else if (/usaha|sampingan/i.test(clause)) { category = 'Penghasilan Sampingan'; subcategory = 'Usaha Sampingan'; }
+          else if (/refund|hadiah|investasi|pemberian/i.test(clause)) { category = 'Pemasukan Lainnya'; subcategory = 'Refunds / Reimbursements'; }
+        } else {
+          if (/bensin|pertamax|pertalite/i.test(clause)) { category = 'Transportasi'; subcategory = 'Bensin'; }
+          else if (/parkir/i.test(clause)) { category = 'Transportasi'; subcategory = 'Parkir'; }
+          else if (/servis|bengkel/i.test(clause)) { category = 'Transportasi'; subcategory = 'Servis & Perawatan'; }
+          else if (/belanja dapur|sayur|beras|pasar/i.test(clause)) { category = 'Makan'; subcategory = 'Belanja Dapur'; }
+          else if (/makan diluar|resto|kafe|makan malam|makan siang/i.test(clause)) { category = 'Makan'; subcategory = 'Makan Diluar'; }
+          else if (/jajan|snack|kopi/i.test(clause)) { category = 'Makan'; subcategory = 'Jajan'; }
+          else if (/listrik|pln/i.test(clause)) { category = 'Bill & Utilitas'; subcategory = 'Listrik'; }
+          else if (/gas|lpg/i.test(clause)) { category = 'Bill & Utilitas'; subcategory = 'Gas LPG'; }
+          else if (/wifi|internet/i.test(clause)) { category = 'Bill & Utilitas'; subcategory = 'Wifi'; }
+          else if (/pampers|popok/i.test(clause)) { category = 'Kebutuhan Keluarga & Anak'; subcategory = 'Pampers / Popok'; }
+          else if (/susu/i.test(clause)) { category = 'Kebutuhan Keluarga & Anak'; subcategory = 'Susu & Perlengkapan'; }
+          else if (/sekolah|daycare|spp/i.test(clause)) { category = 'Kebutuhan Keluarga & Anak'; subcategory = 'Sekolah / Daycare'; }
+          else if (/obat|vitamin|dokter/i.test(clause)) { category = 'Kesehatan'; subcategory = 'Obat & Vitamin'; }
+        }
+
+        const isShared = /listrik|gas|lpg|dapur|sekolah|susu|popok|pampers|wifi|anak|rumah/i.test(clause);
+        const scope = isShared ? 'SHARED' : 'PERSONAL';
+        const finalAmount = amount || 50000;
+        const is_high_impact = !isIncome && finalAmount >= 100000;
+
+        parsedTxList.push({
+          title: clause || 'Catatan Transaksi',
+          amount: finalAmount,
+          type: isIncome ? 'INCOME' : 'EXPENSE',
+          paid_by: runningPaidBy,
+          scope,
+          account: runningAccount,
+          category,
+          subcategory,
+          transaction_date: null,
+          is_high_impact,
+          walletName: runningAccount,
+          date: new Date().toISOString().split('T')[0]
+        });
       }
-      const isIncome = /gaji|pemasukan|omzet|dapat|terima|dijual|transfer masuk/i.test(promptText);
 
-      // Extract paid_by
-      let paid_by: string | null = null;
-      if (/lana/i.test(promptText)) paid_by = 'Lana';
-      else if (/lina/i.test(promptText)) paid_by = 'Lina';
-      else if (/ayah|suami/i.test(promptText)) paid_by = 'Ayah';
-      else if (/ibu|istri/i.test(promptText)) paid_by = 'Ibu';
-
-      // Extract account
-      let account: string | null = null;
-      if (/bca/i.test(promptText)) account = 'BCA';
-      else if (/mandiri/i.test(promptText)) account = 'Mandiri';
-      else if (/gopay/i.test(promptText)) account = 'GoPay';
-      else if (/ovo/i.test(promptText)) account = 'OVO';
-      else if (/cash|tunai/i.test(promptText)) account = 'Cash';
-
-      // Category & Subcategory Taxonomy
-      let category = isIncome ? 'Penghasilan Utama' : 'Transportasi';
-      let subcategory = isIncome ? 'Gaji Suami' : 'Bensin';
-
-      if (isIncome) {
-        if (/gaji suami/i.test(promptText)) { category = 'Penghasilan Utama'; subcategory = 'Gaji Suami'; }
-        else if (/gaji istri/i.test(promptText)) { category = 'Penghasilan Utama'; subcategory = 'Gaji Istri'; }
-        else if (/honor|kegiatan/i.test(promptText)) { category = 'Penghasilan Sampingan'; subcategory = 'Honorarium Kegiatan'; }
-        else if (/bonus|rapat/i.test(promptText)) { category = 'Penghasilan Sampingan'; subcategory = 'Transport Rapat / Bonus'; }
-        else if (/usaha|sampingan/i.test(promptText)) { category = 'Penghasilan Sampingan'; subcategory = 'Usaha Sampingan'; }
-        else if (/refund|hadiah|investasi|pemberian/i.test(promptText)) { category = 'Pemasukan Lainnya'; subcategory = 'Refunds / Reimbursements'; }
-        else { category = 'Penghasilan Utama'; subcategory = 'Gaji Suami'; }
-      } else {
-        if (/bensin|pertamax|pertalite/i.test(promptText)) { category = 'Transportasi'; subcategory = 'Bensin'; }
-        else if (/parkir/i.test(promptText)) { category = 'Transportasi'; subcategory = 'Parkir'; }
-        else if (/servis|bengkel/i.test(promptText)) { category = 'Transportasi'; subcategory = 'Servis & Perawatan'; }
-        else if (/belanja dapur|sayur|beras|pasar/i.test(promptText)) { category = 'Makan'; subcategory = 'Belanja Dapur'; }
-        else if (/makan diluar|resto|kafe|makan malam|makan siang/i.test(promptText)) { category = 'Makan'; subcategory = 'Makan Diluar'; }
-        else if (/jajan|snack|kopi/i.test(promptText)) { category = 'Makan'; subcategory = 'Jajan'; }
-        else if (/listrik|pln/i.test(promptText)) { category = 'Bill & Utilitas'; subcategory = 'Listrik'; }
-        else if (/gas|lpg/i.test(promptText)) { category = 'Bill & Utilitas'; subcategory = 'Gas LPG'; }
-        else if (/wifi|internet/i.test(promptText)) { category = 'Bill & Utilitas'; subcategory = 'Wifi'; }
-        else if (/pampers|popok/i.test(promptText)) { category = 'Kebutuhan Keluarga & Anak'; subcategory = 'Pampers / Popok'; }
-        else if (/susu/i.test(promptText)) { category = 'Kebutuhan Keluarga & Anak'; subcategory = 'Susu & Perlengkapan'; }
-        else if (/sekolah|daycare|spp/i.test(promptText)) { category = 'Kebutuhan Keluarga & Anak'; subcategory = 'Sekolah / Daycare'; }
-        else if (/obat|vitamin|dokter/i.test(promptText)) { category = 'Kesehatan'; subcategory = 'Obat & Vitamin'; }
-      }
-
-      // Extract scope
-      const isShared = /listrik|gas|lpg|dapur|sekolah|susu|popok|pampers|wifi|anak|rumah/i.test(promptText);
-      const scope = isShared ? 'SHARED' : 'PERSONAL';
-      const is_high_impact = !isIncome && amount >= 100000;
-
-      return [{
+      return parsedTxList.length > 0 ? parsedTxList : [{
         title: promptText || 'Transaksi AI',
-        amount,
-        type: isIncome ? 'INCOME' : 'EXPENSE',
-        paid_by,
-        scope,
-        account,
-        category,
-        subcategory,
+        amount: 50000,
+        type: 'EXPENSE',
+        paid_by: null,
+        scope: 'PERSONAL',
+        account: null,
+        category: 'Transportasi',
+        subcategory: 'Bensin',
         transaction_date: null,
-        is_high_impact,
-        walletName: account,
+        is_high_impact: false,
+        walletName: null,
         date: new Date().toISOString().split('T')[0]
       }];
     }
