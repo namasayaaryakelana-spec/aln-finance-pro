@@ -143,11 +143,11 @@ export const AddInvoiceModal: React.FC<AddInvoiceModalProps> = ({ isOpen, onClos
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="bg-[#0A0F1D] border border-slate-800 w-full max-w-2xl rounded-3xl p-6 relative text-slate-100 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
+    <div className="fixed inset-0 z-50 bg-[#0B1220]/85 backdrop-blur-xl flex items-center justify-center p-4">
+      <div className="bg-[#121A2A] border border-[rgba(255,255,255,0.12)] w-full max-w-2xl rounded-3xl p-6 relative text-white shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar animate-fade-in">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-full bg-slate-900 text-slate-400 hover:text-white"
+          className="absolute top-5 right-5 p-2 rounded-2xl bg-[#0B1220] text-[#7C8799] hover:text-white border border-[rgba(255,255,255,0.08)] transition-all"
         >
           <X className="w-4 h-4" />
         </button>
@@ -158,128 +158,128 @@ export const AddInvoiceModal: React.FC<AddInvoiceModalProps> = ({ isOpen, onClos
 
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           {/* Section 1: Profil Perusahaan Penerbit */}
-          <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
-            <h4 className="text-xs font-extrabold text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
+          <div className="bg-[#0B1220] p-4.5 rounded-2xl border border-[rgba(255,255,255,0.08)] space-y-3">
+            <h4 className="text-xs font-extrabold text-[#F6D365] uppercase tracking-wider flex items-center gap-1.5">
               🏢 Perusahaan / Bisnis Penerbit (Pengirim)
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-slate-400 font-bold mb-1">Nama Perusahaan / Bisnis</label>
+                <label className="block text-[#BFC8D6] font-bold mb-1">Nama Perusahaan / Bisnis</label>
                 <input
                   type="text"
                   placeholder="Mis: PT ALN Digital Technology"
                   value={companyName}
                   onChange={e => setCompanyName(e.target.value)}
-                  className="w-full bg-slate-900 px-3 py-2 rounded-xl border border-slate-800 text-white font-medium focus:outline-none focus:border-blue-500"
+                  className="w-full bg-[#121A2A] px-3.5 py-2.5 rounded-xl border border-[rgba(255,255,255,0.08)] text-white font-medium focus:outline-none focus:border-[#D4AF37]"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-400 font-bold mb-1">Email Perusahaan</label>
+                <label className="block text-[#BFC8D6] font-bold mb-1">Email Perusahaan</label>
                 <input
                   type="email"
                   placeholder="billing@perusahaan.com"
                   value={companyEmail}
                   onChange={e => setCompanyEmail(e.target.value)}
-                  className="w-full bg-slate-900 px-3 py-2 rounded-xl border border-slate-800 text-white font-medium focus:outline-none focus:border-blue-500"
+                  className="w-full bg-[#121A2A] px-3.5 py-2.5 rounded-xl border border-[rgba(255,255,255,0.08)] text-white font-medium focus:outline-none focus:border-[#D4AF37]"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-400 font-bold mb-1">Telepon / WhatsApp Bisnis</label>
+                <label className="block text-[#BFC8D6] font-bold mb-1">Telepon / WhatsApp Bisnis</label>
                 <input
                   type="text"
                   placeholder="+62 812-3456-7890"
                   value={companyPhone}
                   onChange={e => setCompanyPhone(e.target.value)}
-                  className="w-full bg-slate-900 px-3 py-2 rounded-xl border border-slate-800 text-white font-medium focus:outline-none focus:border-blue-500"
+                  className="w-full bg-[#121A2A] px-3.5 py-2.5 rounded-xl border border-[rgba(255,255,255,0.08)] text-white font-medium focus:outline-none focus:border-[#D4AF37]"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-400 font-bold mb-1">Alamat Perusahaan</label>
+                <label className="block text-[#BFC8D6] font-bold mb-1">Alamat Perusahaan</label>
                 <input
                   type="text"
                   placeholder="Gedung / Jalan, Kota"
                   value={companyAddress}
                   onChange={e => setCompanyAddress(e.target.value)}
-                  className="w-full bg-slate-900 px-3 py-2 rounded-xl border border-slate-800 text-white font-medium focus:outline-none focus:border-blue-500"
+                  className="w-full bg-[#121A2A] px-3.5 py-2.5 rounded-xl border border-[rgba(255,255,255,0.08)] text-white font-medium focus:outline-none focus:border-[#D4AF37]"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-slate-400 font-bold mb-1">Rekening Pembayaran / No. Bank</label>
+              <label className="block text-[#BFC8D6] font-bold mb-1">Rekening Pembayaran / No. Bank</label>
               <input
                 type="text"
                 placeholder="Mis: Bank BCA: 8830-1928-31 a/n PT ALN Digital"
                 value={companyBankDetails}
                 onChange={e => setCompanyBankDetails(e.target.value)}
-                className="w-full bg-slate-900 px-3 py-2 rounded-xl border border-slate-800 text-white font-medium focus:outline-none focus:border-blue-500"
+                className="w-full bg-[#121A2A] px-3.5 py-2.5 rounded-xl border border-[rgba(255,255,255,0.08)] text-white font-medium focus:outline-none focus:border-[#D4AF37]"
               />
             </div>
           </div>
 
           {/* Section 2: Profil Klien */}
-          <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
-            <h4 className="text-xs font-extrabold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+          <div className="bg-[#0B1220] p-4.5 rounded-2xl border border-[rgba(255,255,255,0.08)] space-y-3">
+            <h4 className="text-xs font-extrabold text-[#22C55E] uppercase tracking-wider flex items-center gap-1.5">
               👤 Ditujukan Kepada (Klien / Pembeli)
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-slate-400 font-bold mb-1">Nama Klien / PT Klien *</label>
+                <label className="block text-[#BFC8D6] font-bold mb-1">Nama Klien / PT Klien *</label>
                 <input
                   type="text"
                   placeholder="Mis: PT Global Media Nusantara"
                   value={clientName}
                   onChange={e => setClientName(e.target.value)}
                   required
-                  className="w-full bg-slate-900 px-3 py-2 rounded-xl border border-slate-800 text-white font-medium focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-[#121A2A] px-3.5 py-2.5 rounded-xl border border-[rgba(255,255,255,0.08)] text-white font-medium focus:outline-none focus:border-[#22C55E]"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-400 font-bold mb-1">Email Klien</label>
+                <label className="block text-[#BFC8D6] font-bold mb-1">Email Klien</label>
                 <input
                   type="email"
                   placeholder="finance@klien.com"
                   value={clientEmail}
                   onChange={e => setClientEmail(e.target.value)}
-                  className="w-full bg-slate-900 px-3 py-2 rounded-xl border border-slate-800 text-white font-medium focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-[#121A2A] px-3.5 py-2.5 rounded-xl border border-[rgba(255,255,255,0.08)] text-white font-medium focus:outline-none focus:border-[#22C55E]"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-400 font-bold mb-1">Alamat Klien</label>
+                <label className="block text-[#BFC8D6] font-bold mb-1">Alamat Klien</label>
                 <input
                   type="text"
                   placeholder="Jl. Sudirman No. 45, Jakarta"
                   value={clientAddress}
                   onChange={e => setClientAddress(e.target.value)}
-                  className="w-full bg-slate-900 px-3 py-2 rounded-xl border border-slate-800 text-white font-medium focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-[#121A2A] px-3.5 py-2.5 rounded-xl border border-[rgba(255,255,255,0.08)] text-white font-medium focus:outline-none focus:border-[#22C55E]"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-400 font-bold mb-1">Jatuh Tempo Pembayaran</label>
+                <label className="block text-[#BFC8D6] font-bold mb-1">Jatuh Tempo Pembayaran</label>
                 <input
                   type="date"
                   value={dueDate}
                   onChange={e => setDueDate(e.target.value)}
-                  className="w-full bg-slate-900 px-3 py-2 rounded-xl border border-slate-800 text-white font-medium focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-[#121A2A] px-3.5 py-2.5 rounded-xl border border-[rgba(255,255,255,0.08)] text-white font-medium focus:outline-none focus:border-[#22C55E]"
                 />
               </div>
             </div>
           </div>
 
           {/* Itemized Billing Table */}
-          <div className="space-y-2 border-t border-slate-800 pt-3">
+          <div className="space-y-2 border-t border-[rgba(255,255,255,0.08)] pt-3">
             <div className="flex justify-between items-center">
-              <label className="font-bold text-slate-300">Rincian Item Jasa / Produk</label>
+              <label className="font-bold text-[#BFC8D6]">Rincian Item Jasa / Produk</label>
               <button
                 type="button"
                 onClick={handleAddItem}
-                className="text-[11px] font-bold text-emerald-400 hover:underline flex items-center gap-1"
+                className="text-[11px] font-extrabold text-[#F6D365] hover:underline flex items-center gap-1"
               >
                 <Plus className="w-3.5 h-3.5" />
                 Tambah Baris Item
@@ -293,26 +293,26 @@ export const AddInvoiceModal: React.FC<AddInvoiceModalProps> = ({ isOpen, onClos
                   placeholder="Deskripsi item..."
                   value={item.description}
                   onChange={e => handleItemChange(idx, 'description', e.target.value)}
-                  className="flex-1 bg-slate-950 px-3 py-2 rounded-xl border border-slate-800 text-white"
+                  className="flex-1 bg-[#0B1220] px-3.5 py-2.5 rounded-xl border border-[rgba(255,255,255,0.08)] text-white"
                 />
                 <input
                   type="number"
                   placeholder="Qty"
                   value={item.quantity}
                   onChange={e => handleItemChange(idx, 'quantity', parseInt(e.target.value) || 1)}
-                  className="w-16 bg-slate-950 px-2 py-2 rounded-xl border border-slate-800 text-white text-center font-bold"
+                  className="w-16 bg-[#0B1220] px-2.5 py-2.5 rounded-xl border border-[rgba(255,255,255,0.08)] text-white text-center font-bold"
                 />
                 <input
                   type="number"
                   placeholder="Harga (Rp)"
                   value={item.unitPrice}
                   onChange={e => handleItemChange(idx, 'unitPrice', parseFloat(e.target.value) || 0)}
-                  className="w-32 bg-slate-950 px-2 py-2 rounded-xl border border-slate-800 text-white font-bold"
+                  className="w-32 bg-[#0B1220] px-2.5 py-2.5 rounded-xl border border-[rgba(255,255,255,0.08)] text-white font-bold font-mono"
                 />
                 <button
                   type="button"
                   onClick={() => handleRemoveItem(idx)}
-                  className="p-2 text-slate-500 hover:text-red-400"
+                  className="p-2 text-[#7C8799] hover:text-[#EF4444]"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -322,30 +322,30 @@ export const AddInvoiceModal: React.FC<AddInvoiceModalProps> = ({ isOpen, onClos
 
           {/* Notes */}
           <div>
-            <label className="block text-slate-400 font-bold mb-1">Catatan Tambahan / Terms</label>
+            <label className="block text-[#BFC8D6] font-bold mb-1">Catatan Tambahan / Terms</label>
             <input
               type="text"
               placeholder="Mis: Terima kasih atas kerja samanya."
               value={notes}
               onChange={e => setNotes(e.target.value)}
-              className="w-full bg-slate-950 px-3.5 py-2 rounded-xl border border-slate-800 text-white"
+              className="w-full bg-[#0B1220] px-4 py-3 rounded-2xl border border-[rgba(255,255,255,0.08)] text-white"
             />
           </div>
 
-          <div className="p-3 bg-slate-950 rounded-2xl border border-slate-800 flex justify-between items-center text-xs">
-            <label className="flex items-center gap-2 cursor-pointer text-slate-300 font-medium">
+          <div className="p-4 bg-[#0B1220] rounded-2xl border border-[rgba(255,255,255,0.08)] flex justify-between items-center text-xs">
+            <label className="flex items-center gap-2 cursor-pointer text-[#BFC8D6] font-medium">
               <input
                 type="checkbox"
                 checked={includeTax}
                 onChange={e => setIncludeTax(e.target.checked)}
-                className="rounded accent-emerald-500"
+                className="rounded accent-[#D4AF37]"
               />
               <span>Sertakan PPN 11%</span>
             </label>
 
             <div className="text-right">
-              <span className="text-slate-400 block text-[10px]">Total Tagihan:</span>
-              <strong className="text-emerald-400 text-sm">
+              <span className="text-[#7C8799] block text-[10px] uppercase font-bold">Total Tagihan:</span>
+              <strong className="text-[#F6D365] text-base font-mono font-black">
                 Rp {totalAmount.toLocaleString('id-ID')}
               </strong>
             </div>
@@ -354,14 +354,14 @@ export const AddInvoiceModal: React.FC<AddInvoiceModalProps> = ({ isOpen, onClos
           <div className="pt-2 flex gap-2">
             <button
               type="submit"
-              className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold rounded-xl shadow-md transition-all"
+              className="flex-1 py-3 btn-gold text-[#0B1220] font-extrabold rounded-2xl shadow-md transition-all text-xs"
             >
               {editingInvoice ? 'Simpan Perubahan Invoice' : 'Terbitkan & Simpan Invoice'}
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl"
+              className="py-3 px-4 bg-[rgba(255,255,255,0.06)] hover:bg-[rgba(255,255,255,0.12)] text-[#BFC8D6] font-bold rounded-2xl text-xs"
             >
               Batal
             </button>

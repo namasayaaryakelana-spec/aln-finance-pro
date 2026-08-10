@@ -10,11 +10,8 @@ import {
   Upload,
   RefreshCw,
   CheckCircle2,
-  ArrowUpRight,
-  ArrowDownRight,
   X,
-  FileText,
-  Volume2
+  FileText
 } from 'lucide-react';
 
 interface AITransactionRecorderProps {
@@ -26,7 +23,7 @@ export const AITransactionRecorder: React.FC<AITransactionRecorderProps> = ({
   onSuccess,
   isModal = false
 }) => {
-  const { filteredWallets, categories, addTransaction, addToast } = useFinance();
+  const { filteredWallets, addTransaction, addToast } = useFinance();
 
   const [activeMode, setActiveMode] = useState<'chat' | 'image' | 'voice'>('chat');
   
@@ -157,7 +154,6 @@ export const AITransactionRecorder: React.FC<AITransactionRecorderProps> = ({
 
     let savedCount = 0;
     parsedResults.forEach(item => {
-      // Match or fallback wallet
       const accountName = item.account || item.walletName;
       let walletId = filteredWallets[0]?.id || 'w-1';
       if (accountName) {
@@ -191,7 +187,6 @@ export const AITransactionRecorder: React.FC<AITransactionRecorderProps> = ({
 
     addToast('success', `${savedCount} Transaksi Berhasil Disimpan`, 'Data kas pribadi telah diperbarui.');
 
-    // Reset fields
     setTextPrompt('');
     setSelectedImage(null);
     setVoiceTranscript('');
@@ -201,18 +196,18 @@ export const AITransactionRecorder: React.FC<AITransactionRecorderProps> = ({
   };
 
   return (
-    <div className={`bg-[#0A0F1D] border border-purple-500/30 rounded-3xl p-5 md:p-6 text-slate-100 shadow-2xl relative space-y-4 ${isModal ? '' : 'my-4'}`}>
+    <div className={`bg-[#121A2A] border border-[rgba(255,255,255,0.08)] rounded-3xl p-5 md:p-6 text-white shadow-2xl relative space-y-4 ${isModal ? '' : 'my-4'}`}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-2xl bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-inner">
-            <Sparkles className="w-5 h-5 text-purple-400 animate-pulse" />
+          <div className="p-2.5 rounded-2xl bg-[rgba(212,175,55,0.12)] text-[#F6D365] border border-[rgba(212,175,55,0.25)] shadow-inner">
+            <Sparkles className="w-5 h-5 text-[#F6D365] animate-pulse" />
           </div>
           <div>
             <h3 className="text-base font-extrabold text-white flex items-center gap-2">
               Catat Transaksi AI (Multimodal Gemini 3.6)
             </h3>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-[#7C8799]">
               Gunakan Chat AI, Unggah Struk Gambar, atau Rekaman Suara
             </p>
           </div>
@@ -220,13 +215,13 @@ export const AITransactionRecorder: React.FC<AITransactionRecorderProps> = ({
       </div>
 
       {/* Mode Selector Tabs */}
-      <div className="grid grid-cols-3 gap-1.5 p-1.5 bg-slate-950 rounded-2xl border border-slate-800">
+      <div className="grid grid-cols-3 gap-1.5 p-1.5 bg-[#0B1220] rounded-2xl border border-[rgba(255,255,255,0.08)]">
         <button
           onClick={() => setActiveMode('chat')}
-          className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+          className={`py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all ${
             activeMode === 'chat'
-              ? 'bg-purple-600/30 text-purple-200 border border-purple-500/50 shadow-sm'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+              ? 'bg-[rgba(212,175,55,0.15)] text-[#F6D365] border border-[rgba(212,175,55,0.3)] shadow-sm font-extrabold'
+              : 'text-[#7C8799] hover:text-white hover:bg-[rgba(255,255,255,0.04)]'
           }`}
         >
           <MessageSquare className="w-4 h-4" />
@@ -235,10 +230,10 @@ export const AITransactionRecorder: React.FC<AITransactionRecorderProps> = ({
 
         <button
           onClick={() => setActiveMode('image')}
-          className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+          className={`py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all ${
             activeMode === 'image'
-              ? 'bg-purple-600/30 text-purple-200 border border-purple-500/50 shadow-sm'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+              ? 'bg-[rgba(212,175,55,0.15)] text-[#F6D365] border border-[rgba(212,175,55,0.3)] shadow-sm font-extrabold'
+              : 'text-[#7C8799] hover:text-white hover:bg-[rgba(255,255,255,0.04)]'
           }`}
         >
           <ImageIcon className="w-4 h-4" />
@@ -247,10 +242,10 @@ export const AITransactionRecorder: React.FC<AITransactionRecorderProps> = ({
 
         <button
           onClick={() => setActiveMode('voice')}
-          className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+          className={`py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all ${
             activeMode === 'voice'
-              ? 'bg-purple-600/30 text-purple-200 border border-purple-500/50 shadow-sm'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+              ? 'bg-[rgba(212,175,55,0.15)] text-[#F6D365] border border-[rgba(212,175,55,0.3)] shadow-sm font-extrabold'
+              : 'text-[#7C8799] hover:text-white hover:bg-[rgba(255,255,255,0.04)]'
           }`}
         >
           <Mic className="w-4 h-4" />
@@ -266,12 +261,12 @@ export const AITransactionRecorder: React.FC<AITransactionRecorderProps> = ({
             value={textPrompt}
             onChange={e => setTextPrompt(e.target.value)}
             rows={3}
-            className="w-full bg-slate-950 p-3.5 rounded-2xl border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
+            className="w-full bg-[#0B1220] p-4 rounded-2xl border border-[rgba(255,255,255,0.08)] text-xs text-white placeholder-[#7C8799] focus:outline-none focus:border-[#D4AF37]"
           />
 
           {/* Quick Prompts */}
           <div className="flex flex-wrap gap-1.5 text-[11px]">
-            <span className="text-slate-500 py-1 font-semibold">Contoh Kas Keluarga:</span>
+            <span className="text-[#7C8799] py-1 font-semibold">Contoh Kas Keluarga:</span>
             {[
               'Lana bayar bensin 50rb pake bca, terus beli gas lpg 22k cash',
               'Lina beli pampers & susu anak 180rb GoPay',
@@ -282,7 +277,7 @@ export const AITransactionRecorder: React.FC<AITransactionRecorderProps> = ({
                 key={idx}
                 type="button"
                 onClick={() => setTextPrompt(p)}
-                className="px-2.5 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-purple-300 font-medium transition-colors text-left"
+                className="px-3 py-1 rounded-xl bg-[#0B1220] hover:bg-[rgba(255,255,255,0.08)] border border-[rgba(255,255,255,0.08)] text-[#F6D365] font-medium transition-colors text-left"
               >
                 + {p}
               </button>
@@ -295,36 +290,36 @@ export const AITransactionRecorder: React.FC<AITransactionRecorderProps> = ({
       {activeMode === 'image' && (
         <div className="space-y-3">
           {selectedImage ? (
-            <div className="relative rounded-2xl overflow-hidden border border-purple-500/40 bg-slate-950 p-3 flex items-center gap-4">
+            <div className="relative rounded-2xl overflow-hidden border border-[rgba(212,175,55,0.3)] bg-[#0B1220] p-3.5 flex items-center gap-4">
               <img
                 src={selectedImage.previewUrl}
                 alt="Struk Preview"
-                className="w-20 h-20 object-cover rounded-xl border border-slate-800"
+                className="w-20 h-20 object-cover rounded-xl border border-[rgba(255,255,255,0.08)]"
               />
               <div className="flex-1 space-y-1 text-xs">
                 <p className="font-bold text-white flex items-center gap-1">
-                  <FileText className="w-4 h-4 text-purple-400" />
+                  <FileText className="w-4 h-4 text-[#F6D365]" />
                   Gambar Struk Siap Diunggah
                 </p>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-[#7C8799]">
                   Gemini AI Vision akan membaca item, nominal total, merchant & tanggal secara otomatis.
                 </p>
               </div>
               <button
                 onClick={() => setSelectedImage(null)}
-                className="p-2 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white"
+                className="p-2 rounded-full bg-[#121A2A] hover:bg-[rgba(255,255,255,0.1)] text-[#7C8799] hover:text-white"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
           ) : (
-            <label className="border-2 border-dashed border-slate-800 hover:border-purple-500/60 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer bg-slate-950/60 transition-all text-center space-y-2">
-              <div className="p-3 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">
+            <label className="border-2 border-dashed border-[rgba(255,255,255,0.08)] hover:border-[rgba(212,175,55,0.4)] rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer bg-[#0B1220] transition-all text-center space-y-2">
+              <div className="p-3.5 rounded-full bg-[rgba(212,175,55,0.12)] text-[#F6D365] border border-[rgba(212,175,55,0.25)]">
                 <Upload className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-xs font-bold text-slate-200">Klik atau Tarik Foto Struk / Nota Di Sini</p>
-                <p className="text-[11px] text-slate-500 mt-0.5">Format JPG, PNG, WEBP (Ekstraksi Otomatis AI)</p>
+                <p className="text-xs font-bold text-white">Klik atau Tarik Foto Struk / Nota Di Sini</p>
+                <p className="text-[11px] text-[#7C8799] mt-0.5">Format JPG, PNG, WEBP (Ekstraksi Otomatis AI)</p>
               </div>
               <input
                 type="file"
@@ -340,21 +335,21 @@ export const AITransactionRecorder: React.FC<AITransactionRecorderProps> = ({
             placeholder="Tambahkan catatan tambahan untuk struk (Opsional)..."
             value={textPrompt}
             onChange={e => setTextPrompt(e.target.value)}
-            className="w-full bg-slate-950 px-3.5 py-2.5 rounded-xl border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
+            className="w-full bg-[#0B1220] px-4 py-3 rounded-2xl border border-[rgba(255,255,255,0.08)] text-xs text-white placeholder-[#7C8799] focus:outline-none focus:border-[#D4AF37]"
           />
         </div>
       )}
 
       {/* Mode Content: Suara AI */}
       {activeMode === 'voice' && (
-        <div className="space-y-3 bg-slate-950 p-4 rounded-2xl border border-slate-800">
+        <div className="space-y-3 bg-[#0B1220] p-4.5 rounded-2xl border border-[rgba(255,255,255,0.08)]">
           <div className="flex flex-col items-center justify-center space-y-3 py-3">
             <button
               onClick={toggleListening}
               className={`w-16 h-16 rounded-full flex items-center justify-center transition-all ${
                 isListening
-                  ? 'bg-red-500 text-white animate-pulse shadow-lg shadow-red-500/50 scale-110'
-                  : 'bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-950/50'
+                  ? 'bg-[#EF4444] text-white animate-pulse shadow-lg shadow-[#EF4444]/50 scale-110'
+                  : 'btn-gold text-[#0B1220] shadow-lg'
               }`}
             >
               {isListening ? <MicOff className="w-7 h-7" /> : <Mic className="w-7 h-7" />}
@@ -364,7 +359,7 @@ export const AITransactionRecorder: React.FC<AITransactionRecorderProps> = ({
               <p className="text-xs font-bold text-white">
                 {isListening ? 'Merekam Suara Anda...' : 'Klik Tombol Mikrofon Untuk Mulai'}
               </p>
-              <p className="text-[11px] text-slate-400 mt-0.5">
+              <p className="text-[11px] text-[#7C8799] mt-0.5">
                 {voiceSupported ? 'Bicara transaksi dalam Bahasa Indonesia' : 'Ketik di bawah jika mic tidak aktif'}
               </p>
             </div>
@@ -375,7 +370,7 @@ export const AITransactionRecorder: React.FC<AITransactionRecorderProps> = ({
             value={voiceTranscript}
             onChange={e => setVoiceTranscript(e.target.value)}
             rows={2}
-            className="w-full bg-slate-900 p-3 rounded-xl border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
+            className="w-full bg-[#121A2A] p-3 rounded-xl border border-[rgba(255,255,255,0.08)] text-xs text-white placeholder-[#7C8799] focus:outline-none focus:border-[#D4AF37]"
           />
         </div>
       )}
@@ -384,16 +379,16 @@ export const AITransactionRecorder: React.FC<AITransactionRecorderProps> = ({
       <button
         onClick={handleProcess}
         disabled={loading}
-        className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-purple-950/50 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+        className="w-full py-3.5 btn-gold text-[#0B1220] font-extrabold text-xs rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
       >
         {loading ? (
           <>
-            <RefreshCw className="w-4 h-4 animate-spin text-purple-200" />
+            <RefreshCw className="w-4 h-4 animate-spin text-[#0B1220]" />
             <span>Menganalisis dengan Gemini 3.6 AI...</span>
           </>
         ) : (
           <>
-            <Sparkles className="w-4 h-4 text-purple-300" />
+            <Sparkles className="w-4 h-4 text-[#0B1220]" />
             <span>Proses Transaksi AI</span>
           </>
         )}
@@ -401,66 +396,61 @@ export const AITransactionRecorder: React.FC<AITransactionRecorderProps> = ({
 
       {/* Parsed Result Preview */}
       {parsedResults.length > 0 && (
-        <div className="p-4 bg-purple-950/40 border border-purple-500/50 rounded-2xl space-y-3.5 text-xs animate-fadeIn">
-          <div className="flex items-center justify-between border-b border-purple-500/20 pb-2">
-            <div className="flex items-center gap-2 font-bold text-purple-200">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+        <div className="p-5 bg-[#0B1220] border border-[rgba(212,175,55,0.3)] rounded-3xl space-y-4 text-xs animate-fade-in">
+          <div className="flex items-center justify-between border-b border-[rgba(255,255,255,0.08)] pb-2.5">
+            <div className="flex items-center gap-2 font-bold text-white">
+              <CheckCircle2 className="w-4 h-4 text-[#22C55E]" />
               <span>Hasil Analisis AI ({parsedResults.length} Transaksi Terdeteksi):</span>
             </div>
-            <span className="text-[10px] bg-purple-900/60 text-purple-300 px-2 py-0.5 rounded-full border border-purple-500/30 font-bold uppercase">
+            <span className="text-[10px] bg-[rgba(212,175,55,0.12)] text-[#F6D365] px-2.5 py-0.5 rounded-full border border-[rgba(212,175,55,0.25)] font-extrabold uppercase">
               Pribadi
             </span>
           </div>
 
-          <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+          <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
             {parsedResults.map((tx, index) => {
               const isIncome = (tx.type || '').toUpperCase() === 'INCOME';
               return (
                 <div
                   key={index}
-                  className="bg-slate-950 p-3 rounded-xl border border-slate-800 hover:border-purple-500/30 transition-all space-y-1.5"
+                  className="bg-[#121A2A] p-3.5 rounded-2xl border border-[rgba(255,255,255,0.08)] hover:border-[rgba(212,175,55,0.3)] transition-all space-y-1.5"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-white flex items-center gap-1.5">
-                      <span className={`w-2 h-2 rounded-full ${isIncome ? 'bg-emerald-400' : 'bg-red-400'}`} />
+                    <span className="font-bold text-white flex items-center gap-2">
+                      <span className={`w-2 h-2 rounded-full ${isIncome ? 'bg-[#22C55E]' : 'bg-[#EF4444]'}`} />
                       {tx.title || 'Transaksi AI'}
                     </span>
-                    <span className={`font-extrabold text-xs ${isIncome ? 'text-emerald-400' : 'text-red-400'}`}>
+                    <span className={`font-extrabold text-xs font-mono ${isIncome ? 'text-[#22C55E]' : 'text-[#EF4444]'}`}>
                       {isIncome ? '+' : '-'} Rp {(tx.amount || 0).toLocaleString('id-ID')}
                     </span>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-400 pt-0.5">
-                    <span className="bg-slate-900 px-2 py-0.5 rounded border border-slate-800 text-slate-300">
-                      Tipe: <strong className={isIncome ? 'text-emerald-400' : 'text-red-400'}>{isIncome ? 'INCOME' : 'EXPENSE'}</strong>
+                  <div className="flex flex-wrap items-center gap-2 text-[10px] text-[#7C8799] pt-0.5">
+                    <span className="bg-[#0B1220] px-2 py-0.5 rounded-lg border border-[rgba(255,255,255,0.08)] text-[#BFC8D6]">
+                      Tipe: <strong className={isIncome ? 'text-[#22C55E]' : 'text-[#EF4444]'}>{isIncome ? 'INCOME' : 'EXPENSE'}</strong>
                     </span>
-                    <span className="bg-slate-900 px-2 py-0.5 rounded border border-slate-800 text-slate-300">
+                    <span className="bg-[#0B1220] px-2 py-0.5 rounded-lg border border-[rgba(255,255,255,0.08)] text-[#BFC8D6]">
                       Kategori: <strong className="text-white">{tx.category || 'Lainnya'}</strong>
                     </span>
                     {tx.subcategory && (
-                      <span className="bg-slate-900 px-2 py-0.5 rounded border border-slate-800 text-slate-300">
-                        Sub-kategori: <strong className="text-cyan-300">{tx.subcategory}</strong>
+                      <span className="bg-[#0B1220] px-2 py-0.5 rounded-lg border border-[rgba(255,255,255,0.08)] text-[#BFC8D6]">
+                        Sub-kategori: <strong className="text-[#F6D365]">{tx.subcategory}</strong>
                       </span>
                     )}
-                    <span className="bg-slate-900 px-2 py-0.5 rounded border border-slate-800 text-slate-300">
-                      Sumber/Akun: <strong className="text-purple-300">{tx.account || tx.walletName || 'Tidak Disebutkan'}</strong>
+                    <span className="bg-[#0B1220] px-2 py-0.5 rounded-lg border border-[rgba(255,255,255,0.08)] text-[#BFC8D6]">
+                      Sumber/Akun: <strong className="text-[#F6D365]">{tx.account || tx.walletName || 'Tidak Disebutkan'}</strong>
                     </span>
                     {tx.paid_by && (
-                      <span className="bg-slate-900 px-2 py-0.5 rounded border border-slate-800 text-slate-300">
-                        Oleh: <strong className="text-blue-300">{tx.paid_by}</strong>
+                      <span className="bg-[#0B1220] px-2 py-0.5 rounded-lg border border-[rgba(255,255,255,0.08)] text-[#BFC8D6]">
+                        Oleh: <strong className="text-[#3B82F6]">{tx.paid_by}</strong>
                       </span>
                     )}
-                    <span className="bg-slate-900 px-2 py-0.5 rounded border border-slate-800 text-slate-300">
-                      Scope: <strong className={tx.scope === 'SHARED' ? 'text-amber-400' : 'text-emerald-300'}>{tx.scope || 'PERSONAL'}</strong>
+                    <span className="bg-[#0B1220] px-2 py-0.5 rounded-lg border border-[rgba(255,255,255,0.08)] text-[#BFC8D6]">
+                      Scope: <strong className={tx.scope === 'SHARED' ? 'text-[#F6D365]' : 'text-[#22C55E]'}>{tx.scope || 'PERSONAL'}</strong>
                     </span>
                     {(tx.transaction_date || tx.date) && (
-                      <span className="bg-slate-900 px-2 py-0.5 rounded border border-slate-800 text-slate-300">
-                        Tanggal: <strong className="text-indigo-300">{tx.transaction_date || tx.date}</strong>
-                      </span>
-                    )}
-                    {tx.is_high_impact && (
-                      <span className="bg-rose-950/80 px-2 py-0.5 rounded border border-rose-800/60 text-rose-300 font-bold">
-                        🔥 High Impact Expense
+                      <span className="bg-[#0B1220] px-2 py-0.5 rounded-lg border border-[rgba(255,255,255,0.08)] text-[#BFC8D6]">
+                        Tanggal: <strong className="text-white">{tx.transaction_date || tx.date}</strong>
                       </span>
                     )}
                   </div>
@@ -472,14 +462,14 @@ export const AITransactionRecorder: React.FC<AITransactionRecorderProps> = ({
           <div className="flex gap-2 pt-1">
             <button
               onClick={handleConfirmSaveAll}
-              className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold rounded-xl shadow-md transition-all text-xs flex items-center justify-center gap-1.5"
+              className="flex-1 py-2.5 btn-gold text-[#0B1220] font-extrabold rounded-2xl shadow-md transition-all text-xs flex items-center justify-center gap-1.5"
             >
               <CheckCircle2 className="w-4 h-4" />
               <span>+ Simpan Semua {parsedResults.length} Transaksi Ke Kas Pribadi</span>
             </button>
             <button
               onClick={() => setParsedResults([])}
-              className="py-2.5 px-3 bg-slate-900 hover:bg-slate-800 text-slate-400 rounded-xl text-xs font-bold"
+              className="py-2.5 px-4 bg-[#121A2A] hover:bg-[rgba(255,255,255,0.08)] text-[#BFC8D6] rounded-2xl text-xs font-bold border border-[rgba(255,255,255,0.08)]"
             >
               Ulangi
             </button>

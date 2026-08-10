@@ -20,22 +20,16 @@ interface CategoryMasterModalProps {
 }
 
 const COLOR_PRESETS = [
-  '#10B981', // Emerald
+  '#D4AF37', // Gold
+  '#22C55E', // Emerald
   '#3B82F6', // Blue
-  '#F59E0B', // Amber
   '#EF4444', // Red
-  '#8B5CF6', // Purple
+  '#A78BFA', // Purple
   '#EC4899', // Pink
   '#06B6D4', // Cyan
-  '#64748B', // Slate
+  '#BFC8D6', // Slate
   '#F97316', // Orange
-  '#84CC16'  // Lime
-];
-
-const ICON_PRESETS = [
-  'Tag', 'Briefcase', 'Laptop', 'TrendingUp', 'Car', 'Utensils',
-  'Home', 'ShoppingBag', 'HeartPulse', 'Layers', 'DollarSign',
-  'Users', 'Building', 'Server', 'Megaphone', 'FileText'
+  '#F6D365'  // Soft Gold
 ];
 
 export const CategoryMasterModal: React.FC<CategoryMasterModalProps> = ({ isOpen, onClose }) => {
@@ -51,7 +45,7 @@ export const CategoryMasterModal: React.FC<CategoryMasterModalProps> = ({ isOpen
   const [type, setType] = useState<'income' | 'expense'>('expense');
   const [scope, setScope] = useState<Scope>('personal');
   const [icon, setIcon] = useState('Tag');
-  const [color, setColor] = useState('#10B981');
+  const [color, setColor] = useState('#D4AF37');
   
   // Subcategories state for the active form
   const [subcategories, setSubcategories] = useState<string[]>([]);
@@ -69,7 +63,7 @@ export const CategoryMasterModal: React.FC<CategoryMasterModalProps> = ({ isOpen
     setType('expense');
     setScope('personal');
     setIcon('Tag');
-    setColor('#10B981');
+    setColor('#D4AF37');
     setSubcategories([]);
     setNewSubcategoryInput('');
     setDeletingId(null);
@@ -82,7 +76,7 @@ export const CategoryMasterModal: React.FC<CategoryMasterModalProps> = ({ isOpen
     setType(cat.type);
     setScope(cat.scope || 'personal');
     setIcon(cat.icon || 'Tag');
-    setColor(cat.color || '#10B981');
+    setColor(cat.color || '#D4AF37');
     setSubcategories(cat.subcategories && cat.subcategories.length > 0 ? [...cat.subcategories] : ['Umum']);
     setNewSubcategoryInput('');
   };
@@ -115,7 +109,6 @@ export const CategoryMasterModal: React.FC<CategoryMasterModalProps> = ({ isOpen
     const finalSubcategories = subcategories.length > 0 ? subcategories : ['Umum'];
 
     if (editingCategory) {
-      // Update existing category
       updateCategory({
         ...editingCategory,
         name: name.trim(),
@@ -126,7 +119,6 @@ export const CategoryMasterModal: React.FC<CategoryMasterModalProps> = ({ isOpen
         subcategories: finalSubcategories
       });
     } else {
-      // Create new category
       addCategory({
         name: name.trim(),
         type,
@@ -150,18 +142,18 @@ export const CategoryMasterModal: React.FC<CategoryMasterModalProps> = ({ isOpen
   });
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-[#0A0F1D] border border-slate-800 w-full max-w-2xl rounded-3xl p-6 relative text-slate-100 shadow-2xl space-y-6 my-8">
+    <div className="fixed inset-0 z-50 bg-[#0B1220]/85 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-[#121A2A] border border-[rgba(255,255,255,0.12)] w-full max-w-2xl rounded-3xl p-6 relative text-white shadow-2xl space-y-6 my-8 animate-fade-in">
         
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
+        <div className="flex items-center justify-between border-b border-[rgba(255,255,255,0.08)] pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+            <div className="w-10 h-10 rounded-2xl bg-[rgba(212,175,55,0.15)] border border-[rgba(212,175,55,0.3)] flex items-center justify-center text-[#F6D365]">
               <Tag className="w-5 h-5" />
             </div>
             <div>
               <h3 className="text-base font-extrabold text-white">Master Kategori & Sub-Kategori</h3>
-              <p className="text-xs text-slate-400">Kelola kategori utama dan sub-kategori transaksi Anda</p>
+              <p className="text-xs text-[#7C8799]">Kelola kategori utama dan sub-kategori transaksi Anda</p>
             </div>
           </div>
           <button
@@ -169,7 +161,7 @@ export const CategoryMasterModal: React.FC<CategoryMasterModalProps> = ({ isOpen
               resetForm();
               onClose();
             }}
-            className="p-2 rounded-full bg-slate-900 text-slate-400 hover:text-white transition-all hover:bg-slate-800"
+            className="p-2 rounded-2xl bg-[#0B1220] text-[#7C8799] hover:text-white border border-[rgba(255,255,255,0.08)] transition-all"
           >
             <X className="w-4 h-4" />
           </button>
@@ -178,37 +170,37 @@ export const CategoryMasterModal: React.FC<CategoryMasterModalProps> = ({ isOpen
         {/* Search & Filter Bar */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           <div className="relative flex-1">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#7C8799]" />
             <input
               type="text"
               placeholder="Cari kategori atau sub-kategori..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              className="w-full bg-slate-950 pl-9 pr-3 py-2 rounded-xl border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
+              className="w-full bg-[#0B1220] pl-10 pr-3.5 py-2.5 rounded-2xl border border-[rgba(255,255,255,0.08)] text-xs text-white focus:outline-none focus:border-[#D4AF37]"
             />
           </div>
 
-          <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-bold">
+          <div className="flex items-center gap-1 bg-[#0B1220] p-1.5 rounded-2xl border border-[rgba(255,255,255,0.08)] text-xs font-bold">
             <button
               onClick={() => setTypeFilter('all')}
-              className={`px-3 py-1 rounded-lg transition-all ${
-                typeFilter === 'all' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-white'
+              className={`px-3.5 py-1.5 rounded-xl transition-all ${
+                typeFilter === 'all' ? 'bg-[rgba(255,255,255,0.08)] text-white shadow' : 'text-[#7C8799] hover:text-white'
               }`}
             >
               Semua
             </button>
             <button
               onClick={() => setTypeFilter('expense')}
-              className={`px-3 py-1 rounded-lg transition-all ${
-                typeFilter === 'expense' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' : 'text-slate-400 hover:text-white'
+              className={`px-3.5 py-1.5 rounded-xl transition-all ${
+                typeFilter === 'expense' ? 'bg-[rgba(239,68,68,0.15)] text-[#EF4444] border border-[rgba(239,68,68,0.3)]' : 'text-[#7C8799] hover:text-white'
               }`}
             >
               Pengeluaran
             </button>
             <button
               onClick={() => setTypeFilter('income')}
-              className={`px-3 py-1 rounded-lg transition-all ${
-                typeFilter === 'income' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'text-slate-400 hover:text-white'
+              className={`px-3.5 py-1.5 rounded-xl transition-all ${
+                typeFilter === 'income' ? 'bg-[rgba(34,197,94,0.15)] text-[#22C55E] border border-[rgba(34,197,94,0.3)]' : 'text-[#7C8799] hover:text-white'
               }`}
             >
               Pemasukan
@@ -217,19 +209,19 @@ export const CategoryMasterModal: React.FC<CategoryMasterModalProps> = ({ isOpen
         </div>
 
         {/* Category List */}
-        <div className="max-h-56 overflow-y-auto custom-scrollbar space-y-2 p-2 bg-slate-950/80 rounded-2xl border border-slate-800/80">
+        <div className="max-h-56 overflow-y-auto custom-scrollbar space-y-2 p-2 bg-[#0B1220] rounded-3xl border border-[rgba(255,255,255,0.08)]">
           {filteredCategories.length === 0 ? (
-            <div className="text-center py-6 text-slate-500 text-xs">
+            <div className="text-center py-6 text-[#7C8799] text-xs">
               Tidak ada kategori yang sesuai pencarian/filter.
             </div>
           ) : (
             filteredCategories.map(cat => (
               <div
                 key={cat.id}
-                className={`p-3 rounded-2xl border transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
+                className={`p-3.5 rounded-2xl border transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
                   editingCategory?.id === cat.id
-                    ? 'bg-emerald-950/40 border-emerald-500/50'
-                    : 'bg-slate-900/90 border-slate-800/90 hover:border-slate-700'
+                    ? 'bg-[rgba(212,175,55,0.12)] border-[rgba(212,175,55,0.35)]'
+                    : 'bg-[#121A2A] border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.15)]'
                 }`}
               >
                 <div className="space-y-1.5 flex-1 min-w-0">
@@ -238,17 +230,17 @@ export const CategoryMasterModal: React.FC<CategoryMasterModalProps> = ({ isOpen
                     <span className="font-extrabold text-sm text-white truncate">{cat.name}</span>
                     
                     <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase ${
+                      className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase border ${
                         cat.type === 'income'
-                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                          : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                          ? 'bg-[rgba(34,197,94,0.15)] text-[#22C55E] border-[rgba(34,197,94,0.3)]'
+                          : 'bg-[rgba(239,68,68,0.15)] text-[#EF4444] border-[rgba(239,68,68,0.3)]'
                       }`}
                     >
                       {cat.type === 'income' ? 'Pemasukan (+)' : 'Pengeluaran (-)'}
                     </span>
 
                     {cat.scope && (
-                      <span className="text-[10px] text-slate-400 px-2 py-0.5 rounded-md bg-slate-800 uppercase font-semibold">
+                      <span className="text-[10px] text-[#7C8799] px-2.5 py-0.5 rounded-full bg-[#0B1220] uppercase font-semibold border border-[rgba(255,255,255,0.08)]">
                         {cat.scope}
                       </span>
                     )}
@@ -256,20 +248,20 @@ export const CategoryMasterModal: React.FC<CategoryMasterModalProps> = ({ isOpen
 
                   {/* Subcategories Chips */}
                   <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                    <span className="text-[10px] text-slate-400 font-semibold flex items-center gap-1">
-                      <Layers className="w-3 h-3 text-cyan-400" /> Sub-kategori:
+                    <span className="text-[10px] text-[#7C8799] font-semibold flex items-center gap-1">
+                      <Layers className="w-3 h-3 text-[#F6D365]" /> Sub-kategori:
                     </span>
                     {cat.subcategories && cat.subcategories.length > 0 ? (
                       cat.subcategories.map((sub, idx) => (
                         <span
                           key={idx}
-                          className="text-[10px] font-bold bg-slate-950 border border-slate-800 text-cyan-300 px-2 py-0.5 rounded-lg"
+                          className="text-[10px] font-bold bg-[#0B1220] border border-[rgba(255,255,255,0.08)] text-[#F6D365] px-2.5 py-0.5 rounded-lg"
                         >
                           {sub}
                         </span>
                       ))
                     ) : (
-                      <span className="text-[10px] text-slate-400 italic">Umum</span>
+                      <span className="text-[10px] text-[#7C8799] italic">Umum</span>
                     )}
                   </div>
                 </div>
@@ -277,21 +269,21 @@ export const CategoryMasterModal: React.FC<CategoryMasterModalProps> = ({ isOpen
                 {/* Edit & Delete Action Buttons */}
                 <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
                   {deletingId === cat.id ? (
-                    <div className="flex items-center gap-1.5 bg-rose-950/80 border border-rose-800 p-1.5 rounded-xl">
-                      <span className="text-[10px] text-rose-300 font-bold px-1">Hapus?</span>
+                    <div className="flex items-center gap-1.5 bg-[rgba(239,68,68,0.15)] border border-[rgba(239,68,68,0.3)] p-1.5 rounded-xl">
+                      <span className="text-[10px] text-[#EF4444] font-bold px-1">Hapus?</span>
                       <button
                         onClick={() => {
                           deleteCategory(cat.id);
                           setDeletingId(null);
                           if (editingCategory?.id === cat.id) resetForm();
                         }}
-                        className="px-2 py-1 bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-[10px] rounded-lg shadow transition-all"
+                        className="px-2 py-1 bg-[#EF4444] hover:bg-[#DC2626] text-white font-extrabold text-[10px] rounded-lg shadow transition-all"
                       >
                         Ya
                       </button>
                       <button
                         onClick={() => setDeletingId(null)}
-                        className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] rounded-lg transition-all"
+                        className="px-2 py-1 bg-[#0B1220] hover:bg-[rgba(255,255,255,0.08)] text-[#BFC8D6] text-[10px] rounded-lg transition-all"
                       >
                         Batal
                       </button>
@@ -300,7 +292,7 @@ export const CategoryMasterModal: React.FC<CategoryMasterModalProps> = ({ isOpen
                     <>
                       <button
                         onClick={() => handleStartEdit(cat)}
-                        className="p-2 rounded-xl bg-slate-800 hover:bg-emerald-900/50 hover:text-emerald-300 text-slate-300 transition-all border border-slate-700"
+                        className="p-2 rounded-xl bg-[#0B1220] hover:bg-[rgba(255,255,255,0.08)] hover:text-[#F6D365] text-[#BFC8D6] transition-all border border-[rgba(255,255,255,0.08)]"
                         title="Edit Master Kategori"
                       >
                         <Pencil className="w-3.5 h-3.5" />
@@ -308,7 +300,7 @@ export const CategoryMasterModal: React.FC<CategoryMasterModalProps> = ({ isOpen
 
                       <button
                         onClick={() => setDeletingId(cat.id)}
-                        className="p-2 rounded-xl bg-slate-800 hover:bg-rose-900/50 hover:text-rose-300 text-slate-300 transition-all border border-slate-700"
+                        className="p-2 rounded-xl bg-[#0B1220] hover:bg-[rgba(239,68,68,0.1)] hover:text-[#EF4444] text-[#7C8799] transition-all border border-[rgba(255,255,255,0.08)]"
                         title="Hapus Master Kategori"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -322,10 +314,10 @@ export const CategoryMasterModal: React.FC<CategoryMasterModalProps> = ({ isOpen
         </div>
 
         {/* Add or Edit Category Form Section */}
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs border-t border-slate-800 pt-4 bg-slate-950/50 p-4 rounded-2xl border border-slate-800">
+        <form onSubmit={handleSubmit} className="space-y-4 text-xs border-t border-[rgba(255,255,255,0.08)] pt-4 bg-[#0B1220] p-4.5 rounded-3xl border border-[rgba(255,255,255,0.08)]">
           <div className="flex items-center justify-between">
             <h4 className="font-extrabold text-sm text-white flex items-center gap-2">
-              <FolderPlus className="w-4 h-4 text-emerald-400" />
+              <FolderPlus className="w-4 h-4 text-[#F6D365]" />
               {editingCategory ? `Edit Master Kategori: ${editingCategory.name}` : 'Tambah Master Kategori Baru'}
             </h4>
 
@@ -333,7 +325,7 @@ export const CategoryMasterModal: React.FC<CategoryMasterModalProps> = ({ isOpen
               <button
                 type="button"
                 onClick={resetForm}
-                className="text-[11px] font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1 bg-amber-950/40 border border-amber-800/60 px-2.5 py-1 rounded-lg"
+                className="text-[11px] font-bold text-[#F6D365] hover:underline flex items-center gap-1 bg-[rgba(212,175,55,0.12)] border border-[rgba(212,175,55,0.25)] px-3 py-1 rounded-xl"
               >
                 <RotateCcw className="w-3 h-3" /> Batal Edit
               </button>
@@ -342,22 +334,22 @@ export const CategoryMasterModal: React.FC<CategoryMasterModalProps> = ({ isOpen
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="block text-slate-400 font-bold mb-1">Nama Kategori *</label>
+              <label className="block text-[#BFC8D6] font-bold mb-1">Nama Kategori *</label>
               <input
                 type="text"
                 placeholder="Mis: Transportasi, Pendidikan"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                className="w-full bg-slate-950 px-3.5 py-2.5 rounded-xl border border-slate-800 text-white focus:outline-none focus:border-emerald-500 font-semibold"
+                className="w-full bg-[#121A2A] px-4 py-2.5 rounded-2xl border border-[rgba(255,255,255,0.08)] text-white focus:outline-none focus:border-[#D4AF37] font-semibold"
               />
             </div>
 
             <div>
-              <label className="block text-slate-400 font-bold mb-1">Tipe Transaksi</label>
+              <label className="block text-[#BFC8D6] font-bold mb-1">Tipe Transaksi</label>
               <select
                 value={type}
                 onChange={e => setType(e.target.value as 'income' | 'expense')}
-                className="w-full bg-slate-950 px-3.5 py-2.5 rounded-xl border border-slate-800 text-white focus:outline-none focus:border-emerald-500 font-semibold"
+                className="w-full bg-[#121A2A] px-4 py-2.5 rounded-2xl border border-[rgba(255,255,255,0.08)] text-white focus:outline-none focus:border-[#D4AF37] font-semibold"
               >
                 <option value="expense">Pengeluaran (-)</option>
                 <option value="income">Pemasukan (+)</option>
@@ -365,11 +357,11 @@ export const CategoryMasterModal: React.FC<CategoryMasterModalProps> = ({ isOpen
             </div>
 
             <div>
-              <label className="block text-slate-400 font-bold mb-1">Scope / Cakupan</label>
+              <label className="block text-[#BFC8D6] font-bold mb-1">Scope / Cakupan</label>
               <select
                 value={scope}
                 onChange={e => setScope(e.target.value as Scope)}
-                className="w-full bg-slate-950 px-3.5 py-2.5 rounded-xl border border-slate-800 text-white focus:outline-none focus:border-emerald-500 font-semibold"
+                className="w-full bg-[#121A2A] px-4 py-2.5 rounded-2xl border border-[rgba(255,255,255,0.08)] text-white focus:outline-none focus:border-[#D4AF37] font-semibold"
               >
                 <option value="personal">Personal / Keluarga</option>
                 <option value="business">Bisnis / Usaha</option>
@@ -380,7 +372,7 @@ export const CategoryMasterModal: React.FC<CategoryMasterModalProps> = ({ isOpen
 
           {/* Color Badges Selection */}
           <div>
-            <label className="block text-slate-400 font-bold mb-1.5">Warna Badge</label>
+            <label className="block text-[#BFC8D6] font-bold mb-1.5">Warna Badge</label>
             <div className="flex flex-wrap gap-2 items-center">
               {COLOR_PRESETS.map(c => (
                 <button
@@ -392,19 +384,19 @@ export const CategoryMasterModal: React.FC<CategoryMasterModalProps> = ({ isOpen
                   }`}
                   style={{ backgroundColor: c }}
                 >
-                  {color === c && <Check className="w-3 h-3 text-slate-950 font-bold" />}
+                  {color === c && <Check className="w-3 h-3 text-[#0B1220] font-bold" />}
                 </button>
               ))}
             </div>
           </div>
 
           {/* SUB-CATEGORY MANAGEMENT SECTION */}
-          <div className="space-y-2 pt-2 border-t border-slate-800/80">
-            <label className="block text-slate-300 font-extrabold flex items-center gap-1.5">
-              <Layers className="w-4 h-4 text-cyan-400" />
+          <div className="space-y-2 pt-2 border-t border-[rgba(255,255,255,0.08)]">
+            <label className="block text-white font-extrabold flex items-center gap-1.5">
+              <Layers className="w-4 h-4 text-[#F6D365]" />
               Kelola Sub-Kategori Turunan
             </label>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-[#7C8799]">
               Tambahkan nama sub-kategori spesifik untuk mempermudah klasifikasi transaksi (mis: Bensin, Parkir, Servis).
             </p>
 
@@ -421,34 +413,34 @@ export const CategoryMasterModal: React.FC<CategoryMasterModalProps> = ({ isOpen
                     handleAddSubcategory();
                   }
                 }}
-                className="flex-1 bg-slate-950 px-3.5 py-2 rounded-xl border border-slate-800 text-white focus:outline-none focus:border-cyan-500 text-xs font-semibold"
+                className="flex-1 bg-[#121A2A] px-4 py-2.5 rounded-2xl border border-[rgba(255,255,255,0.08)] text-white focus:outline-none focus:border-[#D4AF37] text-xs font-semibold"
               />
               <button
                 type="button"
                 onClick={handleAddSubcategory}
-                className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold rounded-xl transition-all shadow text-xs flex items-center gap-1 shrink-0"
+                className="px-4 py-2.5 btn-gold text-[#0B1220] font-extrabold rounded-2xl transition-all shadow text-xs flex items-center gap-1 shrink-0"
               >
                 <Plus className="w-3.5 h-3.5" /> Tambah Sub
               </button>
             </div>
 
             {/* Display Active Subcategories Chips */}
-            <div className="flex flex-wrap items-center gap-2 pt-1 min-h-[36px] bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+            <div className="flex flex-wrap items-center gap-2 pt-1 min-h-[36px] bg-[#121A2A] p-3 rounded-2xl border border-[rgba(255,255,255,0.08)]">
               {subcategories.length === 0 ? (
-                <span className="text-[11px] text-slate-400 italic">
+                <span className="text-[11px] text-[#7C8799] italic">
                   Belum ada sub-kategori khusus. Sistem akan menyertakan "Umum" secara otomatis.
                 </span>
               ) : (
                 subcategories.map((sub, idx) => (
                   <span
                     key={idx}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-cyan-950/80 border border-cyan-800/80 text-cyan-200 text-xs font-bold shadow-sm"
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[rgba(212,175,55,0.12)] border border-[rgba(212,175,55,0.25)] text-[#F6D365] text-xs font-bold shadow-sm"
                   >
                     {sub}
                     <button
                       type="button"
                       onClick={() => handleRemoveSubcategory(idx)}
-                      className="hover:text-rose-400 transition-colors p-0.5 rounded"
+                      className="hover:text-[#EF4444] transition-colors p-0.5 rounded"
                       title="Hapus sub-kategori ini"
                     >
                       <X className="w-3 h-3" />
@@ -463,9 +455,9 @@ export const CategoryMasterModal: React.FC<CategoryMasterModalProps> = ({ isOpen
           <div className="pt-2">
             <button
               type="submit"
-              className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-extrabold rounded-xl shadow-lg transition-all text-xs flex items-center justify-center gap-2"
+              className="w-full py-3.5 btn-gold text-[#0B1220] font-extrabold rounded-2xl shadow-lg transition-all text-xs flex items-center justify-center gap-2"
             >
-              <Check className="w-4 h-4" />
+              <Check className="w-4 h-4 stroke-[3]" />
               {editingCategory ? 'Simpan Perubahan Master Kategori' : '+ Simpan Master Kategori Baru'}
             </button>
           </div>
