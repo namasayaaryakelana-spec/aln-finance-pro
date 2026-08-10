@@ -11,7 +11,7 @@ export default async function handler(req: any, res: any) {
     const hasKey = !!apiKey;
     const keyName = process.env.GEMINI_API_KEY ? 'GEMINI_API_KEY' : process.env.VITE_GEMINI_API_KEY ? 'VITE_GEMINI_API_KEY' : process.env.GOOGLE_API_KEY ? 'GOOGLE_API_KEY' : 'NONE';
 
-    // Stage 2: Environment Variable Presence Check
+    // Stage 2: Environment Variable Presence Check (Does NOT invoke Gemini)
     if (stage === '2') {
       return res.status(200).json({
         status: 'FUNCTION_OK',
@@ -20,7 +20,7 @@ export default async function handler(req: any, res: any) {
       });
     }
 
-    // Stage 3 (Default): Full End-to-End Gemini API Test
+    // Stage 3 (Default): Full End-to-End Gemini API Test (Strictly gemini-2.5-flash)
     if (!hasKey) {
       return res.status(200).json({
         status: 'FAIL',
@@ -39,21 +39,10 @@ export default async function handler(req: any, res: any) {
       },
     });
 
-    let response;
-    let usedModel = 'gemini-2.5-flash';
-    try {
-      response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: 'Say exactly: ALN AI TEST OK',
-      });
-    } catch (e1: any) {
-      console.warn('gemini-2.5-flash failed, trying gemini-1.5-flash fallback:', e1);
-      usedModel = 'gemini-1.5-flash';
-      response = await ai.models.generateContent({
-        model: 'gemini-1.5-flash',
-        contents: 'Say exactly: ALN AI TEST OK',
-      });
-    }
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: 'Say exactly: ALN AI TEST OK',
+    });
 
     const replyText = response.text?.trim() || 'ALN AI TEST OK';
 
@@ -61,7 +50,7 @@ export default async function handler(req: any, res: any) {
       status: 'PASS',
       hasGeminiKey: true,
       keyName,
-      usedModel,
+      model: 'gemini-2.5-flash',
       reply: replyText
     });
   } catch (error: any) {
@@ -69,9 +58,9 @@ export default async function handler(req: any, res: any) {
     return res.status(200).json({
       status: 'FAIL',
       hasGeminiKey: !!(process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || process.env.GOOGLE_API_KEY),
-      googleHttpCode: error.status || error.statusCode || 403,
+      googleHttpCode: error.status || error.statusCode || 500,
       error: error.message || String(error),
-      details: 'Google Gemini API returned 403 Forbidden. The GEMINI_API_KEY in Vercel Environment Variables may be invalid, expired, or restricted in Google AI Studio.'
+      details: String(error)
     });
   }
 }

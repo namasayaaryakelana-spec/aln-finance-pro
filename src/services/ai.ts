@@ -12,8 +12,14 @@ export const AIService = {
       if (!res.ok) {
         if (res.status === 401 || res.status === 403) {
           return {
-            reply: `⚠️ **AI Financial Advisor Belum Terkonfigurasi**\n\nAPI Key Gemini (\`GEMINI_API_KEY\`) belum dimasukkan pada Environment Variables Vercel/server.\n\n**Langkah Aktivasi:**\n1. Buka Dashboard Vercel > Project Settings > **Environment Variables**.\n2. Tambahkan variable: \`GEMINI_API_KEY\` = *[API Key Gemini Anda]*\n3. Lakukan **Redeploy** pada Vercel.`,
+            reply: `⚠️ **AI Financial Advisor Belum Terkonfigurasi**\n\nAPI Key Gemini (\`GEMINI_API_KEY\`) belum dimasukkan atau tidak memiliki akses pada Environment Variables Vercel.\n\n**Langkah Aktivasi:**\n1. Buka Dashboard Vercel > Project Settings > **Environment Variables**.\n2. Tambahkan variable: \`GEMINI_API_KEY\` = *[API Key Gemini Anda]*\n3. Lakukan **Redeploy** pada Vercel.`,
             isConfigError: true
+          };
+        }
+        if (res.status === 404) {
+          return {
+            reply: `⚠️ **Model AI Tidak Ditemukan (404)**\n\nModel AI (\`gemini-2.5-flash\`) tidak ditemukan pada endpoint Gemini API saat ini.`,
+            isModelError: true
           };
         }
         if (res.status === 429) {
@@ -62,7 +68,6 @@ export const AIService = {
     } catch (error) {
       console.warn('Fast transaction parsing failed, falling back to basic extraction:', error);
       
-      // Fallback regex parsing supporting multi-transaction splitting & context inheritance
       const conjunctionRegex = /\b(?:terus|lalu|kemudian|habis\s+itu|setelah\s+itu|selanjutnya|dan|&|plus|sama|lanjut|berikutnya)\b|[,;]/gi;
       const rawClauses = promptText.split(conjunctionRegex).map(c => c.trim()).filter(Boolean);
       const clauses = rawClauses.length > 0 ? rawClauses : [promptText];
@@ -72,7 +77,6 @@ export const AIService = {
       const parsedTxList: any[] = [];
 
       for (const clause of clauses) {
-        // Extract amount supporting "k", "rb", "ribu", "jt", "juta", dots and commas
         const matchesAmount = clause.match(/(\d+(?:[\.,]\d+)?)\s*(rb|ribu|jt|juta|k|m)?/i);
         let amount = 0;
         if (matchesAmount) {
@@ -85,126 +89,110 @@ export const AIService = {
 
         const isIncome = /gaji|pemasukan|omzet|dapat|terima|dijual|transfer masuk|bonus|refund|honor/i.test(clause);
 
-        // Extract paid_by (or inherit)
         if (/lana/i.test(clause)) runningPaidBy = 'Lana';
         else if (/lina/i.test(clause)) runningPaidBy = 'Lina';
         else if (/ayah|suami/i.test(clause)) runningPaidBy = 'Ayah';
         else if (/ibu|istri/i.test(clause)) runningPaidBy = 'Ibu';
 
-        // Extract account (or inherit)
         if (/bca/i.test(clause)) runningAccount = 'BCA';
         else if (/mandiri/i.test(clause)) runningAccount = 'Mandiri';
         else if (/gopay/i.test(clause)) runningAccount = 'GoPay';
         else if (/ovo/i.test(clause)) runningAccount = 'OVO';
         else if (/cash|tunai/i.test(clause)) runningAccount = 'Cash';
 
-        // Category & Subcategory Taxonomy
-        let category = isIncome ? 'Penghasilan Utama' : 'Transportasi';
-        let subcategory = isIncome ? 'Gaji Suami' : 'Bensin';
+        let title = clause
+          .replace(/(\d+(?:[\.,]\d+)?)\s*(rb|ribu|jt|juta|k|m)?/gi, '')
+          .replace(/\b(?:bca|mandiri|gopay|ovo|cash|tunai|lana|lina|ayah|ibu|suami|istri|pribadi|bersama|rumah|keluarga)\b/gi, '')
+          .trim();
 
-        if (isIncome) {
-          if (/gaji suami/i.test(clause)) { category = 'Penghasilan Utama'; subcategory = 'Gaji Suami'; }
-          else if (/gaji istri/i.test(clause)) { category = 'Penghasilan Utama'; subcategory = 'Gaji Istri'; }
-          else if (/honor|kegiatan/i.test(clause)) { category = 'Penghasilan Sampingan'; subcategory = 'Honorarium Kegiatan'; }
-          else if (/bonus|rapat/i.test(clause)) { category = 'Penghasilan Sampingan'; subcategory = 'Transport Rapat / Bonus'; }
-          else if (/usaha|sampingan/i.test(clause)) { category = 'Penghasilan Sampingan'; subcategory = 'Usaha Sampingan'; }
-          else if (/refund|hadiah|investasi|pemberian/i.test(clause)) { category = 'Pemasukan Lainnya'; subcategory = 'Refunds / Reimbursements'; }
+        if (!title) {
+          title = isIncome ? 'Pemasukan' : 'Pengeluaran';
         } else {
-          if (/bensin|pertamax|pertalite/i.test(clause)) { category = 'Transportasi'; subcategory = 'Bensin'; }
-          else if (/parkir/i.test(clause)) { category = 'Transportasi'; subcategory = 'Parkir'; }
-          else if (/servis|bengkel/i.test(clause)) { category = 'Transportasi'; subcategory = 'Servis & Perawatan'; }
-          else if (/belanja dapur|sayur|beras|pasar/i.test(clause)) { category = 'Makan'; subcategory = 'Belanja Dapur'; }
-          else if (/makan diluar|resto|kafe|makan malam|makan siang/i.test(clause)) { category = 'Makan'; subcategory = 'Makan Diluar'; }
-          else if (/jajan|snack|kopi/i.test(clause)) { category = 'Makan'; subcategory = 'Jajan'; }
-          else if (/listrik|pln/i.test(clause)) { category = 'Bill & Utilitas'; subcategory = 'Listrik'; }
-          else if (/gas|lpg/i.test(clause)) { category = 'Bill & Utilitas'; subcategory = 'Gas LPG'; }
-          else if (/wifi|internet/i.test(clause)) { category = 'Bill & Utilitas'; subcategory = 'Wifi'; }
-          else if (/pampers|popok/i.test(clause)) { category = 'Kebutuhan Keluarga & Anak'; subcategory = 'Pampers / Popok'; }
-          else if (/susu/i.test(clause)) { category = 'Kebutuhan Keluarga & Anak'; subcategory = 'Susu & Perlengkapan'; }
-          else if (/sekolah|daycare|spp/i.test(clause)) { category = 'Kebutuhan Keluarga & Anak'; subcategory = 'Sekolah / Daycare'; }
-          else if (/obat|vitamin|dokter/i.test(clause)) { category = 'Kesehatan'; subcategory = 'Obat & Vitamin'; }
+          title = title.charAt(0).toUpperCase() + title.slice(1);
         }
 
-        const isShared = /listrik|gas|lpg|dapur|sekolah|susu|popok|pampers|wifi|anak|rumah/i.test(clause);
-        const scope = isShared ? 'SHARED' : 'PERSONAL';
-        const finalAmount = amount || 50000;
-        const is_high_impact = !isIncome && finalAmount >= 100000;
-
         parsedTxList.push({
-          title: clause || 'Catatan Transaksi',
-          amount: finalAmount,
+          title,
           type: isIncome ? 'INCOME' : 'EXPENSE',
+          debit: isIncome ? amount : 0,
+          credit: isIncome ? 0 : amount,
+          amount,
           paid_by: runningPaidBy,
-          scope,
+          scope: /bersama|rumah|keluarga|dapur|anak|pampers|listrik|wifi/i.test(clause) ? 'SHARED' : 'PERSONAL',
           account: runningAccount,
-          category,
-          subcategory,
-          transaction_date: null,
-          is_high_impact,
           walletName: runningAccount,
+          category: isIncome ? 'Penghasilan Utama' : 'Makan',
+          subcategory: null,
+          transaction_date: new Date().toISOString().split('T')[0],
+          is_high_impact: amount > 200000,
           date: new Date().toISOString().split('T')[0]
         });
       }
 
-      return parsedTxList.length > 0 ? parsedTxList : [{
-        title: promptText || 'Transaksi AI',
-        amount: 50000,
-        type: 'EXPENSE',
-        paid_by: null,
-        scope: 'PERSONAL',
-        account: null,
-        category: 'Transportasi',
-        subcategory: 'Bensin',
-        transaction_date: null,
-        is_high_impact: false,
-        walletName: null,
-        date: new Date().toISOString().split('T')[0]
-      }];
+      return parsedTxList;
     }
   },
 
-  async analyzeCashflow(data: { transactions: any[]; wallets: any[]; budgets: any[] }) {
+  async analyzeCashflowHealth(transactions: any[], wallets: any[], budgets: any[]) {
     try {
       const res = await fetch('/api/ai/analyze-cashflow', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: JSON.stringify({ transactions, wallets, budgets })
       });
-      if (!res.ok) throw new Error(`Server status ${res.status}`);
-      const json = await res.json();
-      return json.analysis;
+      if (!res.ok) {
+        throw new Error(`Server status ${res.status}`);
+      }
+      const data = await res.json();
+      if (data.success && data.analysis) {
+        return data.analysis;
+      }
+      throw new Error('Analisis tidak mengembalikan data valid.');
     } catch (error) {
-      console.warn('AI Cashflow Analysis failed, using rule-based calculations:', error);
-      const totalIncome = data.transactions
-        .filter(t => t.type === 'income')
-        .reduce((sum, t) => sum + t.amount, 0);
-      const totalExpense = data.transactions
-        .filter(t => t.type === 'expense')
-        .reduce((sum, t) => sum + t.amount, 0);
+      console.warn('Cashflow health analysis failed, using calculation fallback:', error);
+      
+      const totalBalance = (wallets || []).reduce((acc: number, w: any) => acc + (w.balance || 0), 0);
+      const totalIncome = (transactions || [])
+        .filter((t: any) => t.type === 'INCOME')
+        .reduce((acc: number, t: any) => acc + (t.amount || t.debit || 0), 0);
+      const totalExpense = (transactions || [])
+        .filter((t: any) => t.type === 'EXPENSE')
+        .reduce((acc: number, t: any) => acc + (t.amount || t.credit || 0), 0);
 
-      const netFlow = totalIncome - totalExpense;
-      const savingsRate = totalIncome > 0 ? ((netFlow) / totalIncome) * 100 : 0;
-      let score = 75;
-      if (savingsRate > 30) score = 90;
-      else if (savingsRate > 10) score = 78;
-      else if (savingsRate >= 0) score = 65;
-      else score = 45;
+      const netCashflow = totalIncome - totalExpense;
+      const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpense) / totalIncome) * 100 : 0;
+      
+      let healthScore = 70;
+      let healthGrade = 'Sehat';
+      if (netCashflow < 0) {
+        healthScore = 45;
+        healthGrade = 'Waspada';
+      } else if (savingsRate >= 20) {
+        healthScore = 88;
+        healthGrade = 'Sangat Sehat';
+      }
 
       return {
-        healthScore: score,
-        healthGrade: score >= 80 ? 'Sangat Sehat' : score >= 65 ? 'Sehat' : 'Waspada',
-        summary: `Arus kas Anda mencatatkan net flow ${netFlow >= 0 ? 'positif' : 'negatif'}. Tingkat tabungan bersih saat ini berada pada kisaran ${Math.round(savingsRate)}%.`,
-        risks: [
-          savingsRate < 20 ? 'Tingkat tabungan bulanan di bawah target ideal 20%' : 'Lakukan diversifikasi aset pada dompet utama',
-          'Beberapa kategori anggaran mendekati batas maksimum bulanan'
-        ],
+        healthScore,
+        healthGrade,
+        summary: `Arus kas bersih Anda saat ini berada di nominal ${netCashflow >= 0 ? '+' : ''}Rp ${netCashflow.toLocaleString('id-ID')} dengan total saldo kas gabungan Rp ${totalBalance.toLocaleString('id-ID')}.`,
+        risks: netCashflow < 0 
+          ? ['Total pengeluaran melebihi pemasukan bulan ini.', 'Potensi defisit kas dalam 30 hari ke depan jika tidak ada efisiensi.']
+          : ['Rasio tabungan belum mencapai target optimal 20%.'],
         recommendations: [
-          'Kurangi pengeluaran tidak mendesak pada kategori Makanan & Lifestyle',
-          'Alokasikan kelebihan arus kas bersih ke Dana Darurat atau Reksa Dana Pasar Uang'
+          'Evaluasi pengeluaran pada kategori Kebutuhan Harian & Makan Diluar.',
+          'Alokasikan minimal 10-20% pemasukan bersih langsung ke dompet Tabungan/Investasi di awal bulan.',
+          'Pantau pengeluaran bernominal > Rp 200.000 agar tidak melampaui batas anggaran.'
         ],
-        savingsPotential: totalExpense * 0.12,
-        cashflowForecast: 'Proyeksi arus kas stabil untuk 30 hari kedepan.'
+        savingsPotential: totalExpense * 0.15,
+        cashflowForecast: netCashflow >= 0 
+          ? 'Arus kas diproyeksikan tetap positif bulan depan selama pola pengeluaran dipertahankan.'
+          : 'Diproyeksikan membutuhkan pengambilan dana cadangan jika tidak ada efisiensi segera.'
       };
     }
+  },
+
+  async analyzeCashflow(transactions: any[], wallets: any[], budgets: any[]) {
+    return this.analyzeCashflowHealth(transactions, wallets, budgets);
   }
 };

@@ -54,27 +54,14 @@ Panduan Jawaban:
       parts: [{ text: message }]
     });
 
-    let response;
-    try {
-      response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents,
-        config: {
-          systemInstruction,
-          temperature: 0.7,
-        }
-      });
-    } catch (e1) {
-      console.warn('gemini-2.5-flash failed in chat, falling back to gemini-1.5-flash:', e1);
-      response = await ai.models.generateContent({
-        model: 'gemini-1.5-flash',
-        contents,
-        config: {
-          systemInstruction,
-          temperature: 0.7,
-        }
-      });
-    }
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents,
+      config: {
+        systemInstruction,
+        temperature: 0.7,
+      }
+    });
 
     return res.status(200).json({
       reply: response.text || 'Maaf, saya tidak dapat memproses tanggapan saat ini.',
@@ -83,8 +70,19 @@ Panduan Jawaban:
   } catch (error: any) {
     console.error('Error in api/ai/chat:', error);
     const status = error.status || 500;
+    
+    // Transparent error diagnostics
+    let errorMessage = error.message || 'Gagal menghubungkan ke AI Financial Advisor.';
+    if (status === 404) {
+      errorMessage = 'Model AI (gemini-2.5-flash) tidak ditemukan atau tidak tersedia.';
+    } else if (status === 401 || status === 403) {
+      errorMessage = 'API Key Gemini tidak valid atau tidak memiliki akses.';
+    } else if (status === 429) {
+      errorMessage = 'Kuota Gemini sedang habis atau rate limit tercapai.';
+    }
+
     return res.status(status).json({
-      error: error.message || 'Gagal menghubungkan ke AI Financial Advisor.',
+      error: errorMessage,
       status,
       details: String(error)
     });
