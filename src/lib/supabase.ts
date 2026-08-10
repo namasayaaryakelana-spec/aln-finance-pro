@@ -5,7 +5,14 @@ const STORAGE_KEYS = {
   SUPABASE_ANON_KEY: 'aln_supabase_anon_key'
 };
 
-export function getSupabaseCredentials(): { url: string; anonKey: string } {
+export interface SupabaseCredsInfo {
+  url: string;
+  anonKey: string;
+  isEnvConfigured: boolean;
+  source: 'env' | 'localStorage' | 'none';
+}
+
+export function getSupabaseCredentials(): SupabaseCredsInfo {
   const envUrl =
     (import.meta as any).env?.VITE_SUPABASE_URL ||
     (import.meta as any).env?.SUPABASE_URL ||
@@ -28,10 +35,22 @@ export function getSupabaseCredentials(): { url: string; anonKey: string } {
   const storedUrl = localStorage.getItem(STORAGE_KEYS.SUPABASE_URL) || '';
   const storedKey = localStorage.getItem(STORAGE_KEYS.SUPABASE_ANON_KEY) || '';
 
-  const url = envUrl || storedUrl;
-  const anonKey = envKey || storedKey;
+  const isEnvConfigured = Boolean(envUrl && envKey && envUrl.startsWith('http'));
+  let url = '';
+  let anonKey = '';
+  let source: 'env' | 'localStorage' | 'none' = 'none';
 
-  return { url, anonKey };
+  if (isEnvConfigured) {
+    url = envUrl;
+    anonKey = envKey;
+    source = 'env';
+  } else if (storedUrl && storedKey && storedUrl.startsWith('http')) {
+    url = storedUrl;
+    anonKey = storedKey;
+    source = 'localStorage';
+  }
+
+  return { url, anonKey, isEnvConfigured, source };
 }
 
 export function setSupabaseCredentials(url: string, anonKey: string) {

@@ -205,13 +205,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           </form>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-            <div className="p-3.5 bg-[#0B1220] rounded-2xl border border-[rgba(212,175,55,0.25)] text-[#F6D365] space-y-1">
+            <div className="p-3.5 bg-[#0B1220] rounded-2xl border border-[rgba(212,175,55,0.25)] text-[#F6D365] space-y-1.5">
               <span className="font-extrabold block flex items-center gap-1.5">
-                <AlertCircle className="w-4 h-4" /> Kunci Supabase Database
+                <AlertCircle className="w-4 h-4" /> Status Kredensial Supabase
               </span>
               <p className="text-[11px] text-[#BFC8D6]">
-                Kredensial ini digunakan untuk menghubungkan aplikasi ke Supabase PostgreSQL milik Anda.
+                {currentCreds.source === 'env'
+                  ? 'Supabase Cloud otomatis terhubung via Environment Variables Vercel.'
+                  : 'Kredensial digunakan untuk menghubungkan aplikasi ke Supabase PostgreSQL.'}
               </p>
+              {currentCreds.source === 'env' && (
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold">
+                  <Check className="w-3 h-3 stroke-[3]" /> Konfigurasi Supabase Cloud Aktif (Auto-Environment)
+                </div>
+              )}
             </div>
 
             <div>
