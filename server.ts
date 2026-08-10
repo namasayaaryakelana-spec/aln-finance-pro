@@ -8,7 +8,10 @@ const PORT = 3000;
 app.use(express.json({ limit: '10mb' }));
 
 // Vercel Serverless Function Path Normalization Middleware
-app.use((req, res, next) => {
+app.use((req: any, res: any, next: any) => {
+  if (req.originalUrl) {
+    req.url = req.originalUrl;
+  }
   if (!req.url.startsWith('/api') && (req.url.startsWith('/ai/') || req.url.startsWith('/health'))) {
     req.url = '/api' + req.url;
   }
@@ -368,6 +371,11 @@ Berikan skor kesehatan (0-100), analisis risiko arus kas, 3 rekomendasi penghema
       details: String(error)
     });
   }
+});
+
+// Fallback Unmatched API Handler
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: `Rute API '${req.url}' tidak ditemukan.` });
 });
 
 // --- VITE MIDDLEWARE / STATIC SERVING (DEVELOPMENT ONLY) ---
