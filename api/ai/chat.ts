@@ -54,14 +54,27 @@ Panduan Jawaban:
       parts: [{ text: message }]
     });
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents,
-      config: {
-        systemInstruction,
-        temperature: 0.7,
-      }
-    });
+    let response;
+    try {
+      response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents,
+        config: {
+          systemInstruction,
+          temperature: 0.7,
+        }
+      });
+    } catch (e1) {
+      console.warn('gemini-2.5-flash failed in chat, falling back to gemini-1.5-flash:', e1);
+      response = await ai.models.generateContent({
+        model: 'gemini-1.5-flash',
+        contents,
+        config: {
+          systemInstruction,
+          temperature: 0.7,
+        }
+      });
+    }
 
     return res.status(200).json({
       reply: response.text || 'Maaf, saya tidak dapat memproses tanggapan saat ini.',
