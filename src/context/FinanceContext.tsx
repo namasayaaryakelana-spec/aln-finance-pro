@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
-import { User, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from 'firebase/auth';
-import { auth, googleProvider, testFirestoreConnection } from '../lib/firebase';
-import { FirestoreSyncService, UserFinancialBundle } from '../services/firestoreSync';
+import { User as SupabaseUser } from '@supabase/supabase-js';
+import { initSupabaseClient } from '../lib/supabase';
+import { SupabaseSyncService, SupabaseUserBundle } from '../services/supabaseSync';
 import {
   Scope,
   Currency,
@@ -27,8 +27,10 @@ interface Toast {
 export type SyncStatus = 'synced' | 'syncing' | 'local_only' | 'error';
 
 interface FinanceContextType {
-  currentUser: User | null;
-  loginWithGoogle: () => Promise<void>;
+  currentUser: SupabaseUser | null;
+  loginWithSupabaseEmail: (e: string, p: string) => Promise<boolean>;
+  signUpWithSupabaseEmail: (e: string, p: string) => Promise<boolean>;
+  loginWithSupabaseGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   pushCloudData: () => Promise<boolean>;
   pullCloudData: () => Promise<boolean>;
@@ -39,6 +41,9 @@ interface FinanceContextType {
 
   syncStatus: SyncStatus;
   isCloudSyncing: boolean;
+  isAuthModalOpen: boolean;
+  openAuthModal: () => void;
+  closeAuthModal: () => void;
 
   wallets: Wallet[];
   transactions: Transaction[];
@@ -117,9 +122,10 @@ interface FinanceContextType {
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
 
 export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<SupabaseUser | null>(null);
   const [currentScope, setScopeState] = useState<Scope>('personal');
   const [currentCurrency, setCurrency] = useState<Currency>('IDR');
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   const [wallets, setWallets] = useState<Wallet[]>(() => StorageService.getWallets());
   const [transactions, setTransactions] = useState<Transaction[]>(() => StorageService.getTransactions());
@@ -137,164 +143,192 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('local_only');
   const [isCloudSyncing, setIsCloudSyncing] = useState<boolean>(false);
   const isRemoteUpdateRef = useRef<boolean>(false);
-  const remoteUpdateTimeoutRef = useRef<any>(null);
 
-  // Test connection, catch redirect auth result & Auth state observer
+  const openAuthModal = () => setIsAuthModalOpen(true);
+  const closeAuthModal = () => setIsAuthModalOpen(false);
+
+  // Initialize Supabase Auth Listener & Session Persistence
   useEffect(() => {
-    testFirestoreConnection();
+    const client = initSupabaseClient();
+    if (!client) {
+      setSyncStatus('local_only');
+      return;
+    }
 
-    getRedirectResult(auth).catch((err: any) => {
-      if (err && err.code !== 'auth/popup-closed-by-user') {
-        console.warn('Firebase Auth Redirect Result Warning:', err);
+    client.auth.getSession().then(({ data }) => {
+      if (data.session?.user) {
+        setCurrentUser(data.session.user);
       }
     });
 
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const { data: authSubscription } = client.auth.onAuthStateChange((_event, session) => {
+      const user = session?.user || null;
       setCurrentUser(user);
       if (user) {
-        addToast('success', 'Firebase Auth', `Terhubung sebagai ${user.displayName || user.email}`);
+        setSyncStatus('syncing');
       } else {
         setSyncStatus('local_only');
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      authSubscription.subscription.unsubscribe();
+    };
   }, []);
 
-  // Real-time Firestore Listener
+  // Fetch & Subscribe to Supabase PostgreSQL Realtime Sync when user is authenticated
   useEffect(() => {
     if (!currentUser) {
       setSyncStatus('local_only');
       return;
     }
 
+    const client = initSupabaseClient();
+    if (!client) return;
+
+    let isSubscribed = true;
     setSyncStatus('syncing');
-    let isInitial = true;
 
-    const unsubscribe = FirestoreSyncService.subscribeToUserData(
-      currentUser.uid,
-      (remoteData) => {
-        if (remoteData) {
-          isRemoteUpdateRef.current = true;
-          if (remoteUpdateTimeoutRef.current) clearTimeout(remoteUpdateTimeoutRef.current);
+    const loadData = async () => {
+      const remote = await SupabaseSyncService.fetchUserData(currentUser.id);
+      if (!isSubscribed) return;
 
-          if (remoteData.wallets) { setWallets(remoteData.wallets); StorageService.saveWallets(remoteData.wallets); }
-          if (remoteData.transactions) { setTransactions(remoteData.transactions); StorageService.saveTransactions(remoteData.transactions); }
-          if (remoteData.categories) { setCategories(remoteData.categories); StorageService.saveCategories(remoteData.categories); }
-          if (remoteData.budgets) { setBudgets(remoteData.budgets); StorageService.saveBudgets(remoteData.budgets); }
-          if (remoteData.goals) { setGoals(remoteData.goals); StorageService.saveGoals(remoteData.goals); }
-          if (remoteData.debts) { setDebts(remoteData.debts); StorageService.saveDebts(remoteData.debts); }
-          if (remoteData.invoices) { setInvoices(remoteData.invoices); StorageService.saveInvoices(remoteData.invoices); }
-          if (remoteData.investments) { setInvestments(remoteData.investments); StorageService.saveInvestments(remoteData.investments); }
-          if (remoteData.auditLogs) { setAuditLogs(remoteData.auditLogs); StorageService.saveAuditLogs(remoteData.auditLogs); }
+      if (remote && (remote.wallets.length > 0 || remote.transactions.length > 0)) {
+        isRemoteUpdateRef.current = true;
+        setWallets(remote.wallets);
+        setTransactions(remote.transactions);
+        setCategories(remote.categories.length ? remote.categories : categories);
+        setBudgets(remote.budgets);
+        setGoals(remote.goals);
+        setDebts(remote.debts);
+        setInvoices(remote.invoices);
+        setInvestments(remote.investments);
+        if (remote.auditLogs.length) setAuditLogs(remote.auditLogs);
 
-          setSyncStatus('synced');
-          if (!isInitial) {
-            addToast('info', 'Cloud Sync', 'Data otomatis tersinkronisasi dari Cloud Firestore.');
-          }
+        // Save light cache
+        StorageService.saveWallets(remote.wallets);
+        StorageService.saveTransactions(remote.transactions);
+        setSyncStatus('synced');
 
-          // Buffer remote update flag for 2.5 seconds to cover all React re-render passes
-          remoteUpdateTimeoutRef.current = setTimeout(() => {
-            isRemoteUpdateRef.current = false;
-          }, 2500);
-        } else {
-          // Cloud document does not exist yet -> Seed current local data to Firestore
-          const initialBundle: UserFinancialBundle = {
-            wallets,
-            transactions,
-            categories,
-            budgets,
-            goals,
-            debts,
-            invoices,
-            investments,
-            auditLogs
-          };
-          FirestoreSyncService.saveUserData(currentUser.uid, initialBundle).then(() => {
-            setSyncStatus('synced');
-            addToast('success', 'Cloud Setup', 'Data awal berhasil disinkronkan ke Cloud Firebase.');
-          });
-        }
-        isInitial = false;
-      },
-      (err) => {
-        console.error('Cloud Sync Subscription Error:', err);
-        setSyncStatus('error');
+        setTimeout(() => { isRemoteUpdateRef.current = false; }, 1500);
+      } else {
+        // First time user or empty database -> seed initial bundle to Supabase PostgreSQL
+        const initialBundle: SupabaseUserBundle = {
+          wallets,
+          transactions,
+          categories,
+          budgets,
+          goals,
+          debts,
+          invoices,
+          investments,
+          auditLogs
+        };
+        await SupabaseSyncService.saveFullUserBundle(currentUser.id, initialBundle);
+        setSyncStatus('synced');
       }
-    );
+    };
+
+    loadData();
+
+    // Subscribe to Realtime Postgres changes across devices
+    const realtimeChannel = SupabaseSyncService.subscribeToUserRealtime(currentUser.id, () => {
+      loadData();
+    });
 
     return () => {
-      unsubscribe();
-      if (remoteUpdateTimeoutRef.current) clearTimeout(remoteUpdateTimeoutRef.current);
+      isSubscribed = false;
+      if (realtimeChannel) {
+        client.removeChannel(realtimeChannel);
+      }
     };
   }, [currentUser]);
 
-  // Auto-push local changes to Cloud Firestore when authenticated
-  useEffect(() => {
-    if (!currentUser) return;
-    if (isRemoteUpdateRef.current) return;
+  // SUPABASE AUTH ACTIONS
+  const loginWithSupabaseEmail = async (email: string, pass: string): Promise<boolean> => {
+    const client = initSupabaseClient();
+    if (!client) {
+      addToast('error', 'Supabase Not Configured', 'Konfigurasikan Supabase URL & Anon Key di menu Auth Modal.');
+      return false;
+    }
 
-    const timer = setTimeout(async () => {
-      if (isRemoteUpdateRef.current) return;
-      setIsCloudSyncing(true);
-      setSyncStatus('syncing');
-      const success = await FirestoreSyncService.saveUserData(currentUser.uid, {
-        wallets,
-        transactions,
-        categories,
-        budgets,
-        goals,
-        debts,
-        invoices,
-        investments,
-        auditLogs
-      });
-      setIsCloudSyncing(false);
-      if (success) {
-        setSyncStatus('synced');
-      } else {
-        setSyncStatus('error');
-      }
-    }, 1500);
-
-    return () => clearTimeout(timer);
-  }, [wallets, transactions, categories, budgets, goals, debts, invoices, investments, auditLogs, currentUser]);
-
-  const loginWithGoogle = async () => {
     try {
-      await signInWithPopup(auth, googleProvider);
+      const { data, error } = await client.auth.signInWithPassword({ email, password: pass });
+      if (error) {
+        addToast('error', 'Login Gagal', error.message);
+        return false;
+      }
+      if (data.user) {
+        setCurrentUser(data.user);
+        addToast('success', 'Supabase Login Berhasil', `Terhubung sebagai ${data.user.email}`);
+        return true;
+      }
+      return false;
     } catch (err: any) {
-      if (
-        err?.code === 'auth/popup-closed-by-user' ||
-        err?.code === 'auth/cancelled-popup-request'
-      ) {
-        return;
+      addToast('error', 'Login Error', err.message || String(err));
+      return false;
+    }
+  };
+
+  const signUpWithSupabaseEmail = async (email: string, pass: string): Promise<boolean> => {
+    const client = initSupabaseClient();
+    if (!client) {
+      addToast('error', 'Supabase Not Configured', 'Konfigurasikan Supabase URL & Anon Key di menu Auth Modal.');
+      return false;
+    }
+
+    try {
+      const { data, error } = await client.auth.signUp({ email, password: pass });
+      if (error) {
+        addToast('error', 'Registrasi Gagal', error.message);
+        return false;
       }
-      console.warn('Google Sign-In Popup failed, attempting redirect fallback:', err);
-      try {
-        await signInWithRedirect(auth, googleProvider);
-      } catch (redirectErr: any) {
-        console.error('Google Sign-In Error:', redirectErr);
-        const errDetail = redirectErr?.code || err?.code || redirectErr?.message || String(err);
-        addToast('error', 'Login Gagal', `Detail Error: ${errDetail}`);
+      if (data.user) {
+        setCurrentUser(data.user);
+        addToast('success', 'Akun Berhasil Dibuat', 'Email terverifikasi & terhubung ke Supabase PostgreSQL Cloud.');
+        return true;
       }
+      return false;
+    } catch (err: any) {
+      addToast('error', 'SignUp Error', err.message || String(err));
+      return false;
+    }
+  };
+
+  const loginWithSupabaseGoogle = async () => {
+    const client = initSupabaseClient();
+    if (!client) {
+      addToast('error', 'Supabase Not Configured', 'Konfigurasikan Supabase URL & Anon Key terlebih dahulu.');
+      return;
+    }
+    try {
+      await client.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.origin }
+      });
+    } catch (err: any) {
+      addToast('error', 'Google Auth Error', err.message || String(err));
     }
   };
 
   const logout = async () => {
-    try {
-      await signOut(auth);
-      addToast('info', 'Logged Out', 'Berhasil keluar dari akun Firebase.');
-    } catch (err) {
-      console.error('Logout Error:', err);
+    const client = initSupabaseClient();
+    if (client) {
+      await client.auth.signOut();
     }
+    setCurrentUser(null);
+    setSyncStatus('local_only');
+    addToast('info', 'Logged Out', 'Berhasil keluar dari akun Supabase.');
   };
 
   const pushCloudData = async (): Promise<boolean> => {
-    if (!currentUser) return false;
+    if (!currentUser) {
+      openAuthModal();
+      return false;
+    }
     setIsCloudSyncing(true);
     setSyncStatus('syncing');
-    const success = await FirestoreSyncService.saveUserData(currentUser.uid, {
+    const success = await SupabaseSyncService.saveFullUserBundle(currentUser.id, {
       wallets,
       transactions,
       categories,
@@ -308,53 +342,50 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     setIsCloudSyncing(false);
     if (success) {
       setSyncStatus('synced');
-      addToast('success', 'Upload Berhasil', 'Seluruh data lokal berhasil diunggah ke Cloud Firestore.');
+      addToast('success', 'Sync PostgreSQL Berhasil', 'Seluruh data berhasil diunggah ke Supabase PostgreSQL.');
     } else {
       setSyncStatus('error');
-      addToast('error', 'Upload Gagal', 'Gagal mengunggah data ke Cloud Firestore.');
+      addToast('error', 'Sync Gagal', 'Gagal mengunggah data ke Supabase.');
     }
     return success;
   };
 
   const pullCloudData = async (): Promise<boolean> => {
-    if (!currentUser) return false;
+    if (!currentUser) {
+      openAuthModal();
+      return false;
+    }
     setIsCloudSyncing(true);
     setSyncStatus('syncing');
-    const remoteData = await FirestoreSyncService.getUserData(currentUser.uid);
+    const remote = await SupabaseSyncService.fetchUserData(currentUser.id);
     setIsCloudSyncing(false);
-    if (remoteData) {
-      isRemoteUpdateRef.current = true;
-      if (remoteData.wallets) { setWallets(remoteData.wallets); StorageService.saveWallets(remoteData.wallets); }
-      if (remoteData.transactions) { setTransactions(remoteData.transactions); StorageService.saveTransactions(remoteData.transactions); }
-      if (remoteData.categories) { setCategories(remoteData.categories); StorageService.saveCategories(remoteData.categories); }
-      if (remoteData.budgets) { setBudgets(remoteData.budgets); StorageService.saveBudgets(remoteData.budgets); }
-      if (remoteData.goals) { setGoals(remoteData.goals); StorageService.saveGoals(remoteData.goals); }
-      if (remoteData.debts) { setDebts(remoteData.debts); StorageService.saveDebts(remoteData.debts); }
-      if (remoteData.invoices) { setInvoices(remoteData.invoices); StorageService.saveInvoices(remoteData.invoices); }
-      if (remoteData.investments) { setInvestments(remoteData.investments); StorageService.saveInvestments(remoteData.investments); }
-      if (remoteData.auditLogs) { setAuditLogs(remoteData.auditLogs); StorageService.saveAuditLogs(remoteData.auditLogs); }
+    if (remote) {
+      setWallets(remote.wallets);
+      setTransactions(remote.transactions);
+      setCategories(remote.categories.length ? remote.categories : categories);
+      setBudgets(remote.budgets);
+      setGoals(remote.goals);
+      setDebts(remote.debts);
+      setInvoices(remote.invoices);
+      setInvestments(remote.investments);
+      if (remote.auditLogs.length) setAuditLogs(remote.auditLogs);
 
       setSyncStatus('synced');
-      addToast('success', 'Download Berhasil', 'Data berhasil diperbarui langsung dari Cloud Firestore.');
-      setTimeout(() => { isRemoteUpdateRef.current = false; }, 2500);
-      return true;
-    } else {
-      setSyncStatus('synced');
-      addToast('info', 'Cloud Kosong', 'Belum ada data di Cloud. Data lokal Anda akan dijadikan data utama.');
-      await pushCloudData();
+      addToast('success', 'Download Berhasil', 'Data diperbarui langsung dari Supabase PostgreSQL.');
       return true;
     }
+    return false;
   };
 
   // Online / Offline listener
   useEffect(() => {
     const handleOnline = () => {
       setIsOffline(false);
-      addToast('success', 'Koneksi Pulih', 'Anda kembali online. Data lokal disinkronkan.');
+      addToast('success', 'Koneksi Pulih', 'Anda kembali online. Data otomatis tersinkronkan.');
     };
     const handleOffline = () => {
       setIsOffline(true);
-      addToast('warning', 'Mode Offline', 'Perangkat tidak terhubung ke internet. Transaksi disimpan secara lokal.');
+      addToast('warning', 'Mode Offline', 'Perangkat tidak terhubung ke internet. Perubahan akan disimpan sementara.');
     };
 
     window.addEventListener('online', handleOnline);
@@ -411,34 +442,27 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
   const netFlow = totalIncome - totalExpense;
 
   // Calculate Financial Health Score (0-100)
-  let score = 70; // Base score netral
-
+  let score = 70;
   if (totalIncome === 0 && totalExpense === 0) {
-    // Belum ada transaksi sama sekali
     score = 70;
   } else if (totalIncome === 0 && totalExpense > 0) {
-    // Hanya ada pengeluaran tanpa pemasukan
     score = 40;
   } else if (totalIncome > 0) {
     const savingsRate = (netFlow / totalIncome) * 100;
     if (savingsRate >= 30) score += 20;
     else if (savingsRate >= 15) score += 10;
     else if (savingsRate >= 0) score += 0;
-    else score -= 25; // Pengeluaran melebihi pemasukan
+    else score -= 25;
   }
 
-  // Pengurangan poin jika ada anggaran (budget) yang terlampaui
-  const overbudgetCount = filteredBudgets.filter(b => b.spent > b.monthlyLimit).length;
+  const overbudgetCount = filteredBudgets.filter(b => b.spent > b.amount).length;
   if (overbudgetCount > 0) score -= overbudgetCount * 10;
-
-  // Pengurangan poin jika utang belum dibayar melebihi aset
   if (totalAssets > 0 && totalLiabilities > totalAssets) {
     score -= 15;
   }
-
   const healthScore = Math.min(100, Math.max(10, Math.round(score)));
 
-  // --- ACTIONS ---
+  // --- ACTIONS (SYNCED TO SUPABASE POSTGRESQL & STATE) ---
   const addTransaction = (txData: Omit<Transaction, 'id' | 'createdAt'>) => {
     const newTx: Transaction = {
       ...txData,
@@ -455,13 +479,33 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
       const nextWallets = prev.map(w => {
         if (w.id === txData.walletId) {
           const delta = txData.type === 'income' ? txData.amount : -txData.amount;
-          return { ...w, balance: w.balance + delta };
+          const newBal = w.balance + delta;
+          if (currentUser) {
+            SupabaseSyncService.upsertRow('wallets', { id: w.id, balance: newBal }, currentUser.id);
+          }
+          return { ...w, balance: newBal };
         }
         return w;
       });
       StorageService.saveWallets(nextWallets);
       return nextWallets;
     });
+
+    if (currentUser) {
+      SupabaseSyncService.upsertRow('transactions', {
+        id: newTx.id,
+        wallet_id: newTx.walletId,
+        type: newTx.type,
+        amount: newTx.amount,
+        currency: newTx.currency,
+        title: newTx.title,
+        category: newTx.category,
+        subcategory: newTx.subcategory,
+        scope: newTx.scope,
+        date: newTx.date,
+        note: newTx.note
+      }, currentUser.id);
+    }
 
     // Update budget spent if expense
     if (txData.type === 'expense') {
@@ -470,13 +514,6 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         updateBudgetSpent(category.id, txData.amount);
       }
     }
-
-    const logs = StorageService.addAuditLog(
-      'Tambah Transaksi',
-      'Transactions',
-      `${txData.type.toUpperCase()}: ${txData.title} (Rp ${txData.amount.toLocaleString('id-ID')})`
-    );
-    setAuditLogs(logs);
 
     addToast('success', 'Transaksi Berhasil', `Berhasil mencatat ${txData.title}`);
   };
@@ -489,21 +526,26 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     setTransactions(updated);
     StorageService.saveTransactions(updated);
 
+    if (currentUser) {
+      SupabaseSyncService.deleteRow('transactions', id, currentUser.id);
+    }
+
     // Revert wallet balance
     setWallets(prev => {
       const nextWallets = prev.map(w => {
         if (w.id === tx.walletId) {
           const delta = tx.type === 'income' ? -tx.amount : tx.amount;
-          return { ...w, balance: w.balance + delta };
+          const newBal = w.balance + delta;
+          if (currentUser) {
+            SupabaseSyncService.upsertRow('wallets', { id: w.id, balance: newBal }, currentUser.id);
+          }
+          return { ...w, balance: newBal };
         }
         return w;
       });
       StorageService.saveWallets(nextWallets);
       return nextWallets;
     });
-
-    const logs = StorageService.addAuditLog('Hapus Transaksi', 'Transactions', `Menghapus transaksi ${tx.title}`);
-    setAuditLogs(logs);
 
     addToast('info', 'Transaksi Dihapus', `Transaksi ${tx.title} telah dihapus.`);
   };
@@ -517,8 +559,19 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     setWallets(updated);
     StorageService.saveWallets(updated);
 
-    const logs = StorageService.addAuditLog('Tambah Dompet', 'Wallets', `Menambah dompet baru: ${newWallet.name}`);
-    setAuditLogs(logs);
+    if (currentUser) {
+      SupabaseSyncService.upsertRow('wallets', {
+        id: newWallet.id,
+        name: newWallet.name,
+        type: newWallet.type,
+        currency: newWallet.currency,
+        balance: newWallet.balance,
+        account_number: newWallet.accountNumber,
+        scope: newWallet.scope,
+        color: newWallet.color,
+        is_default: newWallet.isDefault
+      }, currentUser.id);
+    }
 
     addToast('success', 'Dompet Ditambahkan', `Akun/Dompet ${newWallet.name} berhasil dibuat.`);
   };
@@ -527,18 +580,31 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     const nextWallets = wallets.map(w => (w.id === updatedWallet.id ? updatedWallet : w));
     setWallets(nextWallets);
     StorageService.saveWallets(nextWallets);
+
+    if (currentUser) {
+      SupabaseSyncService.upsertRow('wallets', {
+        id: updatedWallet.id,
+        name: updatedWallet.name,
+        type: updatedWallet.type,
+        currency: updatedWallet.currency,
+        balance: updatedWallet.balance,
+        account_number: updatedWallet.accountNumber,
+        scope: updatedWallet.scope,
+        color: updatedWallet.color,
+        is_default: updatedWallet.isDefault
+      }, currentUser.id);
+    }
+
     addToast('info', 'Dompet Diperbarui', `Informasi ${updatedWallet.name} disimpan.`);
   };
 
   const deleteWallet = (id: string) => {
-    const w = wallets.find(x => x.id === id);
     const nextWallets = wallets.filter(x => x.id !== id);
     setWallets(nextWallets);
     StorageService.saveWallets(nextWallets);
 
-    if (w) {
-      const logs = StorageService.addAuditLog('Hapus Dompet', 'Wallets', `Menghapus dompet ${w.name}`);
-      setAuditLogs(logs);
+    if (currentUser) {
+      SupabaseSyncService.deleteRow('wallets', id, currentUser.id);
     }
   };
 
@@ -552,16 +618,22 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
       return;
     }
 
-    // Adjust balances
     const nextWallets = wallets.map(w => {
-      if (w.id === fromWalletId) return { ...w, balance: w.balance - amount };
-      if (w.id === toWalletId) return { ...w, balance: w.balance + amount };
+      if (w.id === fromWalletId) {
+        const newBal = w.balance - amount;
+        if (currentUser) SupabaseSyncService.upsertRow('wallets', { id: w.id, balance: newBal }, currentUser.id);
+        return { ...w, balance: newBal };
+      }
+      if (w.id === toWalletId) {
+        const newBal = w.balance + amount;
+        if (currentUser) SupabaseSyncService.upsertRow('wallets', { id: w.id, balance: newBal }, currentUser.id);
+        return { ...w, balance: newBal };
+      }
       return w;
     });
     setWallets(nextWallets);
     StorageService.saveWallets(nextWallets);
 
-    // Record transfer transaction
     const newTx: Transaction = {
       id: `tx-tr-${Date.now()}`,
       type: 'transfer',
@@ -581,12 +653,20 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     setTransactions(nextTxs);
     StorageService.saveTransactions(nextTxs);
 
-    const logs = StorageService.addAuditLog(
-      'Transfer Antar Dompet',
-      'Wallets',
-      `Transfer Rp ${amount.toLocaleString('id-ID')} dari ${source.name} ke ${target.name}`
-    );
-    setAuditLogs(logs);
+    if (currentUser) {
+      SupabaseSyncService.upsertRow('transactions', {
+        id: newTx.id,
+        wallet_id: newTx.walletId,
+        type: newTx.type,
+        amount: newTx.amount,
+        currency: newTx.currency,
+        title: newTx.title,
+        category: newTx.category,
+        scope: newTx.scope,
+        date: newTx.date,
+        note: newTx.note
+      }, currentUser.id);
+    }
 
     addToast('success', 'Transfer Berhasil', `Berhasil memindahkan saldo Rp ${amount.toLocaleString('id-ID')}`);
   };
@@ -600,6 +680,19 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     const updated = [...categories, newCat];
     setCategories(updated);
     StorageService.saveCategories(updated);
+
+    if (currentUser) {
+      SupabaseSyncService.upsertRow('categories', {
+        id: newCat.id,
+        name: newCat.name,
+        type: newCat.type,
+        color: newCat.color,
+        icon: newCat.icon,
+        subcategories: newCat.subcategories,
+        scope: newCat.scope
+      }, currentUser.id);
+    }
+
     addToast('success', 'Kategori Dibuat', `Kategori ${newCat.name} ditambahkan.`);
   };
 
@@ -607,16 +700,29 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     const nextCategories = categories.map(c => (c.id === updatedCat.id ? updatedCat : c));
     setCategories(nextCategories);
     StorageService.saveCategories(nextCategories);
+
+    if (currentUser) {
+      SupabaseSyncService.upsertRow('categories', {
+        id: updatedCat.id,
+        name: updatedCat.name,
+        type: updatedCat.type,
+        color: updatedCat.color,
+        icon: updatedCat.icon,
+        subcategories: updatedCat.subcategories,
+        scope: updatedCat.scope
+      }, currentUser.id);
+    }
+
     addToast('info', 'Kategori Diperbarui', `Kategori ${updatedCat.name} berhasil diperbarui.`);
   };
 
   const deleteCategory = (id: string) => {
-    const catToDelete = categories.find(c => c.id === id);
     const nextCategories = categories.filter(c => c.id !== id);
     setCategories(nextCategories);
     StorageService.saveCategories(nextCategories);
-    if (catToDelete) {
-      addToast('warning', 'Kategori Dihapus', `Kategori ${catToDelete.name} telah dihapus.`);
+
+    if (currentUser) {
+      SupabaseSyncService.deleteRow('categories', id, currentUser.id);
     }
   };
 
@@ -629,7 +735,18 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     const updated = [...budgets, newBudget];
     setBudgets(updated);
     StorageService.saveBudgets(updated);
-    addToast('success', 'Anggaran Dibuat', `Target anggaran ${newBudget.categoryName} diset Rp ${newBudget.monthlyLimit.toLocaleString('id-ID')}`);
+
+    if (currentUser) {
+      SupabaseSyncService.upsertRow('budgets', {
+        id: newBudget.id,
+        category: newBudget.category,
+        amount: newBudget.amount,
+        spent: newBudget.spent,
+        period: newBudget.period
+      }, currentUser.id);
+    }
+
+    addToast('success', 'Anggaran Dibuat', `Target anggaran ${newBudget.category} diset Rp ${newBudget.amount.toLocaleString('id-ID')}`);
   };
 
   const updateBudget = (updatedBudget: Budget) => {
@@ -638,30 +755,38 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
       StorageService.saveBudgets(next);
       return next;
     });
-    addToast('info', 'Anggaran Diperbarui', `Batas anggaran ${updatedBudget.categoryName} telah diperbarui.`);
+
+    if (currentUser) {
+      SupabaseSyncService.upsertRow('budgets', {
+        id: updatedBudget.id,
+        category: updatedBudget.category,
+        amount: updatedBudget.amount,
+        spent: updatedBudget.spent,
+        period: updatedBudget.period
+      }, currentUser.id);
+    }
+
+    addToast('info', 'Anggaran Diperbarui', `Batas anggaran ${updatedBudget.category} telah diperbarui.`);
   };
 
   const deleteBudget = (id: string) => {
-    const b = budgets.find(x => x.id === id);
     setBudgets(prev => {
       const next = prev.filter(x => x.id !== id);
       StorageService.saveBudgets(next);
       return next;
     });
-    addToast('info', 'Anggaran Dihapus', `Anggaran ${b?.categoryName || ''} telah dihapus.`);
+    if (currentUser) {
+      SupabaseSyncService.deleteRow('budgets', id, currentUser.id);
+    }
   };
 
   const updateBudgetSpent = (categoryId: string, amountChange: number) => {
     setBudgets(prev => {
       const nextBudgets = prev.map(b => {
-        if (b.categoryId === categoryId) {
+        if (b.category === categoryId) {
           const newSpent = b.spent + amountChange;
-          if (newSpent > b.monthlyLimit) {
-            addToast(
-              'warning',
-              'Peringatan Overbudget!',
-              `Pengeluaran kategori ${b.categoryName} telah melebihi batas anggaran bulanan!`
-            );
+          if (currentUser) {
+            SupabaseSyncService.upsertRow('budgets', { id: b.id, spent: newSpent }, currentUser.id);
           }
           return { ...b, spent: Math.max(0, newSpent) };
         }
@@ -681,6 +806,18 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     const updated = [...goals, newGoal];
     setGoals(updated);
     StorageService.saveGoals(updated);
+
+    if (currentUser) {
+      SupabaseSyncService.upsertRow('goals', {
+        id: newGoal.id,
+        title: newGoal.title,
+        target_amount: newGoal.targetAmount,
+        current_amount: newGoal.currentAmount,
+        deadline: newGoal.deadline,
+        color: newGoal.color
+      }, currentUser.id);
+    }
+
     addToast('success', 'Target Tabungan Dibuat', `Financial Goal: ${newGoal.title}`);
   };
 
@@ -690,17 +827,30 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
       StorageService.saveGoals(next);
       return next;
     });
+
+    if (currentUser) {
+      SupabaseSyncService.upsertRow('goals', {
+        id: updatedGoal.id,
+        title: updatedGoal.title,
+        target_amount: updatedGoal.targetAmount,
+        current_amount: updatedGoal.currentAmount,
+        deadline: updatedGoal.deadline,
+        color: updatedGoal.color
+      }, currentUser.id);
+    }
+
     addToast('info', 'Target Goal Diperbarui', `Target ${updatedGoal.title} disimpan.`);
   };
 
   const deleteGoal = (id: string) => {
-    const g = goals.find(x => x.id === id);
     setGoals(prev => {
       const next = prev.filter(x => x.id !== id);
       StorageService.saveGoals(next);
       return next;
     });
-    addToast('info', 'Target Goal Dihapus', `Target ${g?.title || ''} telah dihapus.`);
+    if (currentUser) {
+      SupabaseSyncService.deleteRow('goals', id, currentUser.id);
+    }
   };
 
   const topupGoal = (goalId: string, amount: number, walletId?: string) => {
@@ -715,12 +865,15 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
           return;
         }
 
-        // Deduct balance from selected wallet
-        const nextWallets = wallets.map(w => (w.id === walletId ? { ...w, balance: w.balance - amount } : w));
+        const newBal = wallet.balance - amount;
+        const nextWallets = wallets.map(w => (w.id === walletId ? { ...w, balance: newBal } : w));
         setWallets(nextWallets);
         StorageService.saveWallets(nextWallets);
 
-        // Record a transaction for audit/history
+        if (currentUser) {
+          SupabaseSyncService.upsertRow('wallets', { id: walletId, balance: newBal }, currentUser.id);
+        }
+
         const newTx: Transaction = {
           id: `tx-topup-${Date.now()}`,
           type: 'expense',
@@ -737,21 +890,36 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         const nextTxs = [newTx, ...transactions];
         setTransactions(nextTxs);
         StorageService.saveTransactions(nextTxs);
+
+        if (currentUser) {
+          SupabaseSyncService.upsertRow('transactions', {
+            id: newTx.id,
+            wallet_id: newTx.walletId,
+            type: newTx.type,
+            amount: newTx.amount,
+            currency: newTx.currency,
+            title: newTx.title,
+            category: newTx.category,
+            scope: newTx.scope,
+            date: newTx.date,
+            note: newTx.note
+          }, currentUser.id);
+        }
       }
     }
 
+    const newCurrAmt = targetGoal.currentAmount + amount;
     setGoals(prev => {
-      const next = prev.map(g => (g.id === goalId ? { ...g, currentAmount: g.currentAmount + amount } : g));
+      const next = prev.map(g => (g.id === goalId ? { ...g, currentAmount: newCurrAmt } : g));
       StorageService.saveGoals(next);
       return next;
     });
 
-    const wName = walletId ? wallets.find(w => w.id === walletId)?.name : null;
-    addToast(
-      'success',
-      'Top-up Target Berhasil',
-      `Menambahkan Rp ${amount.toLocaleString('id-ID')} ke target "${targetGoal.title}"${wName ? ` dari ${wName}` : ''}.`
-    );
+    if (currentUser) {
+      SupabaseSyncService.upsertRow('goals', { id: goalId, current_amount: newCurrAmt }, currentUser.id);
+    }
+
+    addToast('success', 'Top-up Target Berhasil', `Menambahkan Rp ${amount.toLocaleString('id-ID')} ke target "${targetGoal.title}".`);
   };
 
   const addDebt = (debtData: Omit<BillAndDebt, 'id' | 'status'>) => {
@@ -763,6 +931,20 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     const updated = [...debts, newDebt];
     setDebts(updated);
     StorageService.saveDebts(updated);
+
+    if (currentUser) {
+      SupabaseSyncService.upsertRow('debts', {
+        id: newDebt.id,
+        type: newDebt.type,
+        person: newDebt.person,
+        title: newDebt.title,
+        amount: newDebt.amount,
+        due_date: newDebt.dueDate,
+        status: newDebt.status,
+        notes: newDebt.notes
+      }, currentUser.id);
+    }
+
     addToast('success', 'Catatan Tagihan / Hutang', `Pengingat ${newDebt.title} ditambahkan.`);
   };
 
@@ -772,17 +954,32 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
       StorageService.saveDebts(next);
       return next;
     });
+
+    if (currentUser) {
+      SupabaseSyncService.upsertRow('debts', {
+        id: updatedDebt.id,
+        type: updatedDebt.type,
+        person: updatedDebt.person,
+        title: updatedDebt.title,
+        amount: updatedDebt.amount,
+        due_date: updatedDebt.dueDate,
+        status: updatedDebt.status,
+        notes: updatedDebt.notes
+      }, currentUser.id);
+    }
+
     addToast('info', 'Tagihan Diperbarui', `Catatan ${updatedDebt.title} telah diperbarui.`);
   };
 
   const deleteDebt = (id: string) => {
-    const d = debts.find(x => x.id === id);
     setDebts(prev => {
       const next = prev.filter(x => x.id !== id);
       StorageService.saveDebts(next);
       return next;
     });
-    addToast('info', 'Tagihan Dihapus', `Catatan ${d?.title || ''} telah dihapus.`);
+    if (currentUser) {
+      SupabaseSyncService.deleteRow('debts', id, currentUser.id);
+    }
   };
 
   const markDebtStatus = (debtId: string, status: 'pending' | 'paid' | 'overdue') => {
@@ -791,6 +988,9 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
       StorageService.saveDebts(next);
       return next;
     });
+    if (currentUser) {
+      SupabaseSyncService.upsertRow('debts', { id: debtId, status }, currentUser.id);
+    }
     addToast('info', 'Status Diperbarui', `Status tagihan/hutang diubah menjadi ${status.toUpperCase()}`);
   };
 
@@ -804,8 +1004,29 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     setInvoices(updated);
     StorageService.saveInvoices(updated);
 
-    const logs = StorageService.addAuditLog('Buat Invoice', 'Business Tools', `Menerbitkan Invoice ${newInvoice.invoiceNumber} untuk ${newInvoice.clientName}`);
-    setAuditLogs(logs);
+    if (currentUser) {
+      SupabaseSyncService.upsertRow('invoices', {
+        id: newInvoice.id,
+        invoice_number: newInvoice.invoiceNumber,
+        company_name: newInvoice.companyName,
+        company_email: newInvoice.companyEmail,
+        company_phone: newInvoice.companyPhone,
+        company_address: newInvoice.companyAddress,
+        company_bank_details: newInvoice.companyBankDetails,
+        client_name: newInvoice.clientName,
+        client_email: newInvoice.clientEmail,
+        client_address: newInvoice.clientAddress,
+        issue_date: newInvoice.issueDate,
+        due_date: newInvoice.dueDate,
+        notes: newInvoice.notes,
+        items: newInvoice.items,
+        subtotal: newInvoice.subtotal,
+        tax: newInvoice.tax,
+        discount: newInvoice.discount,
+        total: newInvoice.total,
+        status: newInvoice.status
+      }, currentUser.id);
+    }
 
     addToast('success', 'Invoice Diterbitkan', `Invoice ${newInvoice.invoiceNumber} siap dikirim atau dicetak.`);
   };
@@ -816,17 +1037,43 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
       StorageService.saveInvoices(next);
       return next;
     });
+
+    if (currentUser) {
+      SupabaseSyncService.upsertRow('invoices', {
+        id: updatedInv.id,
+        invoice_number: updatedInv.invoiceNumber,
+        company_name: updatedInv.companyName,
+        company_email: updatedInv.companyEmail,
+        company_phone: updatedInv.companyPhone,
+        company_address: updatedInv.companyAddress,
+        company_bank_details: updatedInv.companyBankDetails,
+        client_name: updatedInv.clientName,
+        client_email: updatedInv.clientEmail,
+        client_address: updatedInv.clientAddress,
+        issue_date: updatedInv.issueDate,
+        due_date: updatedInv.dueDate,
+        notes: updatedInv.notes,
+        items: updatedInv.items,
+        subtotal: updatedInv.subtotal,
+        tax: updatedInv.tax,
+        discount: updatedInv.discount,
+        total: updatedInv.total,
+        status: updatedInv.status
+      }, currentUser.id);
+    }
+
     addToast('info', 'Invoice Diperbarui', `Invoice ${updatedInv.invoiceNumber} telah diperbarui.`);
   };
 
   const deleteInvoice = (id: string) => {
-    const inv = invoices.find(x => x.id === id);
     setInvoices(prev => {
       const next = prev.filter(x => x.id !== id);
       StorageService.saveInvoices(next);
       return next;
     });
-    addToast('info', 'Invoice Dihapus', `Invoice ${inv?.invoiceNumber || ''} telah dihapus.`);
+    if (currentUser) {
+      SupabaseSyncService.deleteRow('invoices', id, currentUser.id);
+    }
   };
 
   const updateInvoiceStatus = (invoiceId: string, status: 'pending' | 'paid' | 'overdue') => {
@@ -835,6 +1082,9 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
       StorageService.saveInvoices(next);
       return next;
     });
+    if (currentUser) {
+      SupabaseSyncService.upsertRow('invoices', { id: invoiceId, status }, currentUser.id);
+    }
     addToast('info', 'Status Invoice', `Invoice diubah ke status ${status.toUpperCase()}`);
   };
 
@@ -846,6 +1096,22 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     const updated = [...investments, newInv];
     setInvestments(updated);
     StorageService.saveInvestments(updated);
+
+    if (currentUser) {
+      SupabaseSyncService.upsertRow('investments', {
+        id: newInv.id,
+        name: newInv.name,
+        category: newInv.category,
+        initial_amount: newInv.initialAmount,
+        current_amount: newInv.currentAmount,
+        return_percentage: newInv.returnPercentage,
+        units: newInv.units,
+        platform: newInv.platform,
+        scope: newInv.scope,
+        notes: newInv.notes
+      }, currentUser.id);
+    }
+
     addToast('success', 'Investasi Ditambahkan', `Aset ${newInv.name} dicatat.`);
   };
 
@@ -855,31 +1121,47 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
       StorageService.saveInvestments(next);
       return next;
     });
+
+    if (currentUser) {
+      SupabaseSyncService.upsertRow('investments', {
+        id: updatedInv.id,
+        name: updatedInv.name,
+        category: updatedInv.category,
+        initial_amount: updatedInv.initialAmount,
+        current_amount: updatedInv.currentAmount,
+        return_percentage: updatedInv.returnPercentage,
+        units: updatedInv.units,
+        platform: updatedInv.platform,
+        scope: updatedInv.scope,
+        notes: updatedInv.notes
+      }, currentUser.id);
+    }
+
     addToast('info', 'Investasi Diperbarui', `Portofolio ${updatedInv.name} telah disimpan.`);
   };
 
   const deleteInvestment = (id: string) => {
-    const inv = investments.find(x => x.id === id);
     setInvestments(prev => {
       const next = prev.filter(x => x.id !== id);
       StorageService.saveInvestments(next);
       return next;
     });
-    addToast('info', 'Investasi Dihapus', `Aset ${inv?.name || ''} telah dihapus.`);
+    if (currentUser) {
+      SupabaseSyncService.deleteRow('investments', id, currentUser.id);
+    }
   };
 
   const resetAllData = () => {
     StorageService.resetToDefault();
-    setWallets(StorageService.getWallets());
-    setTransactions(StorageService.getTransactions());
-    setCategories(StorageService.getCategories());
-    setBudgets(StorageService.getBudgets());
-    setGoals(StorageService.getGoals());
-    setDebts(StorageService.getDebts());
-    setInvoices(StorageService.getInvoices());
-    setInvestments(StorageService.getInvestments());
-    setAuditLogs(StorageService.getAuditLogs());
-    addToast('info', 'Reset Database', 'Seluruh data aplikasi telah dikembalikan ke data awal.');
+    setWallets([]);
+    setTransactions([]);
+    setBudgets([]);
+    setGoals([]);
+    setDebts([]);
+    setInvoices([]);
+    setInvestments([]);
+    setAuditLogs([]);
+    addToast('info', 'Reset Database', 'Seluruh data aplikasi telah dibersihkan.');
   };
 
   const restoreData = (jsonData: any) => {
@@ -894,7 +1176,11 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
       setInvoices(StorageService.getInvoices());
       setInvestments(StorageService.getInvestments());
       setAuditLogs(StorageService.getAuditLogs());
-      addToast('success', 'Restore Selesai', 'Data berhasil dipulihkan dari file backup JSON.');
+
+      if (currentUser) {
+        pushCloudData();
+      }
+      addToast('success', 'Restore Selesai', 'Data dipulihkan dan disinkronkan ke Supabase.');
     } catch (e: any) {
       addToast('error', 'Gagal Restore Data', e.message || 'File tidak valid.');
     }
@@ -904,7 +1190,9 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     <FinanceContext.Provider
       value={{
         currentUser,
-        loginWithGoogle,
+        loginWithSupabaseEmail,
+        signUpWithSupabaseEmail,
+        loginWithSupabaseGoogle,
         logout,
         pushCloudData,
         pullCloudData,
@@ -914,6 +1202,9 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         setCurrency,
         syncStatus,
         isCloudSyncing,
+        isAuthModalOpen,
+        openAuthModal,
+        closeAuthModal,
         wallets,
         transactions,
         categories,

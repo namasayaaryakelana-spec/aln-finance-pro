@@ -27,9 +27,11 @@ import { AddDebtModal } from './components/modals/AddDebtModal';
 import { AddInvoiceModal } from './components/modals/AddInvoiceModal';
 import { CategoryMasterModal } from './components/modals/CategoryMasterModal';
 import { NotificationModal } from './components/modals/NotificationModal';
+import { AuthModal } from './components/modals/AuthModal';
 import { Invoice } from './types';
 
 const AppContent: React.FC = () => {
+  const { isAuthModalOpen, closeAuthModal } = useFinance();
   const [showSplash, setShowSplash] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
 
@@ -163,6 +165,7 @@ const AppContent: React.FC = () => {
       <PWAInstallPrompt deferredPrompt={deferredPrompt} onInstall={triggerPwaInstall} />
 
       {/* MODALS */}
+      <AuthModal isOpen={isAuthModalOpen} onClose={closeAuthModal} />
       <AddTransactionModal isOpen={isAddTxOpen} onClose={() => setIsAddTxOpen(false)} />
       <FastAITransactionModal isOpen={isFastAITxOpen} onClose={() => setIsFastAITxOpen(false)} />
       <AddWalletModal isOpen={isAddWalletOpen} onClose={() => setIsAddWalletOpen(false)} />

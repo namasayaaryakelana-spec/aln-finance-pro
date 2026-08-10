@@ -8,7 +8,8 @@ import {
   User as UserIcon,
   RefreshCw,
   CloudDownload,
-  CloudUpload
+  CloudUpload,
+  Globe
 } from 'lucide-react';
 import { useFinance } from '../../context/FinanceContext';
 
@@ -29,7 +30,19 @@ export const Header: React.FC<HeaderProps> = ({
   pwaPromptEvent,
   triggerPwaInstall
 }) => {
-  const { healthScore, debts, budgets, currentUser, loginWithGoogle, logout, pushCloudData, pullCloudData, isCloudSyncing } = useFinance();
+  const {
+    healthScore,
+    debts,
+    budgets,
+    currentUser,
+    openAuthModal,
+    logout,
+    pushCloudData,
+    pullCloudData,
+    isCloudSyncing,
+    syncStatus
+  } = useFinance();
+
   const [showSyncMenu, setShowSyncMenu] = useState(false);
 
   const pendingAlerts = debts.filter(d => d.status === 'pending' || d.status === 'overdue').length +
@@ -128,26 +141,24 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </button>
 
-        {/* Firebase Auth & Sync Status Button */}
+        {/* Supabase Auth & Sync Status Button */}
         {currentUser ? (
           <div className="relative">
             <button
               onClick={() => setShowSyncMenu(!showSyncMenu)}
-              className="flex items-center gap-2 bg-[#121A2A] hover:bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.1)] rounded-2xl px-3 py-1.5 transition-all active:scale-95 shadow-sm"
-              title="Menu Sinkronisasi Cloud"
+              className="flex items-center gap-2 bg-[#121A2A] hover:bg-[rgba(255,255,255,0.06)] border border-[rgba(212,175,55,0.3)] rounded-2xl px-3 py-1.5 transition-all active:scale-95 shadow-sm"
+              title="Menu Supabase PostgreSQL Realtime Sync"
             >
-              {currentUser.photoURL ? (
-                <img src={currentUser.photoURL} alt="Avatar" className="w-5 h-5 rounded-full border border-[#D4AF37]/50" />
-              ) : (
-                <UserIcon className="w-4 h-4 text-[#F6D365]" />
-              )}
+              <div className="w-5 h-5 rounded-full bg-[rgba(212,175,55,0.2)] text-[#F6D365] flex items-center justify-center font-bold text-[10px]">
+                {currentUser.email?.charAt(0).toUpperCase() || 'U'}
+              </div>
               <div className="flex flex-col text-left hidden xl:block">
                 <span className="text-xs font-semibold text-white max-w-[100px] truncate block leading-tight">
-                  {currentUser.displayName || currentUser.email?.split('@')[0]}
+                  {currentUser.email?.split('@')[0]}
                 </span>
                 <span className="text-[9px] font-bold text-[#F6D365] flex items-center gap-1">
-                  <span className={`w-1.5 h-1.5 rounded-full ${isCloudSyncing ? 'bg-[#F6D365] animate-spin' : 'bg-[#22C55E] animate-pulse'} inline-block`} />
-                  {isCloudSyncing ? 'Syncing...' : 'Cloud Synced'}
+                  <span className={`w-1.5 h-1.5 rounded-full ${syncStatus === 'syncing' ? 'bg-[#F6D365] animate-spin' : 'bg-[#22C55E] animate-pulse'} inline-block`} />
+                  {syncStatus === 'syncing' ? 'Syncing...' : 'Supabase Realtime'}
                 </span>
               </div>
               <RefreshCw className={`w-3.5 h-3.5 text-[#F6D365] ${isCloudSyncing ? 'animate-spin' : ''}`} />
@@ -155,10 +166,12 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Sync Dropdown Popup */}
             {showSyncMenu && (
-              <div className="absolute right-0 mt-2 w-60 bg-[#121A2A] border border-[rgba(255,255,255,0.12)] rounded-3xl shadow-2xl p-2.5 z-50 animate-fade-in">
+              <div className="absolute right-0 mt-2 w-64 bg-[#121A2A] border border-[rgba(255,255,255,0.12)] rounded-3xl shadow-2xl p-3 z-50 animate-fade-in">
                 <div className="px-3 py-2 border-b border-[rgba(255,255,255,0.08)] mb-1.5">
-                  <p className="text-xs font-extrabold text-white truncate">{currentUser.displayName || 'Akun Cloud'}</p>
-                  <p className="text-[10px] text-[#7C8799] truncate">{currentUser.email}</p>
+                  <p className="text-xs font-extrabold text-white truncate">{currentUser.email}</p>
+                  <p className="text-[10px] text-[#22C55E] font-extrabold flex items-center gap-1 mt-0.5">
+                    <Globe className="w-3 h-3 text-[#22C55E]" /> Supabase PostgreSQL Connected
+                  </p>
                 </div>
 
                 <button
@@ -169,7 +182,7 @@ export const Header: React.FC<HeaderProps> = ({
                   className="w-full text-left px-3 py-2.5 rounded-2xl text-xs font-semibold text-[#BFC8D6] hover:bg-[rgba(212,175,55,0.1)] hover:text-[#F6D365] flex items-center gap-2.5 transition-colors mb-1"
                 >
                   <CloudDownload className="w-4 h-4 text-[#F6D365]" />
-                  <span>Tarik Data dari Cloud</span>
+                  <span>Tarik Data dari Supabase DB</span>
                 </button>
 
                 <button
@@ -180,7 +193,7 @@ export const Header: React.FC<HeaderProps> = ({
                   className="w-full text-left px-3 py-2.5 rounded-2xl text-xs font-semibold text-[#BFC8D6] hover:bg-[rgba(212,175,55,0.1)] hover:text-[#F6D365] flex items-center gap-2.5 transition-colors mb-1"
                 >
                   <CloudUpload className="w-4 h-4 text-[#F6D365]" />
-                  <span>Unggah Data ke Cloud</span>
+                  <span>Unggah Data ke Supabase DB</span>
                 </button>
 
                 <div className="border-t border-[rgba(255,255,255,0.08)] pt-1.5 mt-1">
@@ -200,12 +213,12 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         ) : (
           <button
-            onClick={loginWithGoogle}
-            className="px-3.5 py-2 rounded-2xl bg-[rgba(212,175,55,0.1)] hover:bg-[rgba(212,175,55,0.2)] text-[#F6D365] border border-[rgba(212,175,55,0.3)] text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 shadow-sm"
-            title="Masuk dengan Google (Firebase Auto Sync)"
+            onClick={openAuthModal}
+            className="px-3.5 py-2 rounded-2xl bg-[rgba(212,175,55,0.15)] hover:bg-[rgba(212,175,55,0.25)] text-[#F6D365] border border-[rgba(212,175,55,0.3)] text-xs font-extrabold flex items-center gap-1.5 transition-all active:scale-95 shadow-sm"
+            title="Masuk Akun / Sync Multi-Device Supabase"
           >
             <UserIcon className="w-3.5 h-3.5 text-[#F6D365]" />
-            <span className="hidden sm:inline">Firebase Sync</span>
+            <span>Login Supabase</span>
           </button>
         )}
       </div>
