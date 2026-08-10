@@ -6,21 +6,36 @@ export const AIService = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message, history, contextData })
       });
+      
+      const data = await res.json().catch(() => ({}));
+      
       if (!res.ok) {
-        throw new Error(`Server returned status ${res.status}`);
+        if (res.status === 401 || res.status === 403) {
+          return {
+            reply: `⚠️ **AI Financial Advisor Belum Terkonfigurasi**\n\nAPI Key Gemini (\`GEMINI_API_KEY\`) belum dimasukkan pada Environment Variables Vercel/server.\n\n**Langkah Aktivasi:**\n1. Buka Dashboard Vercel > Project Settings > **Environment Variables**.\n2. Tambahkan variable: \`GEMINI_API_KEY\` = *[API Key Gemini Anda]*\n3. Lakukan **Redeploy** pada Vercel.`,
+            isConfigError: true
+          };
+        }
+        if (res.status === 429) {
+          return {
+            reply: `⏳ **Kuota AI Gemini Terlampaui (Rate Limit / Quota)**\n\nBatas permintaan ke API Gemini telah tercapai untuk saat ini. Silakan tunggu 1-2 menit dan coba kembali.`,
+            isQuotaError: true
+          };
+        }
+        if (res.status >= 500) {
+          return {
+            reply: `🚨 **Layanan AI Sedang Mengalami Kendala (${res.status})**\n\n${data.error || 'Server AI tidak dapat memproses permintaan saat ini. Silakan coba lagi nanti.'}`,
+            isServerError: true
+          };
+        }
+        throw new Error(data.error || `Server status ${res.status}`);
       }
-      return await res.json();
+
+      return data;
     } catch (error: any) {
       console.warn('AI API Call failed, using offline fallback response:', error);
       return {
-        reply: `**[Mode Offline Advisor]**
-
-Maaf, koneksi ke AI Gemini server sedang tidak tersedia atau dalam mode offline.
-
-**Saran Keuangan Umum ALN Finance:**
-1. Pastikan total rasio pengeluaran Anda tidak melebihi **50%** dari total pemasukan bersih.
-2. Sisihkan minimal **20%** pemasukan untuk Dana Darurat atau Investasi berimbal hasil stabil.
-3. Periksa modul *Budgeting* Anda untuk memantau kategori yang berpotensi overbudget.`,
+        reply: `**[Mode Offline Advisor]**\n\nKoneksi ke server AI Gemini sedang tidak dapat dijangkau.\n\n**Saran Keuangan Umum ALN Finance:**\n1. Pastikan rasio pengeluaran bulanan Anda tidak melebihi **50%** dari total pemasukan bersih.\n2. Sisihkan minimal **20%** pemasukan untuk Dana Darurat atau Investasi berimbal hasil stabil.\n3. Periksa modul *Budgeting* Anda untuk memantau kategori yang berpotensi overbudget.`,
         isOfflineFallback: true
       };
     }

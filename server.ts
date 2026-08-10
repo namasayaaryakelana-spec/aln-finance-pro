@@ -1,18 +1,27 @@
 import express from 'express';
 import path from 'path';
 import { GoogleGenAI, Type } from '@google/genai';
-import { createServer as createViteServer } from 'vite';
 
 const app = express();
 const PORT = 3000;
 
 app.use(express.json({ limit: '10mb' }));
 
+// Vercel Serverless Function Path Normalization Middleware
+app.use((req, res, next) => {
+  if (!req.url.startsWith('/api') && (req.url.startsWith('/ai/') || req.url.startsWith('/health'))) {
+    req.url = '/api' + req.url;
+  }
+  next();
+});
+
 // Initialize Google GenAI Client safely
 const getAiClient = () => {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!apiKey) {
-    throw new Error('GEMINI_API_KEY is missing from environment variables.');
+    const err: any = new Error('GEMINI_API_KEY belum terkonfigurasi pada Environment Variables server/Vercel.');
+    err.status = 401;
+    throw err;
   }
   return new GoogleGenAI({
     apiKey,
@@ -27,23 +36,80 @@ const getAiClient = () => {
 // --- API ROUTES ---
 
 // Health Check Endpoint
-app.get('/api/health', (req, res) => {
+app.get(['/api/health', '/health'], (req, res) => {
+  const hasKey = !!(process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || process.env.GOOGLE_API_KEY);
   res.json({
     status: 'ok',
     appName: 'ALN Finance Pro',
     version: '1.0.0',
     timestamp: new Date().toISOString(),
-    aiConfigured: !!process.env.GEMINI_API_KEY
+    aiConfigured: hasKey
   });
 });
 
+// AI Server Diagnostics Test Endpoint (Supports Stage 1, Stage 2, Stage 3)
+app.get(['/api/ai/test', '/ai/test'], async (req, res) => {
+  try {
+    const stage = req.query.stage;
+
+    // Stage 1: Minimal Serverless Function Health Check (No Key, No Gemini)
+    if (stage === '1') {
+      return res.json({ status: 'FUNCTION_OK' });
+    }
+
+    const hasKey = !!(process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || process.env.GOOGLE_API_KEY);
+    const keyName = process.env.GEMINI_API_KEY ? 'GEMINI_API_KEY' : process.env.VITE_GEMINI_API_KEY ? 'VITE_GEMINI_API_KEY' : process.env.GOOGLE_API_KEY ? 'GOOGLE_API_KEY' : 'NONE';
+    
+    // Stage 2: Environment Variable Presence Check
+    if (stage === '2') {
+      return res.json({
+        status: 'FUNCTION_OK',
+        hasGeminiKey: hasKey,
+        keyName
+      });
+    }
+
+    // Stage 3 (Default): Full End-to-End Gemini API Test
+    if (!hasKey) {
+      return res.status(401).json({
+        status: 'FUNCTION_OK',
+        hasGeminiKey: false,
+        error: 'GEMINI_API_KEY is missing from process.env on Vercel.'
+      });
+    }
+
+    const ai = getAiClient();
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: 'Say exactly: ALN AI TEST OK',
+    });
+
+    const replyText = response.text?.trim() || 'ALN AI TEST OK';
+
+    res.json({
+      status: 'PASS',
+      hasGeminiKey: true,
+      keyName,
+      reply: replyText
+    });
+  } catch (error: any) {
+    console.error('Error in /api/ai/test:', error);
+    res.status(error.status || 500).json({
+      status: 'FAIL',
+      hasGeminiKey: !!(process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || process.env.GOOGLE_API_KEY),
+      error: error.message || String(error),
+      details: String(error)
+    });
+  }
+});
+
 // AI Financial Assistant Chat
-app.post('/api/ai/chat', async (req, res) => {
+app.post(['/api/ai/chat', '/ai/chat'], async (req, res) => {
   try {
     const { message, history = [], contextData } = req.body;
     
     if (!message || typeof message !== 'string') {
-      return res.status(400).json({ error: 'Message parameter is required.' });
+      return res.status(400).json({ error: 'Parameter message diperlukan.' });
     }
 
     const ai = getAiClient();
@@ -76,7 +142,7 @@ Panduan Jawaban:
     });
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3.6-flash',
+      model: 'gemini-2.5-flash',
       contents,
       config: {
         systemInstruction,
@@ -90,112 +156,81 @@ Panduan Jawaban:
     });
   } catch (error: any) {
     console.error('Error in /api/ai/chat:', error);
-    res.status(500).json({
-      error: 'Gagal menghubungkan ke AI Financial Advisor.',
-      details: error.message || String(error)
+    const status = error.status || (error.message?.includes('belum terkonfigurasi') ? 401 : 500);
+    res.status(status).json({
+      error: error.message || 'Gagal menghubungkan ke AI Financial Advisor.',
+      status,
+      details: String(error)
     });
   }
 });
 
 // AI Multimodal Transaction Parser (Text / Chat, Image / Struk, Voice Input)
-app.post('/api/ai/fast-transaction', async (req, res) => {
+app.post(['/api/ai/fast-transaction', '/ai/fast-transaction'], async (req, res) => {
   try {
     const { prompt, image } = req.body;
+    
     if (!prompt && !image) {
-      return res.status(400).json({ error: 'Text prompt or image is required.' });
+      return res.status(400).json({ error: 'Prompt teks atau gambar struk/nota diperlukan.' });
     }
 
     const ai = getAiClient();
     const contentsParts: any[] = [];
 
     if (image && image.data) {
-      const cleanBase64 = image.data.replace(/^data:image\/\w+;base64,/, '');
       contentsParts.push({
         inlineData: {
-          mimeType: image.mimeType || 'image/jpeg',
-          data: cleanBase64
+          data: image.data,
+          mimeType: image.mimeType || 'image/jpeg'
         }
       });
     }
 
-    const textInstruction = `Anda adalah modul AI parser pencatatan Buku Kas Keuangan Keluarga/Rumah Tangga. Tugas Anda adalah mengubah teks catatan transaksi kasual menjadi format pencatatan Buku Kas terstruktur (Debet & Kredit).
+    const textInstruction = `Anda adalah "AI Fast Input Engine" ALN Finance Pro.
+Tugas Anda: Ekstrak secara presisi data transaksi keuangan dari input pengguna atau gambar struk/nota.
 
-===============================================================
-PRINSIP BUKU KAS (DEBET & KREDIT):
-===============================================================
-1. DEBET (debit):
-   - Gunakan untuk PEMASUKAN / UANG MASUK (Menambah Saldo Kas/Akun).
-   - Nilai field "debit" diisi dengan nominal angka.
-   - Nilai field "credit" diisi dengan 0.
-   - Field "type" bernilai "INCOME".
-
-2. KREDIT (credit):
-   - Gunakan untuk PENGELUARAN / UANG KELUAR (Mengurangi Saldo Kas/Akun).
-   - Nilai field "credit" diisi dengan nominal angka.
-   - Nilai field "debit" diisi dengan 0.
-   - Field "type" bernilai "EXPENSE".
-
-===============================================================
-MASTER KATEGORI & SUB-KATEGORI ACUAN:
-===============================================================
-1. MASTER PEMASUKAN (DEBET / INCOME):
-   - Kategori: "Penghasilan Utama"
-     └─ Sub-kategori: "Gaji Suami", "Gaji Istri", "Transport Bulanan", "Insentif / Tunjangan"
-   - Kategori: "Penghasilan Sampingan"
-     └─ Sub-kategori: "Honorarium Kegiatan", "Transport Rapat / Bonus", "Usaha Sampingan"
-   - Kategori: "Pemasukan Lainnya"
-     └─ Sub-kategori: "Refunds / Reimbursements", "Pemberian / Hadiah", "Hasil Investasi"
-
-2. MASTER PENGELUARAN (KREDIT / EXPENSE):
-   - Kategori: "Transportasi"
-     └─ Sub-kategori: "Bensin", "Biaya Perjalanan", "Parkir", "Servis & Perawatan"
-   - Kategori: "Makan"
-     └─ Sub-kategori: "Belanja Dapur", "Makan Diluar", "Jajan"
-   - Kategori: "Bill & Utilitas"
-     └─ Sub-kategori: "Listrik", "Gas LPG", "Wifi", "Netflix / Langganan", "Paket Data", "Kontrakan / KPR", "Air PAM"
-   - Kategori: "Kebutuhan Keluarga & Anak"
-     └─ Sub-kategori: "Pampers / Popok", "Susu & Perlengkapan", "Sekolah / Daycare", "Pakaian"
-   - Kategori: "Kesehatan"
-     └─ Sub-kategori: "Obat & Vitamin", "Dokter / Rumah Sakit"
-
-===============================================================
-ATURAN UTAMA EKSTRAKSI MULTI-TRANSAKSI (SANGAT PENTING):
-===============================================================
-1. WAJIB SPLIT BANYAK TRANSAKSI:
-   - Jika terdapat kata penghubung seperti: "terus", "lalu", "kemudian", "habis itu", "setelah itu", "selanjutnya", "dan", "&", "plus", "sama", "lanjut", "berikutnya", koma (,), atau titik koma (;), ATAU terdapat lebih dari 1 nominal/aktivitas dalam kalimat, WAJIB MEMECAHNYA menjadi beberapa objek transaksi terpisah di dalam array 'transactions'.
-   - JIKA TERDAPAT N AKTIVITAS / NOMINAL ANGKA, ARRAY TRANSACTIONS HARUS BERISI TEPAT N OBJEK TRANSAKSI.
-   - JANGAN PERNAH menggabungkan dua atau lebih aktivitas terpisah menjadi 1 objek transaksi tunggal.
-
-2. ATURAN PEWARISAN KONTEKS (INHERITANCE):
-   - Jika transaksi berikutnya TIDAK menyebutkan nama pembayar ("paid_by") atau sumber akun ("account") secara spesifik, transaksi tersebut WAJIB MEWARISI (inherit) nilai "paid_by" dan/atau "account" dari transaksi sebelumnya dalam urutan kalimat!
-   - CONTOH: "Lana beli bensin 50rb bca terus beli kopi 20rb"
-     * Transaksi 1: title="Beli bensin", credit=50000, paid_by="Lana", account="BCA"
-     * Transaksi 2: title="Beli kopi", credit=20000, paid_by="Lana", account="BCA"
-   - Namun jika transaksi berikutnya menyebutkan akun lain (misal: "cash", "gopay", "mandiri"), gunakan akun baru tersebut untuk transaksi itu.
-     * CONTOH: "Lana beli bensin 50rb BCA terus beli LPG 22rb cash"
-       -> Transaksi 1: title="Beli bensin", credit=50000, paid_by="Lana", account="BCA"
-       -> Transaksi 2: title="Beli LPG", credit=22000, paid_by="Lana", account="Cash"
-
-3. PEMASANGAN NOMINAL & AKUN:
-   - Pasangkan nominal angka dengan deskripsi aktivitas terdekat.
-   - Kenali berbagai format nominal angka: 50rb, 50 rb, 50ribu, 50 ribu, 22k, 22 k, 1jt, 1.5jt, 2 juta, 250000, 250.000, 250,000 -> Konversi menjadi integer rupiah.`;
+Aturan Ekstraksi Sangat Ketat:
+1. Klasifikasi Jenis Transaksi (type):
+   - Jika pengguna membelanjakan/membayar uang -> type: "EXPENSE", debit: 0, credit: Nominal.
+   - Jika pengguna menerima uang/gaji/omzet -> type: "INCOME", debit: Nominal, credit: 0.
+2. Nominal (debit / credit):
+   - Wajib angka murni tanpa simbol Rp / K / Jt. (Contoh: "bensin 50rb" -> credit: 50000, debit: 0).
+3. Lingkup Keuangan (scope):
+   - "PERSONAL" untuk pengeluaran pribadi (contoh: bensin pribadi, kopi, baju pribadi).
+   - "SHARED" untuk pengeluaran keluarga / rumah tangga (contoh: bensin mobil keluarga, listrik rumah, pampers anak, belanja dapur, sekolah).
+4. Subjek Pembayar (paid_by):
+   - Jika disebutkan nama orang (contoh: "Lana", "Lina", "Ayah", "Ibu") set paid_by sesuai nama tersebut.
+5. Rekening / Dompet (account):
+   - Set sesuai nama dompet/bank jika disebutkan (contoh: "BCA", "Mandiri", "GoPay", "Cash").
+6. Kategori & Sub-Kategori (category & subcategory):
+   - Pilihlah kategori yang paling tepat dari taksonomi berikut:
+     * "Transportasi" (Sub: "Bensin", "Parkir", "Servis & Perawatan", "Tol / Ojek Online")
+     * "Makan" (Sub: "Belanja Dapur", "Makan Diluar", "Jajan / Kopi")
+     * "Bill & Utilitas" (Sub: "Listrik", "Gas LPG", "Wifi / Internet", "Pulsa")
+     * "Kebutuhan Keluarga & Anak" (Sub: "Pampers / Popok", "Susu & Perlengkapan", "Sekolah / Daycare")
+     * "Kesehatan" (Sub: "Obat & Vitamin", "Dokter / Klinik")
+     * "Penghasilan Utama" (Sub: "Gaji Suami", "Gaji Istri")
+     * "Penghasilan Sampingan" (Sub: "Honorarium Kegiatan", "Transport Rapat / Bonus", "Usaha Sampingan")
+7. Penanganan Multi-Transaksi dalam 1 Input (SANGAT PENTING):
+   - Jika pengguna menyebutkan beberapa transaksi terpisah sekaligus (contoh: "bensin bca 50rb terus makan siang 35rb dan bayar wifi 250rb"), Anda WAJIB mengembalikan array "transactions" dengan 3 objek transaksi terpisah!
+   - KONTINUITAS SUBJEK & DOMPET: Jika transaksi ke-2 atau ke-3 tidak menyebutkan nama pembayar/dompet secara eksplisit, warisi subjek (paid_by) dan dompet (account) dari transaksi pertama!`;
 
     const familyFinanceSchema = {
       type: Type.OBJECT,
       properties: {
         transactions: {
           type: Type.ARRAY,
-          description: "Daftar seluruh transaksi terpisah. Buat 1 objek per aktivitas/nominal angka.",
+          description: "Daftar objek transaksi yang berhasil diekstrak",
           items: {
             type: Type.OBJECT,
             properties: {
-              title: { type: Type.STRING, description: "Deskripsi singkat aktivitas spesifik (misal: 'Bayar bensin', 'Beli gas LPG')" },
-              type: { type: Type.STRING, enum: ["EXPENSE", "INCOME"], description: "EXPENSE atau INCOME" },
-              debit: { type: Type.NUMBER, description: "Nominal jika PEMASUKAN, else 0" },
-              credit: { type: Type.NUMBER, description: "Nominal jika PENGELUARAN, else 0" },
-              paid_by: { type: Type.STRING, nullable: true, description: "Nama pembayar (contoh: Lana). Mewarisi transaksi sebelumnya jika null" },
-              scope: { type: Type.STRING, enum: ["SHARED", "PERSONAL"], description: "SHARED atau PERSONAL" },
-              account: { type: Type.STRING, nullable: true, description: "Sumber bank/dompet (contoh: BCA, Cash). Mewarisi transaksi sebelumnya jika null" },
+              title: { type: Type.STRING, description: "Judul ringkas transaksi (Contoh: Bensin Pertamax, Belanja Dapur, Gaji Bulanan)" },
+              type: { type: Type.STRING, description: "INCOME atau EXPENSE" },
+              debit: { type: Type.NUMBER, description: "Nominal Pemasukan (0 jika EXPENSE)" },
+              credit: { type: Type.NUMBER, description: "Nominal Pengeluaran (0 jika INCOME)" },
+              paid_by: { type: Type.STRING, nullable: true, description: "Nama subjek pembayar (Contoh: Lana, Lina, Ayah, Ibu) atau null" },
+              scope: { type: Type.STRING, description: "PERSONAL atau SHARED" },
+              account: { type: Type.STRING, nullable: true, description: "Nama akun / dompet yang digunakan (Contoh: BCA, Mandiri, Cash) atau null" },
               category: { type: Type.STRING, description: "Kategori utama transaksi" },
               subcategory: { type: Type.STRING, description: "Sub-kategori transaksi" },
               transaction_date: { type: Type.STRING, nullable: true, description: "Tanggal YYYY-MM-DD atau null" },
@@ -220,7 +255,7 @@ ATURAN UTAMA EKSTRAKSI MULTI-TRANSAKSI (SANGAT PENTING):
     contentsParts.push({ text: promptUserInstruction });
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3.6-flash',
+      model: 'gemini-2.5-flash',
       contents: { parts: contentsParts },
       config: {
         systemInstruction: textInstruction,
@@ -273,21 +308,23 @@ ATURAN UTAMA EKSTRAKSI MULTI-TRANSAKSI (SANGAT PENTING):
     res.json({ success: true, transactions: transactionsList, transaction: transactionsList[0] || null });
   } catch (error: any) {
     console.error('Error in /api/ai/fast-transaction:', error);
-    res.status(500).json({
-      error: 'Gagal memproses transaksi kilat berbasis AI.',
-      details: error.message || String(error)
+    const status = error.status || (error.message?.includes('belum terkonfigurasi') ? 401 : 500);
+    res.status(status).json({
+      error: error.message || 'Gagal memproses transaksi kilat berbasis AI.',
+      status,
+      details: String(error)
     });
   }
 });
 
 // AI Cashflow Risk & Financial Health Analyzer
-app.post('/api/ai/analyze-cashflow', async (req, res) => {
+app.post(['/api/ai/analyze-cashflow', '/ai/analyze-cashflow'], async (req, res) => {
   try {
     const { transactions, wallets, budgets } = req.body;
     const ai = getAiClient();
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3.6-flash',
+      model: 'gemini-2.5-flash',
       contents: `Lakukan analisis kesehatan keuangan menyeluruh dari data berikut:
 Wallets: ${JSON.stringify(wallets || [])}
 Transactions: ${JSON.stringify(transactions || [])}
@@ -324,32 +361,37 @@ Berikan skor kesehatan (0-100), analisis risiko arus kas, 3 rekomendasi penghema
     res.json({ success: true, analysis: result });
   } catch (error: any) {
     console.error('Error in /api/ai/analyze-cashflow:', error);
-    res.status(500).json({
-      error: 'Gagal menganalisis kesehatan keuangan.',
-      details: error.message || String(error)
+    const status = error.status || (error.message?.includes('belum terkonfigurasi') ? 401 : 500);
+    res.status(status).json({
+      error: error.message || 'Gagal menganalisis kesehatan keuangan.',
+      status,
+      details: String(error)
     });
   }
 });
 
-// --- VITE MIDDLEWARE / STATIC SERVING ---
+// --- VITE MIDDLEWARE / STATIC SERVING (DEVELOPMENT ONLY) ---
 async function startServer() {
-  if (process.env.NODE_ENV !== 'production') {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+  if (!process.env.VERCEL) {
+    if (process.env.NODE_ENV !== 'production') {
+      const { createServer: createViteServer } = await import('vite');
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: 'spa',
+      });
+      app.use(vite.middlewares);
+    } else {
+      const distPath = path.join(process.cwd(), 'dist');
+      app.use(express.static(distPath));
+      app.get('*', (req, res) => {
+        res.sendFile(path.join(distPath, 'index.html'));
+      });
+    }
+
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`[ALN Finance Pro Server] Running on http://0.0.0.0:${PORT}`);
     });
   }
-
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[ALN Finance Pro Server] Running on http://0.0.0.0:${PORT}`);
-  });
 }
 
 if (!process.env.VERCEL) {

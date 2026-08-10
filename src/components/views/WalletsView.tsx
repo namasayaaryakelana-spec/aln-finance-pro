@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useFinance } from '../../context/FinanceContext';
+import { useTheme } from '../../context/ThemeContext';
 import {
   Wallet as WalletIcon,
   Coins,
@@ -34,6 +35,7 @@ export const WalletsView: React.FC<WalletsViewProps> = ({
   openAddWalletModal
 }) => {
   const { filteredWallets, deleteWallet, totalBalance, totalInvestment, transactions } = useFinance();
+  const { isDark } = useTheme();
   const [selectedWalletIdModal, setSelectedWalletIdModal] = useState<string | null>(null);
 
   // Embedded Mutasi Section state
@@ -158,7 +160,7 @@ export const WalletsView: React.FC<WalletsViewProps> = ({
         </div>
       </div>
 
-      {/* Wallet Cards Grid (Premium Debit Metallic Card Look) */}
+      {/* Wallet Cards Grid (Executive Luxury Banking Card System) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredWallets.map(w => {
           const Icon = getWalletIcon(w.type);
@@ -175,67 +177,70 @@ export const WalletsView: React.FC<WalletsViewProps> = ({
                 isSelected ? 'ring-2 ring-[var(--gold-primary)] scale-[1.01]' : 'hover:border-[var(--gold-badge-border)]'
               }`}
             >
-              {/* Card Ambient Glow Accent */}
+              {/* Card Ambient Glow Accent (Z-Index 0, Opacity 10%) */}
               <div
-                className="absolute top-0 right-0 w-44 h-44 rounded-full blur-3xl pointer-events-none opacity-20"
+                className="absolute top-0 right-0 w-44 h-44 rounded-full blur-3xl pointer-events-none opacity-10 z-0"
                 style={{ backgroundColor: w.color || '#D4AF37' }}
               />
 
-              <div>
+              {/* Card Content Wrapper (Z-Index 10) */}
+              <div className="relative z-10">
                 {/* Top Row: Bank Icon & Type Badge */}
                 <div className="flex items-start justify-between mb-6">
                   <div className="flex items-center gap-3">
                     <div
-                      className="w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-lg border border-white/20"
-                      style={{ backgroundColor: w.color || '#121A2A' }}
+                      className="w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-md border border-white/20 shrink-0"
+                      style={{ backgroundColor: w.color || '#10B981' }}
                     >
-                      <Icon className="w-5 h-5" />
+                      <Icon className="w-5 h-5 text-white stroke-[2.5]" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-black text-white tracking-wide">{w.name}</h4>
-                      <span className="text-[10px] text-slate-300 font-bold uppercase tracking-widest block">
+                      <h4 className="text-sm font-black tracking-wide text-[var(--text-primary)] font-['Plus_Jakarta_Sans',sans-serif]">
+                        {w.name}
+                      </h4>
+                      <span className="text-[10px] font-bold uppercase tracking-widest block font-mono text-[var(--text-secondary)]">
                         {w.type === 'bank' ? 'DEBIT CARD' : w.type === 'credit' ? 'CREDIT CARD' : 'DIGITAL WALLET'}
                       </span>
                     </div>
                   </div>
 
-                  <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase bg-black/20 text-[#F6D365] border border-[#D4AF37]/30">
+                  <span className="px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase bg-[var(--gold-badge-bg)] text-[var(--gold-primary)] border border-[var(--gold-badge-border)]">
                     {w.scope}
                   </span>
                 </div>
 
                 {/* EMV Gold Chip & Contactless Symbol */}
                 <div className="flex items-center justify-between my-5">
-                  <div className="w-10 h-7 rounded-lg chip-gold flex items-center justify-center">
-                    <Cpu className="w-5 h-5 text-[#0B1220]/70" />
+                  <div className="w-10 h-7 rounded-lg chip-gold flex items-center justify-center shadow-inner">
+                    <Cpu className="w-5 h-5 text-[#0B1220]/75" />
                   </div>
-                  <div className="text-[11px] font-mono tracking-widest text-slate-300 font-bold">
+                  <div className="text-[11px] font-mono tracking-widest font-bold text-[var(--text-secondary)]">
                     •••• {w.accountNumber ? w.accountNumber.slice(-4) : '8842'}
                   </div>
                 </div>
 
                 {/* Balance Display */}
                 <div className="mt-4">
-                  <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest block">
+                  <span className="text-[10px] font-bold uppercase tracking-widest block font-['Plus_Jakarta_Sans',sans-serif] text-[var(--text-muted)]">
                     Saldo Real-time
                   </span>
-                  <div className="text-2xl font-black text-white mt-0.5 tracking-tight font-['Space_Grotesk',sans-serif]">
+                  <div className="text-2xl font-black mt-0.5 tracking-tight font-mono text-[var(--text-primary)]">
                     {w.currency} {w.balance.toLocaleString('id-ID')}
                   </div>
                 </div>
               </div>
 
               {/* Bottom Actions Row */}
-              <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between text-xs">
+              <div className="relative z-10 mt-6 pt-4 border-t border-[var(--border)] flex items-center justify-between text-xs">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     setSelectedWalletIdModal(w.id);
                   }}
-                  className="px-3 py-1.5 rounded-xl bg-black/20 hover:bg-black/40 text-[#F6D365] border border-[#D4AF37]/30 text-[11px] font-bold flex items-center gap-1.5 transition-all"
+                  className="px-3 py-1.5 rounded-xl bg-[var(--gold-badge-bg)] hover:bg-[var(--gold-badge-border)] text-[var(--gold-primary)] border border-[var(--gold-badge-border)] text-[11px] font-extrabold flex items-center gap-1.5 transition-all active:scale-95"
                   title="Lihat Mutasi Debit & Kredit"
                 >
-                  <FileText className="w-3.5 h-3.5 text-[#F6D365]" />
+                  <FileText className="w-3.5 h-3.5 text-[var(--gold-primary)]" />
                   Mutasi Dompet
                 </button>
 
@@ -245,7 +250,7 @@ export const WalletsView: React.FC<WalletsViewProps> = ({
                       e.stopPropagation();
                       deleteWallet(w.id);
                     }}
-                    className="p-1.5 rounded-lg text-slate-300 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                    className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 transition-colors"
                     title="Hapus Dompet"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -266,7 +271,7 @@ export const WalletsView: React.FC<WalletsViewProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <FileText className="w-5 h-5 text-[var(--gold-primary)]" />
-                <h3 className="text-lg font-black text-[var(--text-primary)]">Mutasi Dompet: {currentWallet.name}</h3>
+                <h3 className="text-lg font-black text-[var(--text-primary)] font-['Plus_Jakarta_Sans',sans-serif]">Mutasi Dompet: {currentWallet.name}</h3>
               </div>
               <p className="text-xs text-[var(--text-secondary)] mt-0.5 font-medium">Histori mutasi Debit & Kredit serta pencatatan saldo berjalan</p>
             </div>
@@ -291,7 +296,7 @@ export const WalletsView: React.FC<WalletsViewProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-[var(--surface-secondary)] p-4.5 rounded-2xl border border-[var(--border)]">
               <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider block">Saldo Saat Ini</span>
-              <div className="text-2xl font-black text-[var(--text-primary)] mt-1">
+              <div className="text-2xl font-black text-[var(--text-primary)] mt-1 font-mono">
                 Rp {mutationSummary.currentBalance.toLocaleString('id-ID')}
               </div>
             </div>
@@ -300,7 +305,7 @@ export const WalletsView: React.FC<WalletsViewProps> = ({
               <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider flex items-center gap-1">
                 <ArrowDownLeft className="w-3.5 h-3.5 text-emerald-500" /> Total Kredit (Pemasukan)
               </span>
-              <div className="text-2xl font-black text-emerald-500 mt-1">
+              <div className="text-2xl font-black text-emerald-500 mt-1 font-mono">
                 Rp {mutationSummary.totalKredit.toLocaleString('id-ID')}
               </div>
             </div>
@@ -309,7 +314,7 @@ export const WalletsView: React.FC<WalletsViewProps> = ({
               <span className="text-[10px] font-bold text-red-500 uppercase tracking-wider flex items-center gap-1">
                 <ArrowUpRight className="w-3.5 h-3.5 text-red-500" /> Total Debit (Pengeluaran)
               </span>
-              <div className="text-2xl font-black text-red-500 mt-1">
+              <div className="text-2xl font-black text-red-500 mt-1 font-mono">
                 Rp {mutationSummary.totalDebit.toLocaleString('id-ID')}
               </div>
             </div>
@@ -318,11 +323,11 @@ export const WalletsView: React.FC<WalletsViewProps> = ({
           {/* Filter Bar */}
           <div className="bg-[var(--surface-secondary)] p-4 rounded-2xl border border-[var(--border)] space-y-3">
             <div className="flex items-center justify-between text-xs font-bold text-[var(--text-primary)]">
-              <span className="flex items-center gap-1.5">
+              <span className="flex items-center gap-1.5 font-['Plus_Jakarta_Sans',sans-serif]">
                 <Filter className="w-4 h-4 text-[var(--gold-primary)]" />
                 Filter Mutasi Dompet
               </span>
-              <span className="text-[10px] text-[var(--text-muted)]">{filteredMutations.length} Entri Ditemukan</span>
+              <span className="text-[10px] text-[var(--text-muted)] font-mono">{filteredMutations.length} Entri Ditemukan</span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
@@ -340,7 +345,7 @@ export const WalletsView: React.FC<WalletsViewProps> = ({
               <select
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value as any)}
-                className="bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl px-3 py-2 text-xs text-[var(--input-text)] focus:outline-none focus:border-[var(--gold-primary)]"
+                className="bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl px-3 py-2 text-xs text-[var(--input-text)] focus:outline-none focus:border-[var(--gold-primary)] font-bold"
               >
                 <option value="all">Semua Jenis (Debit & Kredit)</option>
                 <option value="debit">Hanya Debit</option>
@@ -350,7 +355,7 @@ export const WalletsView: React.FC<WalletsViewProps> = ({
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl px-3 py-2 text-xs text-[var(--input-text)] focus:outline-none focus:border-[var(--gold-primary)]"
+                className="bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl px-3 py-2 text-xs text-[var(--input-text)] focus:outline-none focus:border-[var(--gold-primary)] font-bold"
               >
                 <option value="all">Semua Kategori</option>
                 {uniqueCategories.map(cat => (
@@ -363,7 +368,7 @@ export const WalletsView: React.FC<WalletsViewProps> = ({
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-1/2 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl px-2 py-2 text-[11px] text-[var(--input-text)] focus:outline-none focus:border-[var(--gold-primary)]"
+                  className="w-1/2 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl px-2 py-2 text-[11px] text-[var(--input-text)] focus:outline-none focus:border-[var(--gold-primary)] font-mono"
                   title="Dari Tanggal"
                 />
                 <span className="text-[var(--text-muted)] text-xs">-</span>
@@ -371,7 +376,7 @@ export const WalletsView: React.FC<WalletsViewProps> = ({
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="w-1/2 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl px-2 py-2 text-[11px] text-[var(--input-text)] focus:outline-none focus:border-[var(--gold-primary)]"
+                  className="w-1/2 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl px-2 py-2 text-[11px] text-[var(--input-text)] focus:outline-none focus:border-[var(--gold-primary)] font-mono"
                   title="Sampai Tanggal"
                 />
               </div>

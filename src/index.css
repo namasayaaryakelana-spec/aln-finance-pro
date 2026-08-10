@@ -1,48 +1,10 @@
 @import "tailwindcss";
 
-:root, [data-theme="dark"] {
-  /* DARK — Premium Private Banking */
-  --bg-main: #070B12;
-  --bg-secondary: #0B111C;
-  
-  --surface: #111827;
-  --surface-secondary: #151E2D;
-  --surface-elevated: #182234;
-  
-  --border: #263244;
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  
-  --text-primary: #F8FAFC;
-  --text-secondary: #94A3B8;
-  --text-muted: #64748B;
-  
-  --gold-primary: #D4AF37;
-  --gold-hover: #E4C45A;
-  --gold-light: #F6D365;
-  --gold-badge-bg: rgba(212, 175, 55, 0.12);
-  --gold-badge-border: rgba(212, 175, 55, 0.25);
-  
-  --success: #10B981;
-  --danger: #EF4444;
-  --warning: #F59E0B;
-  --info: #3B82F6;
+/* TAILWIND CSS V4 DARK VARIANT CONFIGURATION (Class Strategy .dark) */
+@custom-variant dark (&:where(.dark, .dark *));
 
-  --card-bg: #121A2A;
-  --card-border: rgba(255, 255, 255, 0.08);
-  --card-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
-  
-  --input-bg: #0B1220;
-  --input-border: rgba(255, 255, 255, 0.08);
-  --input-text: #F8FAFC;
-  
-  --debit-metallic-bg: linear-gradient(135deg, #151E2E 0%, #0E1624 50%, #1A2436 100%);
-  --debit-gold-bg: linear-gradient(135deg, #241D0B 0%, #161208 50%, #2F260E 100%);
-
-  color-scheme: dark;
-}
-
-[data-theme="light"] {
-  /* LIGHT — Clean Executive Banking */
+/* 1. DEFAULT / LIGHT MODE THEME TOKENS */
+:root {
   --bg-main: #F5F7FA;
   --bg-secondary: #EBF0F7;
   
@@ -80,6 +42,48 @@
   --debit-gold-bg: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
 
   color-scheme: light;
+}
+
+/* 2. DARK MODE THEME TOKENS (Strict Selector Precedence) */
+html.dark,
+html[data-theme="dark"] {
+  --bg-main: #070B12;
+  --bg-secondary: #0B111C;
+  
+  --surface: #111827;
+  --surface-secondary: #151E2D;
+  --surface-elevated: #182234;
+  
+  --border: #263244;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  
+  --gold-primary: #D4AF37;
+  --gold-hover: #E4C45A;
+  --gold-light: #F6D365;
+  --gold-badge-bg: rgba(212, 175, 55, 0.12);
+  --gold-badge-border: rgba(212, 175, 55, 0.25);
+  
+  --success: #10B981;
+  --danger: #EF4444;
+  --warning: #F59E0B;
+  --info: #3B82F6;
+
+  --card-bg: #121A2A;
+  --card-border: rgba(255, 255, 255, 0.08);
+  --card-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+  
+  --input-bg: #0B1220;
+  --input-border: rgba(255, 255, 255, 0.08);
+  --input-text: #F8FAFC;
+  
+  --debit-metallic-bg: linear-gradient(135deg, #151E2E 0%, #0E1624 50%, #1A2436 100%);
+  --debit-gold-bg: linear-gradient(135deg, #241D0B 0%, #161208 50%, #2F260E 100%);
+
+  color-scheme: dark;
 }
 
 @layer utilities {
@@ -213,5 +217,5 @@
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }

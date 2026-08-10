@@ -21,7 +21,7 @@ export const AIAdvisorView: React.FC = () => {
     {
       id: 'm-1',
       sender: 'assistant',
-      text: `Halo! Saya **ALN AI Financial OS Advisor** (powered by Gemini 3.6).
+      text: `Halo! Saya **ALN AI Financial OS Advisor** (powered by Gemini AI).
 
 Saya telah menganalisis kondisi keuangan Anda:
 • **Total Likuiditas:** Rp ${totalBalance.toLocaleString('id-ID')}

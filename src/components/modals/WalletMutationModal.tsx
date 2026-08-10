@@ -114,171 +114,165 @@ export const WalletMutationModal: React.FC<WalletMutationModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#0B1220]/85 backdrop-blur-xl flex items-center justify-center p-3 sm:p-4 lg:p-6 overflow-y-auto">
-      <div className="bg-[#121A2A] border border-[rgba(255,255,255,0.12)] rounded-3xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-fade-in">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xl flex items-center justify-center p-3 sm:p-4 lg:p-6 overflow-y-auto animate-fade-in">
+      <div className="bg-[var(--card-bg)] border border-[var(--card-border)] text-[var(--text-primary)] rounded-3xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden transition-colors">
         
         {/* Modal Header */}
-        <div className="p-5 sm:p-6 border-b border-[rgba(255,255,255,0.08)] flex items-center justify-between bg-[#0B1220]">
+        <div className="p-5 sm:p-6 border-b border-[var(--border)] flex items-center justify-between bg-[var(--card-bg)]">
           <div className="flex items-center gap-3.5">
             <div
               className="w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-md flex-shrink-0"
               style={{ backgroundColor: activeWallet.color }}
             >
-              <IconComp className="w-5 h-5" />
+              <IconComp className="w-5 h-5 text-white" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base sm:text-lg font-extrabold text-white">Mutasi Dompet (Debit & Kredit)</h3>
-                <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-[rgba(212,175,55,0.15)] text-[#F6D365] border border-[rgba(212,175,55,0.3)]">
+                <h3 className="text-base sm:text-lg font-extrabold text-[var(--text-primary)] font-['Plus_Jakarta_Sans',sans-serif]">Mutasi Dompet (Debit & Kredit)</h3>
+                <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-[var(--gold-badge-bg)] text-[var(--gold-primary)] border border-[var(--gold-badge-border)]">
                   {activeWallet.currency}
                 </span>
               </div>
-              <p className="text-xs text-[#7C8799]">Histori mutasi rekening & pencatatan saldo berjalan real-time</p>
+              <p className="text-xs text-[var(--text-secondary)]">Histori mutasi rekening & pencatatan saldo berjalan real-time</p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="p-2 rounded-2xl bg-[rgba(255,255,255,0.06)] hover:bg-[rgba(255,255,255,0.12)] text-[#BFC8D6] hover:text-white transition-colors"
+            className="p-2 rounded-2xl bg-[var(--surface-secondary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-[var(--border)] transition-all"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Modal Body & Controls */}
-        <div className="p-5 sm:p-6 overflow-y-auto space-y-5 flex-1 custom-scrollbar">
-          
-          {/* Wallet Selector & Financial Overview Card */}
-          <div className="bg-[#0B1220] p-5 rounded-2xl border border-[rgba(255,255,255,0.08)] space-y-4">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-[rgba(255,255,255,0.08)] pb-4">
-              <div className="flex items-center gap-2.5 w-full sm:w-auto">
-                <span className="text-xs font-bold text-[#BFC8D6]">Pilih Dompet:</span>
-                <select
-                  value={selectedWalletId}
-                  onChange={(e) => setSelectedWalletId(e.target.value)}
-                  className="bg-[#121A2A] border border-[rgba(255,255,255,0.12)] text-white font-bold text-xs rounded-2xl px-3.5 py-2 focus:ring-2 focus:ring-[#D4AF37] outline-none"
-                >
-                  {filteredWallets.map(w => (
-                    <option key={w.id} value={w.id}>
-                      {w.name} ({w.currency} {w.balance.toLocaleString('id-ID')})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="text-right w-full sm:w-auto">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#7C8799] block">Saldo Saat Ini</span>
-                <span className="text-2xl font-black text-white">
-                  Rp {mutationSummary.currentBalance.toLocaleString('id-ID')}
-                </span>
-              </div>
-            </div>
-
-            {/* Total Debit & Total Kredit Summary */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-[#121A2A] p-4 rounded-2xl border border-[rgba(255,255,255,0.08)]">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-[#EF4444] mb-1">
-                  <ArrowUpRight className="w-4 h-4 text-[#EF4444]" />
-                  Total Debit (Pengeluaran)
-                </div>
-                <div className="text-lg font-black text-[#EF4444]">
-                  Rp {mutationSummary.totalDebit.toLocaleString('id-ID')}
-                </div>
-              </div>
-
-              <div className="bg-[#121A2A] p-4 rounded-2xl border border-[rgba(255,255,255,0.08)]">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-[#22C55E] mb-1">
-                  <ArrowDownLeft className="w-4 h-4 text-[#22C55E]" />
-                  Total Kredit (Pemasukan)
-                </div>
-                <div className="text-lg font-black text-[#22C55E]">
-                  Rp {mutationSummary.totalKredit.toLocaleString('id-ID')}
-                </div>
-              </div>
-            </div>
+        {/* Wallet Selector & Totals Header Bar */}
+        <div className="p-5 sm:p-6 space-y-4 bg-[var(--input-bg)] border-b border-[var(--border)]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <label className="text-xs font-bold text-[var(--text-secondary)]">Pilih Akun / Rekening:</label>
+            <select
+              value={selectedWalletId}
+              onChange={(e) => setSelectedWalletId(e.target.value)}
+              className="bg-[var(--card-bg)] border border-[var(--input-border)] text-[var(--text-primary)] text-xs font-bold rounded-2xl px-4 py-2.5 outline-none focus:border-[var(--gold-primary)]"
+            >
+              {filteredWallets.map(w => (
+                <option key={w.id} value={w.id}>
+                  {w.name} — Rp {w.balance.toLocaleString('id-ID')}
+                </option>
+              ))}
+            </select>
           </div>
 
-          {/* Filtering Bar */}
-          <div className="bg-[#0B1220] p-4 rounded-2xl border border-[rgba(255,255,255,0.08)] space-y-3">
-            <div className="flex items-center justify-between text-xs font-bold text-[#BFC8D6]">
-              <span className="flex items-center gap-1.5">
-                <Filter className="w-4 h-4 text-[#F6D365]" />
-                Filter & Pencarian Mutasi
+          {/* Cards Summary */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="bg-[var(--card-bg)] p-3.5 rounded-2xl border border-[var(--border)]">
+              <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider block">Saldo Terkini</span>
+              <div className="text-xl font-black text-[var(--text-primary)] mt-0.5 font-mono">
+                Rp {mutationSummary.currentBalance.toLocaleString('id-ID')}
+              </div>
+            </div>
+
+            <div className="bg-[var(--card-bg)] p-3.5 rounded-2xl border border-[var(--border)]">
+              <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider flex items-center gap-1">
+                <ArrowDownLeft className="w-3.5 h-3.5 text-emerald-500" /> Total Kredit
               </span>
-              <span className="text-[10px] text-[#7C8799]">{filteredMutations.length} Mutasi Ditemukan</span>
+              <div className="text-xl font-black text-emerald-500 mt-0.5 font-mono">
+                Rp {mutationSummary.totalKredit.toLocaleString('id-ID')}
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 text-[#7C8799] absolute left-3 top-3" />
-                <input
-                  type="text"
-                  placeholder="Cari keterangan..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-[#121A2A] border border-[rgba(255,255,255,0.08)] rounded-xl pl-8 pr-3 py-2 text-xs text-white placeholder-[#7C8799] focus:outline-none focus:border-[#D4AF37]"
-                />
-              </div>
-
-              <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value as any)}
-                className="bg-[#121A2A] border border-[rgba(255,255,255,0.08)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
-              >
-                <option value="all">Semua Jenis (Debit & Kredit)</option>
-                <option value="debit">Hanya Debit (Pengeluaran)</option>
-                <option value="kredit">Hanya Kredit (Pemasukan)</option>
-              </select>
-
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className="bg-[#121A2A] border border-[rgba(255,255,255,0.08)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
-              >
-                <option value="all">Semua Kategori</option>
-                {uniqueCategories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-
-              <div className="flex items-center gap-1.5">
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-1/2 bg-[#121A2A] border border-[rgba(255,255,255,0.08)] rounded-xl px-2 py-2 text-[11px] text-white focus:outline-none focus:border-[#D4AF37]"
-                  title="Dari Tanggal"
-                />
-                <span className="text-[#7C8799] text-xs">-</span>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="w-1/2 bg-[#121A2A] border border-[rgba(255,255,255,0.08)] rounded-xl px-2 py-2 text-[11px] text-white focus:outline-none focus:border-[#D4AF37]"
-                  title="Sampai Tanggal"
-                />
+            <div className="bg-[var(--card-bg)] p-3.5 rounded-2xl border border-[var(--border)]">
+              <span className="text-[10px] font-bold text-red-500 uppercase tracking-wider flex items-center gap-1">
+                <ArrowUpRight className="w-3.5 h-3.5 text-red-500" /> Total Debit
+              </span>
+              <div className="text-xl font-black text-red-500 mt-0.5 font-mono">
+                Rp {mutationSummary.totalDebit.toLocaleString('id-ID')}
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Mutation Table Display */}
-          <div className="border border-[rgba(255,255,255,0.08)] rounded-2xl overflow-hidden bg-[#0B1220]">
+        {/* Filter Controls Bar */}
+        <div className="p-4 sm:p-5 border-b border-[var(--border)] bg-[var(--card-bg)] space-y-3">
+          <div className="flex items-center justify-between text-xs font-bold text-[var(--text-primary)]">
+            <span className="flex items-center gap-1.5 font-['Plus_Jakarta_Sans',sans-serif]">
+              <Filter className="w-3.5 h-3.5 text-[var(--gold-primary)]" />
+              Filter Mutasi Rekening
+            </span>
+            <span className="text-[10px] text-[var(--text-muted)] font-mono">{filteredMutations.length} Transaksi</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-3 top-3" />
+              <input
+                type="text"
+                placeholder="Cari transaksi..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl pl-8 pr-3 py-2 text-xs text-[var(--input-text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--gold-primary)]"
+              />
+            </div>
+
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value as any)}
+              className="bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl px-3 py-2 text-xs text-[var(--input-text)] focus:outline-none focus:border-[var(--gold-primary)] font-bold"
+            >
+              <option value="all">Semua Jenis (Debit & Kredit)</option>
+              <option value="debit">Hanya Debit</option>
+              <option value="kredit">Hanya Kredit</option>
+            </select>
+
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl px-3 py-2 text-xs text-[var(--input-text)] focus:outline-none focus:border-[var(--gold-primary)] font-bold"
+            >
+              <option value="all">Semua Kategori</option>
+              {uniqueCategories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+
+            <div className="flex items-center gap-1.5">
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-1/2 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl px-2 py-2 text-[11px] text-[var(--input-text)] focus:outline-none focus:border-[var(--gold-primary)] font-mono"
+                title="Dari Tanggal"
+              />
+              <span className="text-[var(--text-muted)] text-xs">-</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-1/2 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl px-2 py-2 text-[11px] text-[var(--input-text)] focus:outline-none focus:border-[var(--gold-primary)] font-mono"
+                title="Sampai Tanggal"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Mutasi Table */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 custom-scrollbar">
+          <div className="border border-[var(--border)] rounded-2xl overflow-hidden bg-[var(--card-bg)]">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-[#121A2A] text-[#7C8799] text-xs uppercase font-extrabold border-b border-[rgba(255,255,255,0.08)]">
-                    <th className="py-3.5 px-4">Tanggal</th>
-                    <th className="py-3.5 px-4">Keterangan</th>
-                    <th className="py-3.5 px-4 text-right">Debit</th>
-                    <th className="py-3.5 px-4 text-right">Kredit</th>
-                    <th className="py-3.5 px-4 text-right">Saldo</th>
+                  <tr className="bg-[var(--input-bg)] text-[var(--text-muted)] text-[11px] uppercase font-extrabold border-b border-[var(--border)]">
+                    <th className="py-3 px-4">Tanggal</th>
+                    <th className="py-3 px-4">Keterangan</th>
+                    <th className="py-3 px-4 text-right">Debit</th>
+                    <th className="py-3 px-4 text-right">Kredit</th>
+                    <th className="py-3 px-4 text-right">Saldo</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[rgba(255,255,255,0.06)] text-xs">
+                <tbody className="divide-y divide-[var(--border)] text-xs">
                   {filteredMutations.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="py-8 text-center text-[#7C8799] font-medium">
-                        Tidak ada riwayat mutasi untuk filter ini.
+                      <td colSpan={5} className="py-10 text-center text-[var(--text-muted)] font-medium">
+                        Tidak ada catatan mutasi untuk kriteria ini.
                       </td>
                     </tr>
                   ) : (
@@ -287,30 +281,30 @@ export const WalletMutationModal: React.FC<WalletMutationModalProps> = ({
                       const formattedDate = `${String(dateObj.getDate()).padStart(2, '0')}/${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
 
                       return (
-                        <tr key={m.id} className="hover:bg-[rgba(255,255,255,0.03)] transition-colors">
-                          <td className="py-3.5 px-4 font-mono text-[#BFC8D6] whitespace-nowrap font-bold">
+                        <tr key={m.id} className="hover:bg-[var(--input-bg)] transition-colors">
+                          <td className="py-3.5 px-4 font-mono text-[var(--text-secondary)] font-bold whitespace-nowrap">
                             {formattedDate}
                           </td>
                           <td className="py-3.5 px-4">
-                            <div className="font-bold text-white">{m.description}</div>
-                            <div className="text-[10px] text-[#7C8799] flex items-center gap-1.5 mt-0.5">
-                              <span className="bg-[rgba(255,255,255,0.06)] px-2 py-0.5 rounded-lg text-[#BFC8D6] font-medium">
+                            <div className="font-bold text-[var(--text-primary)]">{m.description}</div>
+                            <div className="text-[10px] text-[var(--text-muted)] flex items-center gap-2 mt-0.5">
+                              <span className="bg-[var(--input-bg)] px-2 py-0.5 rounded-lg text-[var(--text-secondary)] font-medium border border-[var(--border)]">
                                 {m.category}
                               </span>
                               {m.paidBy && (
-                                <span className="text-[#F6D365] font-medium">
+                                <span className="text-[var(--gold-primary)] font-medium">
                                   Oleh: {m.paidBy}
                                 </span>
                               )}
                             </div>
                           </td>
-                          <td className="py-3.5 px-4 text-right font-mono font-extrabold text-[#EF4444] whitespace-nowrap">
+                          <td className="py-3.5 px-4 text-right font-mono font-extrabold text-red-500 whitespace-nowrap">
                             {m.type === 'debit' ? formatK(m.debitAmount) : '-'}
                           </td>
-                          <td className="py-3.5 px-4 text-right font-mono font-extrabold text-[#22C55E] whitespace-nowrap">
+                          <td className="py-3.5 px-4 text-right font-mono font-extrabold text-emerald-500 whitespace-nowrap">
                             {m.type === 'kredit' ? formatK(m.kreditAmount) : '-'}
                           </td>
-                          <td className="py-3.5 px-4 text-right font-mono font-bold text-white whitespace-nowrap bg-[#121A2A]/60">
+                          <td className="py-3.5 px-4 text-right font-mono font-bold text-[var(--text-primary)] whitespace-nowrap bg-[var(--input-bg)]">
                             {formatK(m.runningBalance)}
                           </td>
                         </tr>
@@ -321,22 +315,18 @@ export const WalletMutationModal: React.FC<WalletMutationModalProps> = ({
               </table>
             </div>
           </div>
-
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 border-t border-[rgba(255,255,255,0.08)] bg-[#0B1220] flex items-center justify-between">
-          <span className="text-xs text-[#7C8799]">
-            Total {filteredMutations.length} entri mutasi
-          </span>
+        <div className="p-4 border-t border-[var(--border)] bg-[var(--input-bg)] flex justify-between items-center text-xs">
+          <span className="text-[var(--text-muted)] text-[11px]">Real-time Mutation Engine</span>
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-[rgba(255,255,255,0.06)] hover:bg-[rgba(255,255,255,0.12)] text-white text-xs font-bold transition-colors"
+            className="px-4 py-2 rounded-2xl bg-[var(--surface-secondary)] hover:bg-[var(--border)] text-[var(--text-primary)] font-bold transition-colors"
           >
             Tutup
           </button>
         </div>
-
       </div>
     </div>
   );
