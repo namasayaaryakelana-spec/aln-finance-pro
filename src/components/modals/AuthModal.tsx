@@ -68,11 +68,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#0B1220]/85 backdrop-blur-xl flex items-center justify-center p-4">
-      <div className="bg-[#121A2A] border border-[rgba(255,255,255,0.12)] w-full max-w-md rounded-3xl p-6 relative text-white shadow-2xl space-y-5 animate-fade-in">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xl flex items-center justify-center p-4">
+      <div className="bg-[var(--card-bg)] border border-[var(--card-border)] w-full max-w-md rounded-3xl p-6 relative text-[var(--text-primary)] shadow-2xl space-y-5 animate-fade-in transition-colors">
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 p-2 rounded-2xl bg-[#0B1220] text-[#7C8799] hover:text-white border border-[rgba(255,255,255,0.08)] transition-all"
+          className="absolute top-5 right-5 p-2 rounded-2xl bg-[var(--surface-secondary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-[var(--border)] transition-all"
         >
           <X className="w-4 h-4" />
         </button>
@@ -94,14 +94,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         </div>
 
         {/* Subtab Modes */}
-        <div className="grid grid-cols-3 gap-1.5 p-1.5 bg-[#0B1220] rounded-2xl border border-[rgba(255,255,255,0.08)] text-xs font-bold">
+        <div className="grid grid-cols-3 gap-1.5 p-1.5 bg-[var(--input-bg)] rounded-2xl border border-[var(--border)] text-xs font-bold">
           <button
             type="button"
             onClick={() => setMode('login')}
             className={`py-2 rounded-xl transition-all ${
               mode === 'login'
                 ? 'btn-gold text-[#0B1220] font-extrabold shadow-sm'
-                : 'text-[#7C8799] hover:text-white'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             }`}
           >
             Login
@@ -112,7 +112,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             className={`py-2 rounded-xl transition-all ${
               mode === 'signup'
                 ? 'btn-gold text-[#0B1220] font-extrabold shadow-sm'
-                : 'text-[#7C8799] hover:text-white'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             }`}
           >
             Register
@@ -122,8 +122,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             onClick={() => setMode('config')}
             className={`py-2 rounded-xl transition-all ${
               mode === 'config'
-                ? 'bg-[rgba(212,175,55,0.15)] text-[#F6D365] border border-[rgba(212,175,55,0.3)] font-extrabold'
-                : 'text-[#7C8799] hover:text-white'
+                ? 'bg-[var(--gold-badge-bg)] text-[var(--gold-primary)] border border-[var(--gold-badge-border)] font-extrabold'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             }`}
           >
             Config DB
@@ -133,29 +133,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         {mode !== 'config' ? (
           <form onSubmit={handleSubmit} className="space-y-4 text-xs">
             <div>
-              <label className="block text-[#BFC8D6] font-bold mb-1 flex items-center gap-1.5">
-                <Mail className="w-3.5 h-3.5 text-[#F6D365]" /> Email Akun
+              <label className="block text-[var(--text-secondary)] font-bold mb-1 flex items-center gap-1.5">
+                <Mail className="w-3.5 h-3.5 text-[var(--gold-primary)]" /> Email Akun
               </label>
               <input
                 type="email"
                 placeholder="nama@email.com"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                className="w-full bg-[#0B1220] px-4 py-3 rounded-2xl border border-[rgba(255,255,255,0.08)] text-white focus:outline-none focus:border-[#D4AF37]"
+                className="w-full bg-[var(--input-bg)] px-4 py-3 rounded-2xl border border-[var(--input-border)] text-[var(--input-text)] focus:outline-none focus:border-[var(--gold-primary)]"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-[#BFC8D6] font-bold mb-1 flex items-center gap-1.5">
-                <Lock className="w-3.5 h-3.5 text-[#F6D365]" /> Password
+              <label className="block text-[var(--text-secondary)] font-bold mb-1 flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5 text-[var(--gold-primary)]" /> Password
               </label>
               <input
                 type="password"
                 placeholder="••••••••"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                className="w-full bg-[#0B1220] px-4 py-3 rounded-2xl border border-[rgba(255,255,255,0.08)] text-white focus:outline-none focus:border-[#D4AF37]"
+                className="w-full bg-[var(--input-bg)] px-4 py-3 rounded-2xl border border-[var(--input-border)] text-[var(--input-text)] focus:outline-none focus:border-[var(--gold-primary)]"
                 required
               />
             </div>

@@ -142,11 +142,11 @@ export const CategoryMasterModal: React.FC<CategoryMasterModalProps> = ({ isOpen
   });
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#0B1220]/85 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-[#121A2A] border border-[rgba(255,255,255,0.12)] w-full max-w-2xl rounded-3xl p-6 relative text-white shadow-2xl space-y-6 my-8 animate-fade-in">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-[var(--card-bg)] border border-[var(--card-border)] w-full max-w-2xl rounded-3xl p-6 relative text-[var(--text-primary)] shadow-2xl space-y-6 my-8 animate-fade-in transition-colors">
         
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-[rgba(255,255,255,0.08)] pb-4">
+        <div className="flex items-center justify-between border-b border-[var(--border)] pb-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-[rgba(212,175,55,0.15)] border border-[rgba(212,175,55,0.3)] flex items-center justify-center text-[#F6D365]">
               <Tag className="w-5 h-5" />

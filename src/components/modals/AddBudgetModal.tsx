@@ -29,7 +29,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
       categoryName: cat?.name || 'Kategori',
       monthlyLimit: limit,
       scope,
-      period: '2026-07'
+      period: '2026-08'
     });
 
     onClose();
@@ -37,24 +37,34 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="bg-[#0A0F1D] border border-slate-800 w-full max-w-md rounded-3xl p-6 relative text-slate-100 shadow-2xl space-y-4">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xl flex items-center justify-center p-4">
+      <div className="bg-[var(--card-bg)] border border-[var(--card-border)] w-full max-w-md rounded-3xl p-6 relative text-[var(--text-primary)] shadow-2xl space-y-4 animate-fade-in transition-colors">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-full bg-slate-900 text-slate-400 hover:text-white"
+          className="absolute top-5 right-5 p-2 rounded-2xl bg-[var(--surface-secondary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-[var(--border)] transition-all"
         >
           <X className="w-4 h-4" />
         </button>
 
-        <h3 className="text-base font-extrabold text-white">Set Target Anggaran Bulanan</h3>
-
-        <form onSubmit={handleSubmit} className="space-y-3 text-xs">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-2xl bg-[var(--gold-badge-bg)] text-[var(--gold-primary)] border border-[var(--gold-badge-border)]">
+            <PieChart className="w-5 h-5 text-[var(--gold-primary)]" />
+          </div>
           <div>
-            <label className="block text-slate-400 font-bold mb-1">Pilih Kategori Pengeluaran</label>
+            <h3 className="text-base font-black text-[var(--text-primary)] font-['Plus_Jakarta_Sans',sans-serif]">
+              Set Target Anggaran Bulanan
+            </h3>
+            <p className="text-[11px] text-[var(--text-secondary)]">Alokasi limit pengeluaran per kategori</p>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4 text-xs font-semibold">
+          <div>
+            <label className="block text-[var(--text-secondary)] font-bold mb-1">Pilih Kategori Pengeluaran</label>
             <select
               value={categoryId}
               onChange={e => setCategoryId(e.target.value)}
-              className="w-full bg-slate-950 px-3.5 py-2.5 rounded-xl border border-slate-800 text-white focus:outline-none focus:border-emerald-500"
+              className="w-full bg-[var(--input-bg)] px-4 py-3 rounded-2xl border border-[var(--input-border)] text-[var(--input-text)] focus:outline-none focus:border-[var(--gold-primary)] font-bold"
             >
               {categories.map(c => (
                 <option key={c.id} value={c.id}>
@@ -65,22 +75,22 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
           </div>
 
           <div>
-            <label className="block text-slate-400 font-bold mb-1">Batas Maksimal Anggaran / Bulan (Rp)</label>
+            <label className="block text-[var(--text-secondary)] font-bold mb-1">Batas Maksimal Anggaran / Bulan (Rp)</label>
             <input
               type="number"
               placeholder="Mis: 3000000"
               value={monthlyLimit}
               onChange={e => setMonthlyLimit(e.target.value)}
-              className="w-full bg-slate-950 px-3.5 py-2.5 rounded-xl border border-slate-800 text-white font-bold text-sm focus:outline-none focus:border-emerald-500"
+              className="w-full bg-[var(--input-bg)] px-4 py-3 rounded-2xl border border-[var(--input-border)] text-[var(--input-text)] font-black text-sm focus:outline-none focus:border-[var(--gold-primary)] font-mono"
             />
           </div>
 
           <div>
-            <label className="block text-slate-400 font-bold mb-1">Scope</label>
+            <label className="block text-[var(--text-secondary)] font-bold mb-1">Scope</label>
             <select
               value={scope}
               onChange={e => setScopeState(e.target.value as Scope)}
-              className="w-full bg-slate-950 px-3.5 py-2.5 rounded-xl border border-slate-800 text-white focus:outline-none focus:border-emerald-500"
+              className="w-full bg-[var(--input-bg)] px-4 py-3 rounded-2xl border border-[var(--input-border)] text-[var(--input-text)] focus:outline-none focus:border-[var(--gold-primary)] font-bold"
             >
               <option value="personal">Pribadi (Personal)</option>
               <option value="business">Bisnis (Business)</option>
@@ -90,14 +100,14 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
           <div className="pt-3 flex gap-2">
             <button
               type="submit"
-              className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold rounded-xl shadow-md transition-all"
+              className="flex-1 py-3 btn-gold text-[#0B1220] font-extrabold rounded-2xl shadow-md transition-all text-xs active:scale-95"
             >
               + Simpan Target Anggaran
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl"
+              className="py-3 px-4 bg-[var(--surface-secondary)] hover:bg-[var(--border)] text-[var(--text-secondary)] font-bold rounded-2xl text-xs transition-colors"
             >
               Batal
             </button>

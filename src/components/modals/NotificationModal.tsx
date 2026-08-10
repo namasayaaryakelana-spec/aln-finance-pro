@@ -42,7 +42,7 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
   const pendingDebts = debts.filter(d => d.status === 'pending' || d.status === 'overdue');
 
   // 2. Over budget / warning budgets
-  const budgetAlerts = budgets.filter(b => b.spent >= b.amount * 0.8);
+  const budgetAlerts = budgets.filter(b => b.spent >= b.monthlyLimit * 0.8);
 
   // 3. Low balance wallets
   const lowWallets = wallets.filter(w => w.balance < 50000);
@@ -60,44 +60,44 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0B1220]/85 backdrop-blur-xl animate-fade-in">
-      <div className="bg-[#121A2A] border border-[rgba(255,255,255,0.12)] rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[85vh] text-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xl animate-fade-in">
+      <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[85vh] text-[var(--text-primary)] transition-colors">
         {/* Header */}
-        <div className="p-5 border-b border-[rgba(255,255,255,0.08)] flex items-center justify-between bg-[#121A2A]">
+        <div className="p-5 border-b border-[var(--border)] flex items-center justify-between bg-[var(--card-bg)]">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-[rgba(212,175,55,0.15)] border border-[rgba(212,175,55,0.3)] text-[#F6D365]">
+            <div className="p-2.5 rounded-2xl bg-[var(--gold-badge-bg)] border border-[var(--gold-badge-border)] text-[var(--gold-primary)]">
               <Bell className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-extrabold text-white flex items-center gap-2">
+              <h3 className="text-base font-extrabold text-[var(--text-primary)] flex items-center gap-2 font-['Plus_Jakarta_Sans',sans-serif]">
                 Pusat Notifikasi
                 {totalAlertsCount > 0 && !isRead && (
-                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-[rgba(239,68,68,0.15)] text-[#EF4444] border border-[rgba(239,68,68,0.3)] font-extrabold">
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-red-500/15 text-red-500 border border-red-500/30 font-extrabold font-mono">
                     {totalAlertsCount} Alerta Baru
                   </span>
                 )}
               </h3>
-              <p className="text-xs text-[#7C8799]">Update keuangan, pengingat tagihan & rekomendasi</p>
+              <p className="text-xs text-[var(--text-secondary)]">Update keuangan, pengingat tagihan & rekomendasi</p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="p-2 rounded-2xl bg-[#0B1220] text-[#7C8799] hover:text-white border border-[rgba(255,255,255,0.08)] transition-all"
+            className="p-2 rounded-2xl bg-[var(--surface-secondary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-[var(--border)] transition-all"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Filter Subtabs */}
-        <div className="px-5 py-3 border-b border-[rgba(255,255,255,0.08)] bg-[#0B1220] flex items-center justify-between text-xs">
+        <div className="px-5 py-3 border-b border-[var(--border)] bg-[var(--input-bg)] flex items-center justify-between text-xs font-semibold">
           <div className="flex items-center gap-2">
             <button
               onClick={() => setFilter('all')}
               className={`px-3.5 py-1.5 rounded-xl font-bold transition-all ${
                 filter === 'all'
                   ? 'btn-gold text-[#0B1220] shadow-md font-extrabold'
-                  : 'text-[#7C8799] hover:text-white'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
               Semua
@@ -106,8 +106,8 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
               onClick={() => setFilter('alerts')}
               className={`px-3.5 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1 ${
                 filter === 'alerts'
-                  ? 'bg-[rgba(239,68,68,0.15)] text-[#EF4444] border border-[rgba(239,68,68,0.3)] font-extrabold'
-                  : 'text-[#7C8799] hover:text-white'
+                  ? 'bg-red-500/15 text-red-500 border border-red-500/30 font-extrabold'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
               Peringatan ({totalAlertsCount})
@@ -116,8 +116,8 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
               onClick={() => setFilter('activity')}
               className={`px-3.5 py-1.5 rounded-xl font-bold transition-all ${
                 filter === 'activity'
-                  ? 'bg-[rgba(255,255,255,0.08)] text-white'
-                  : 'text-[#7C8799] hover:text-white'
+                  ? 'bg-[var(--card-bg)] text-[var(--text-primary)] border border-[var(--border)]'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
               Aktivitas
@@ -126,25 +126,25 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
 
           <button
             onClick={() => setIsRead(true)}
-            className="text-[11px] text-[#F6D365] hover:underline font-semibold"
+            className="text-[11px] text-[var(--gold-primary)] hover:underline font-semibold"
           >
             Tandai Dibaca
           </button>
         </div>
 
         {/* Content Feed */}
-        <div className="p-5 overflow-y-auto space-y-4 flex-1 divide-y divide-[rgba(255,255,255,0.08)] custom-scrollbar">
+        <div className="p-5 overflow-y-auto space-y-4 flex-1 divide-y divide-[var(--border)] custom-scrollbar">
           {/* AI Score Health Summary Badge */}
           {(filter === 'all' || filter === 'alerts') && (
             <div className="pt-1">
-              <div className="p-4 rounded-2xl bg-[#0B1220] border border-[rgba(212,175,55,0.25)] flex items-center justify-between gap-3">
+              <div className="p-4 rounded-2xl bg-[var(--input-bg)] border border-[var(--gold-badge-border)] flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-[rgba(212,175,55,0.15)] text-[#F6D365]">
+                  <div className="p-2 rounded-xl bg-[var(--gold-badge-bg)] text-[var(--gold-primary)]">
                     <Sparkles className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-extrabold text-white">Status Kesehatan Keuangan: {healthScore}/100</h4>
-                    <p className="text-[11px] text-[#BFC8D6] mt-0.5">
+                    <h4 className="text-xs font-extrabold text-[var(--text-primary)] font-['Plus_Jakarta_Sans',sans-serif]">Status Kesehatan Keuangan: {healthScore}/100</h4>
+                    <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
                       {healthScore >= 80
                         ? 'Keuangan sangat baik! Jaga arus kas dan konsistensi investasi.'
                         : healthScore >= 60
@@ -155,7 +155,7 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
                 </div>
                 <button
                   onClick={() => handleNavigate('ai_advisor')}
-                  className="px-3 py-1.5 text-[11px] font-extrabold rounded-xl btn-gold-outline whitespace-nowrap shrink-0"
+                  className="px-3 py-1.5 text-[11px] font-extrabold rounded-xl btn-gold text-[#0B1220] shadow-sm whitespace-nowrap shrink-0 active:scale-95"
                 >
                   Tanya AI
                 </button>
@@ -166,7 +166,7 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
           {/* Pending Bills & Debts Alerts */}
           {(filter === 'all' || filter === 'alerts') && pendingDebts.length > 0 && (
             <div className="pt-4 space-y-2.5">
-              <h4 className="text-xs font-extrabold text-[#EF4444] uppercase tracking-wider flex items-center gap-1.5">
+              <h4 className="text-xs font-extrabold text-red-500 uppercase tracking-wider flex items-center gap-1.5 font-['Plus_Jakarta_Sans',sans-serif]">
                 <AlertTriangle className="w-3.5 h-3.5" />
                 Tagihan & Hutang Jatuh Tempo ({pendingDebts.length})
               </h4>
@@ -174,31 +174,31 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
                 {pendingDebts.map(debt => (
                   <div
                     key={debt.id}
-                    className="p-3.5 rounded-2xl bg-[#0B1220] border border-[rgba(239,68,68,0.3)] flex items-center justify-between hover:border-[rgba(239,68,68,0.5)] transition-colors"
+                    className="p-3.5 rounded-2xl bg-[var(--input-bg)] border border-red-500/30 flex items-center justify-between hover:border-red-500/50 transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-xl bg-[rgba(239,68,68,0.15)] text-[#EF4444]">
+                      <div className="p-2 rounded-xl bg-red-500/15 text-red-500">
                         <Calendar className="w-4 h-4" />
                       </div>
                       <div>
-                        <div className="text-xs font-bold text-white flex items-center gap-2">
+                        <div className="text-xs font-bold text-[var(--text-primary)] flex items-center gap-2">
                           {debt.title}
-                          <span className="text-[10px] px-2 py-0.5 rounded-md bg-[rgba(239,68,68,0.15)] text-[#EF4444] font-extrabold uppercase">
+                          <span className="text-[10px] px-2 py-0.5 rounded-md bg-red-500/15 text-red-500 font-extrabold uppercase">
                             {debt.type === 'debt_payable' ? 'Hutang' : debt.type === 'receivable' ? 'Piutang' : 'Tagihan'}
                           </span>
                         </div>
-                        <p className="text-[11px] text-[#7C8799] mt-0.5">
-                          Jatuh tempo: <strong className="text-white">{debt.dueDate || 'Segera'}</strong>
+                        <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
+                          Jatuh tempo: <strong className="text-[var(--text-primary)] font-mono">{debt.dueDate || 'Segera'}</strong>
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-xs font-extrabold text-[#EF4444] font-mono">
+                      <div className="text-xs font-black text-red-500 font-mono">
                         Rp {debt.amount.toLocaleString('id-ID')}
                       </div>
                       <button
                         onClick={() => handleNavigate('planning')}
-                        className="text-[10px] text-[#F6D365] font-extrabold hover:underline flex items-center justify-end gap-1 mt-0.5"
+                        className="text-[10px] text-[var(--gold-primary)] font-extrabold hover:underline flex items-center justify-end gap-1 mt-0.5"
                       >
                         Bayar <ArrowRight className="w-3 h-3" />
                       </button>
@@ -212,37 +212,37 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
           {/* Budget Limit Warnings */}
           {(filter === 'all' || filter === 'alerts') && budgetAlerts.length > 0 && (
             <div className="pt-4 space-y-2.5">
-              <h4 className="text-xs font-extrabold text-[#F6D365] uppercase tracking-wider flex items-center gap-1.5">
+              <h4 className="text-xs font-extrabold text-[var(--gold-primary)] uppercase tracking-wider flex items-center gap-1.5 font-['Plus_Jakarta_Sans',sans-serif]">
                 <ShieldAlert className="w-3.5 h-3.5" />
                 Peringatan Batas Anggaran ({budgetAlerts.length})
               </h4>
               <div className="space-y-2">
                 {budgetAlerts.map(b => {
-                  const pct = Math.min(100, Math.round((b.spent / b.amount) * 100));
-                  const isOver = b.spent > b.amount;
+                  const pct = Math.min(100, Math.round((b.spent / b.monthlyLimit) * 100));
+                  const isOver = b.spent > b.monthlyLimit;
                   return (
                     <div
                       key={b.id}
-                      className="p-3.5 rounded-2xl bg-[#0B1220] border border-[rgba(212,175,55,0.25)] space-y-1.5"
+                      className="p-3.5 rounded-2xl bg-[var(--input-bg)] border border-[var(--gold-badge-border)] space-y-1.5"
                     >
                       <div className="flex items-center justify-between text-xs">
-                        <span className="font-bold text-white flex items-center gap-1.5">
-                          <TrendingDown className="w-3.5 h-3.5 text-[#F6D365]" />
-                          {b.category}
+                        <span className="font-bold text-[var(--text-primary)] flex items-center gap-1.5">
+                          <TrendingDown className="w-3.5 h-3.5 text-[var(--gold-primary)]" />
+                          {b.categoryName}
                         </span>
-                        <span className={`font-extrabold ${isOver ? 'text-[#EF4444]' : 'text-[#F6D365]'}`}>
+                        <span className={`font-extrabold font-mono ${isOver ? 'text-red-500' : 'text-[var(--gold-primary)]'}`}>
                           {pct}% terpakai
                         </span>
                       </div>
-                      <div className="w-full bg-[#121A2A] rounded-full h-1.5 overflow-hidden border border-[rgba(255,255,255,0.08)]">
+                      <div className="w-full bg-[var(--card-bg)] rounded-full h-1.5 overflow-hidden border border-[var(--border)]">
                         <div
-                          className={`h-full transition-all ${isOver ? 'bg-[#EF4444]' : 'bg-[#D4AF37]'}`}
+                          className={`h-full transition-all ${isOver ? 'bg-red-500' : 'bg-[var(--gold-primary)]'}`}
                           style={{ width: `${pct}%` }}
                         />
                       </div>
-                      <div className="flex justify-between text-[11px] text-[#7C8799] font-mono">
+                      <div className="flex justify-between text-[11px] text-[var(--text-secondary)] font-mono">
                         <span>Terpakai: Rp {b.spent.toLocaleString('id-ID')}</span>
-                        <span>Batas: Rp {b.amount.toLocaleString('id-ID')}</span>
+                        <span>Batas: Rp {b.monthlyLimit.toLocaleString('id-ID')}</span>
                       </div>
                     </div>
                   );
@@ -254,7 +254,7 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
           {/* Low Balance Wallets */}
           {(filter === 'all' || filter === 'alerts') && lowWallets.length > 0 && (
             <div className="pt-4 space-y-2.5">
-              <h4 className="text-xs font-extrabold text-[#3B82F6] uppercase tracking-wider flex items-center gap-1.5">
+              <h4 className="text-xs font-extrabold text-blue-500 uppercase tracking-wider flex items-center gap-1.5 font-['Plus_Jakarta_Sans',sans-serif]">
                 <Wallet className="w-3.5 h-3.5" />
                 Saldo Dompet Menipis ({lowWallets.length})
               </h4>
@@ -262,13 +262,13 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
                 {lowWallets.map(w => (
                   <div
                     key={w.id}
-                    className="p-3.5 rounded-2xl bg-[#0B1220] border border-[rgba(255,255,255,0.08)] flex items-center justify-between"
+                    className="p-3.5 rounded-2xl bg-[var(--input-bg)] border border-[var(--border)] flex items-center justify-between"
                   >
                     <div className="flex items-center gap-2.5">
                       <div className="w-3 h-3 rounded-full" style={{ backgroundColor: w.color }} />
-                      <span className="text-xs font-bold text-white">{w.name}</span>
+                      <span className="text-xs font-bold text-[var(--text-primary)]">{w.name}</span>
                     </div>
-                    <span className="text-xs font-extrabold text-[#F6D365] font-mono">
+                    <span className="text-xs font-black text-[var(--gold-primary)] font-mono">
                       Rp {w.balance.toLocaleString('id-ID')}
                     </span>
                   </div>
@@ -280,8 +280,8 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
           {/* Recent Activity Log */}
           {(filter === 'all' || filter === 'activity') && (
             <div className="pt-4 space-y-2.5">
-              <h4 className="text-xs font-extrabold text-[#BFC8D6] uppercase tracking-wider flex items-center gap-1.5">
-                <Info className="w-3.5 h-3.5 text-[#22C55E]" />
+              <h4 className="text-xs font-extrabold text-[var(--text-secondary)] uppercase tracking-wider flex items-center gap-1.5 font-['Plus_Jakarta_Sans',sans-serif]">
+                <Info className="w-3.5 h-3.5 text-emerald-500" />
                 Aktivitas Transaksi Terakhir
               </h4>
               {recentTxs.length > 0 ? (
@@ -289,22 +289,22 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
                   {recentTxs.map(t => (
                     <div
                       key={t.id}
-                      className="p-3.5 rounded-2xl bg-[#0B1220] border border-[rgba(255,255,255,0.08)] flex items-center justify-between text-xs"
+                      className="p-3.5 rounded-2xl bg-[var(--input-bg)] border border-[var(--border)] flex items-center justify-between text-xs"
                     >
                       <div>
-                        <div className="font-bold text-white">{t.title}</div>
-                        <div className="text-[10px] text-[#7C8799] mt-0.5">
+                        <div className="font-bold text-[var(--text-primary)]">{t.title}</div>
+                        <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">
                           {t.category} • {t.date}
                         </div>
                       </div>
-                      <div className={`font-extrabold font-mono ${t.type === 'income' ? 'text-[#22C55E]' : 'text-[#BFC8D6]'}`}>
+                      <div className={`font-black font-mono ${t.type === 'income' ? 'text-emerald-500' : 'text-[var(--text-primary)]'}`}>
                         {t.type === 'income' ? '+' : '-'} Rp {t.amount.toLocaleString('id-ID')}
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-[#7C8799] italic p-3">Belum ada transaksi tercatat hari ini.</p>
+                <p className="text-xs text-[var(--text-muted)] italic p-3">Belum ada transaksi tercatat hari ini.</p>
               )}
             </div>
           )}
@@ -312,9 +312,9 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
           {/* All Clear state */}
           {totalAlertsCount === 0 && filter === 'alerts' && (
             <div className="py-8 text-center space-y-2">
-              <CheckCircle2 className="w-10 h-10 text-[#22C55E] mx-auto" />
-              <h4 className="text-sm font-bold text-white">Tidak Ada Peringatan Urgent</h4>
-              <p className="text-xs text-[#7C8799] max-w-xs mx-auto">
+              <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto" />
+              <h4 className="text-sm font-bold text-[var(--text-primary)] font-['Plus_Jakarta_Sans',sans-serif]">Tidak Ada Peringatan Urgent</h4>
+              <p className="text-xs text-[var(--text-secondary)] max-w-xs mx-auto">
                 Semua tagihan lunas dan anggaran belanja Anda dalam kondisi aman!
               </p>
             </div>
@@ -322,11 +322,11 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="p-4.5 border-t border-[rgba(255,255,255,0.08)] bg-[#0B1220] flex justify-between items-center text-xs">
-          <span className="text-[#7C8799] text-[11px]">ALN Financial OS Real-time Notifier</span>
+        <div className="p-4.5 border-t border-[var(--border)] bg-[var(--input-bg)] flex justify-between items-center text-xs">
+          <span className="text-[var(--text-muted)] text-[11px]">ALN Financial OS Real-time Notifier</span>
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-2xl bg-[rgba(255,255,255,0.06)] hover:bg-[rgba(255,255,255,0.12)] text-white font-bold transition-colors"
+            className="px-4 py-2 rounded-2xl bg-[var(--surface-secondary)] hover:bg-[var(--border)] text-[var(--text-primary)] font-bold transition-colors"
           >
             Tutup
           </button>

@@ -7,13 +7,17 @@ import {
   Upload,
   Activity,
   UserCheck,
-  Table
+  Table,
+  Sun,
+  ShieldCheck,
+  CloudCheck
 } from 'lucide-react';
 import { ExportService } from '../../services/export';
 import { StorageService } from '../../services/storage';
+import { ThemeToggle } from '../layout/ThemeToggle';
 
 export const SettingsView: React.FC = () => {
-  const { auditLogs, resetAllData, restoreData, addToast } = useFinance();
+  const { auditLogs, resetAllData, restoreData, addToast, isOnline } = useFinance();
   const [activeTab, setActiveTab] = useState<'general' | 'erd' | 'backup' | 'audit'>('general');
   const [selectedRole, setSelectedRole] = useState<'owner' | 'manager' | 'user'>('owner');
 
@@ -42,22 +46,30 @@ export const SettingsView: React.FC = () => {
   return (
     <div className="space-y-6 pb-20">
       {/* Banner */}
-      <div className="bg-[#121A2A] p-6 rounded-3xl border border-[rgba(255,255,255,0.08)] shadow-2xl flex items-center justify-between">
+      <div className="bg-[var(--card-bg)] p-6 rounded-3xl border border-[var(--card-border)] shadow-2xl flex items-center justify-between transition-colors">
         <div className="flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-2xl bg-[rgba(212,175,55,0.12)] border border-[rgba(212,175,55,0.25)] flex items-center justify-center text-[#F6D365] font-bold">
-            <SettingsIcon className="w-5 h-5 text-[#F6D365]" />
+          <div className="w-11 h-11 rounded-2xl bg-[var(--gold-badge-bg)] border border-[var(--gold-badge-border)] flex items-center justify-center text-[var(--gold-primary)] font-bold">
+            <SettingsIcon className="w-5 h-5 text-[var(--gold-primary)]" />
           </div>
           <div>
-            <h3 className="text-base font-extrabold text-white">Pengaturan System & Database Kernel</h3>
-            <p className="text-xs text-[#7C8799]">ERD Diagram, Role Management, Audit Logs & Backup/Restore</p>
+            <h3 className="text-base font-black text-[var(--text-primary)] font-['Plus_Jakarta_Sans',sans-serif]">System Settings & Config DB</h3>
+            <p className="text-xs text-[var(--text-secondary)]">ERD Diagram, Theme System, Role Management, Audit Logs & Backup/Restore</p>
           </div>
+        </div>
+
+        {/* Supabase Status Indicator */}
+        <div className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-[var(--input-bg)] border border-[var(--border)] text-xs font-bold">
+          <span className={`w-2.5 h-2.5 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+          <span className="text-[var(--text-primary)] font-mono">
+            {isOnline ? '● Cloud Connected' : '● Offline Mode'}
+          </span>
         </div>
       </div>
 
       {/* Subtabs Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-[#0B1220] p-2 rounded-3xl border border-[rgba(255,255,255,0.08)]">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-[var(--input-bg)] p-2 rounded-3xl border border-[var(--border)]">
         {[
-          { id: 'general', label: 'Umum & Role Preset', icon: UserCheck },
+          { id: 'general', label: 'Umum & Theme OS', icon: UserCheck },
           { id: 'erd', label: 'ERD Database Canvas', icon: Table },
           { id: 'backup', label: 'Backup & Restore', icon: Database },
           { id: 'audit', label: 'Audit Log Activity', icon: Activity }
@@ -70,8 +82,8 @@ export const SettingsView: React.FC = () => {
               onClick={() => setActiveTab(tab.id as any)}
               className={`py-2.5 px-3.5 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition-all ${
                 isActive
-                  ? 'bg-[rgba(212,175,55,0.15)] text-[#F6D365] border border-[rgba(212,175,55,0.3)] shadow-md font-extrabold'
-                  : 'text-[#7C8799] hover:text-[#BFC8D6]'
+                  ? 'bg-[var(--gold-badge-bg)] text-[var(--gold-primary)] border border-[var(--gold-badge-border)] shadow-md font-extrabold'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
               <Icon className="w-4 h-4" />
@@ -83,71 +95,87 @@ export const SettingsView: React.FC = () => {
 
       {/* SUBTAB 1: GENERAL & ROLE PRESETS */}
       {activeTab === 'general' && (
-        <div className="bg-[#121A2A] p-6 rounded-3xl border border-[rgba(255,255,255,0.08)] shadow-2xl space-y-6">
-          <h4 className="text-sm font-extrabold text-white">Pilih Role Akses Pengguna</h4>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[
-              {
-                id: 'owner',
-                title: 'Pemilik Bisnis (Owner)',
-                desc: 'Akses penuh ke laporan eksekutif, P&L, Neraca, Invoice & Pengaturan.'
-              },
-              {
-                id: 'manager',
-                title: 'Manajer Keuangan (Finance Manager)',
-                desc: 'Akses pencatatan transaksi, budgeting, transfer & audit logs.'
-              },
-              {
-                id: 'user',
-                title: 'Pengguna Pribadi (Personal)',
-                desc: 'Fokus pada manajemen dompet harian & tabungan pribadi.'
-              }
-            ].map(r => (
-              <button
-                key={r.id}
-                onClick={() => setSelectedRole(r.id as any)}
-                className={`p-5 rounded-2xl border text-left transition-all ${
-                  selectedRole === r.id
-                    ? 'bg-[rgba(212,175,55,0.15)] border-[rgba(212,175,55,0.35)] text-white'
-                    : 'bg-[#0B1220] border-[rgba(255,255,255,0.08)] text-[#7C8799] hover:border-[rgba(255,255,255,0.15)]'
-                }`}
-              >
-                <h5 className="font-bold text-xs mb-1 text-white">{r.title}</h5>
-                <p className="text-[10px] leading-relaxed opacity-80">{r.desc}</p>
-              </button>
-            ))}
+        <div className="space-y-6">
+          {/* Dual Theme Selector Section */}
+          <div className="bg-[var(--card-bg)] p-6 rounded-3xl border border-[var(--card-border)] shadow-2xl space-y-3 transition-colors">
+            <div className="flex items-center gap-2 text-[var(--gold-primary)] font-extrabold text-sm font-['Plus_Jakarta_Sans',sans-serif]">
+              <Sun className="w-4 h-4" />
+              <h4>Mode Tampilan Visual (Dual Theme OS)</h4>
+            </div>
+            <p className="text-xs text-[var(--text-secondary)]">
+              Pilih mode tampilan <strong>Dark (Premium Private Banking)</strong> atau <strong>Light (Clean Executive Banking)</strong>, atau ikuti preferensi sistem perangkat Anda.
+            </p>
+            <div className="max-w-md pt-1">
+              <ThemeToggle variant="buttons" />
+            </div>
           </div>
 
-          <div className="p-4.5 rounded-2xl bg-[#0B1220] border border-[rgba(255,255,255,0.08)] space-y-2 text-xs">
-            <span className="font-bold text-white block">Sertifikasi Progressive Web App (PWA)</span>
-            <p className="text-[11px] text-[#7C8799]">
-              ALN Finance Pro fully supports production-grade PWA standards: Standalone display, offline persistence, service worker caching, and secure operation without internet connection.
-            </p>
+          <div className="bg-[var(--card-bg)] p-6 rounded-3xl border border-[var(--card-border)] shadow-2xl space-y-6 transition-colors">
+            <h4 className="text-sm font-extrabold text-[var(--text-primary)] font-['Plus_Jakarta_Sans',sans-serif]">Pilih Role Akses Pengguna</h4>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[
+                {
+                  id: 'owner',
+                  title: 'Pemilik Bisnis (Owner)',
+                  desc: 'Akses penuh ke laporan eksekutif, P&L, Neraca, Invoice & Pengaturan.'
+                },
+                {
+                  id: 'manager',
+                  title: 'Manajer Keuangan (Finance Manager)',
+                  desc: 'Akses pencatatan transaksi, budgeting, transfer & audit logs.'
+                },
+                {
+                  id: 'user',
+                  title: 'Pengguna Pribadi (Personal)',
+                  desc: 'Fokus pada manajemen dompet harian & tabungan pribadi.'
+                }
+              ].map(r => (
+                <button
+                  key={r.id}
+                  onClick={() => setSelectedRole(r.id as any)}
+                  className={`p-5 rounded-2xl border text-left transition-all ${
+                    selectedRole === r.id
+                      ? 'bg-[var(--gold-badge-bg)] border-[var(--gold-badge-border)] text-[var(--text-primary)] font-extrabold shadow-md'
+                      : 'bg-[var(--input-bg)] border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--gold-primary)]'
+                  }`}
+                >
+                  <h5 className="font-bold text-xs mb-1 text-[var(--text-primary)]">{r.title}</h5>
+                  <p className="text-[10px] leading-relaxed opacity-80">{r.desc}</p>
+                </button>
+              ))}
+            </div>
+
+            <div className="p-4.5 rounded-2xl bg-[var(--input-bg)] border border-[var(--border)] space-y-2 text-xs">
+              <span className="font-bold text-[var(--text-primary)] block font-['Plus_Jakarta_Sans',sans-serif]">Sertifikasi Progressive Web App (PWA)</span>
+              <p className="text-[11px] text-[var(--text-secondary)]">
+                ALN Finance Pro fully supports production-grade PWA standards: Standalone display, offline persistence, service worker caching, and secure operation without internet connection.
+              </p>
+            </div>
           </div>
         </div>
       )}
 
       {/* SUBTAB 2: ERD DIAGRAM CANVAS */}
       {activeTab === 'erd' && (
-        <div className="bg-[#121A2A] p-6 rounded-3xl border border-[rgba(255,255,255,0.08)] shadow-2xl space-y-4">
-          <div className="flex items-center justify-between border-b border-[rgba(255,255,255,0.08)] pb-3.5">
+        <div className="bg-[var(--card-bg)] p-6 rounded-3xl border border-[var(--card-border)] shadow-2xl space-y-4 transition-colors">
+          <div className="flex items-center justify-between border-b border-[var(--border)] pb-3.5">
             <div>
-              <h4 className="text-sm font-extrabold text-white">Skema Database Relasional (ERD)</h4>
-              <p className="text-xs text-[#7C8799]">Arsitektur Data ALN Finance Pro System Kernel</p>
+              <h4 className="text-sm font-extrabold text-[var(--text-primary)] font-['Plus_Jakarta_Sans',sans-serif]">Skema Database Relasional (ERD)</h4>
+              <p className="text-xs text-[var(--text-secondary)]">Arsitektur Data ALN Finance Pro System Kernel</p>
             </div>
-            <span className="text-[10px] font-mono text-[#F6D365] font-extrabold bg-[rgba(212,175,55,0.12)] px-3 py-1 rounded-full border border-[rgba(212,175,55,0.25)]">
+            <span className="text-[10px] font-mono text-[var(--gold-primary)] font-extrabold bg-[var(--gold-badge-bg)] px-3 py-1 rounded-full border border-[var(--gold-badge-border)]">
               8 Core Entities
             </span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-mono">
             {/* Entity 1: Wallets */}
-            <div className="bg-[#0B1220] p-4.5 rounded-2xl border border-[rgba(212,175,55,0.25)]">
-              <div className="font-bold text-[#F6D365] border-b border-[rgba(255,255,255,0.08)] pb-1.5 mb-2">
+            <div className="bg-[var(--input-bg)] p-4.5 rounded-2xl border border-[var(--gold-badge-border)]">
+              <div className="font-bold text-[var(--gold-primary)] border-b border-[var(--border)] pb-1.5 mb-2 font-['Plus_Jakarta_Sans',sans-serif]">
                 📦 Table: WALLETS
               </div>
-              <ul className="text-[10px] space-y-1 text-[#BFC8D6]">
+              <ul className="text-[10px] space-y-1 text-[var(--text-secondary)]">
                 <li>• id (PK, string)</li>
                 <li>• name (string)</li>
                 <li>• type (bank|ewallet|cash)</li>
@@ -158,11 +186,11 @@ export const SettingsView: React.FC = () => {
             </div>
 
             {/* Entity 2: Transactions */}
-            <div className="bg-[#0B1220] p-4.5 rounded-2xl border border-[rgba(34,197,94,0.25)]">
-              <div className="font-bold text-[#22C55E] border-b border-[rgba(255,255,255,0.08)] pb-1.5 mb-2">
+            <div className="bg-[var(--input-bg)] p-4.5 rounded-2xl border border-emerald-500/30">
+              <div className="font-bold text-emerald-500 border-b border-[var(--border)] pb-1.5 mb-2 font-['Plus_Jakarta_Sans',sans-serif]">
                 💳 Table: TRANSACTIONS
               </div>
-              <ul className="text-[10px] space-y-1 text-[#BFC8D6]">
+              <ul className="text-[10px] space-y-1 text-[var(--text-secondary)]">
                 <li>• id (PK, string)</li>
                 <li>• walletId (FK &gt; WALLETS)</li>
                 <li>• type (income|expense)</li>
@@ -174,11 +202,11 @@ export const SettingsView: React.FC = () => {
             </div>
 
             {/* Entity 3: Invoices */}
-            <div className="bg-[#0B1220] p-4.5 rounded-2xl border border-[rgba(212,175,55,0.25)]">
-              <div className="font-bold text-[#F6D365] border-b border-[rgba(255,255,255,0.08)] pb-1.5 mb-2">
+            <div className="bg-[var(--input-bg)] p-4.5 rounded-2xl border border-[var(--gold-badge-border)]">
+              <div className="font-bold text-[var(--gold-primary)] border-b border-[var(--border)] pb-1.5 mb-2 font-['Plus_Jakarta_Sans',sans-serif]">
                 📄 Table: INVOICES
               </div>
-              <ul className="text-[10px] space-y-1 text-[#BFC8D6]">
+              <ul className="text-[10px] space-y-1 text-[var(--text-secondary)]">
                 <li>• id (PK, string)</li>
                 <li>• invoiceNumber (string)</li>
                 <li>• clientName (string)</li>
@@ -189,11 +217,11 @@ export const SettingsView: React.FC = () => {
             </div>
 
             {/* Entity 4: AuditLogs */}
-            <div className="bg-[#0B1220] p-4.5 rounded-2xl border border-[rgba(255,255,255,0.12)]">
-              <div className="font-bold text-[#BFC8D6] border-b border-[rgba(255,255,255,0.08)] pb-1.5 mb-2">
+            <div className="bg-[var(--input-bg)] p-4.5 rounded-2xl border border-[var(--border)]">
+              <div className="font-bold text-[var(--text-primary)] border-b border-[var(--border)] pb-1.5 mb-2 font-['Plus_Jakarta_Sans',sans-serif]">
                 📜 Table: AUDIT_LOGS
               </div>
-              <ul className="text-[10px] space-y-1 text-[#BFC8D6]">
+              <ul className="text-[10px] space-y-1 text-[var(--text-secondary)]">
                 <li>• id (PK, string)</li>
                 <li>• action (string)</li>
                 <li>• module (string)</li>
@@ -207,45 +235,45 @@ export const SettingsView: React.FC = () => {
 
       {/* SUBTAB 3: BACKUP & RESTORE */}
       {activeTab === 'backup' && (
-        <div className="bg-[#121A2A] p-6 rounded-3xl border border-[rgba(255,255,255,0.08)] shadow-2xl space-y-6">
-          <h4 className="text-sm font-extrabold text-white">Manajemen Cadangan Data (Backup & Restore)</h4>
+        <div className="bg-[var(--card-bg)] p-6 rounded-3xl border border-[var(--card-border)] shadow-2xl space-y-6 transition-colors">
+          <h4 className="text-sm font-extrabold text-[var(--text-primary)] font-['Plus_Jakarta_Sans',sans-serif]">Manajemen Cadangan Data (Backup & Restore)</h4>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-[#0B1220] p-5 rounded-2xl border border-[rgba(255,255,255,0.08)] space-y-3">
-              <div className="flex items-center gap-2 text-[#22C55E] font-bold text-xs">
-                <Download className="w-4 h-4 text-[#22C55E]" />
+            <div className="bg-[var(--input-bg)] p-5 rounded-2xl border border-[var(--border)] space-y-3">
+              <div className="flex items-center gap-2 text-emerald-500 font-bold text-xs">
+                <Download className="w-4 h-4 text-emerald-500" />
                 Unduh Cadangan JSON
               </div>
-              <p className="text-[11px] text-[#7C8799]">
+              <p className="text-[11px] text-[var(--text-secondary)]">
                 Simpan seluruh data dompet, transaksi, invoice, dan anggaran ke file lokal.
               </p>
               <button
                 onClick={handleBackup}
-                className="w-full py-2.5 btn-gold text-[#0B1220] font-extrabold text-xs rounded-2xl shadow-md transition-all"
+                className="w-full py-2.5 btn-gold text-[#0B1220] font-extrabold text-xs rounded-2xl shadow-md transition-all active:scale-95"
               >
                 Unduh File Backup JSON
               </button>
             </div>
 
-            <div className="bg-[#0B1220] p-5 rounded-2xl border border-[rgba(255,255,255,0.08)] space-y-3">
-              <div className="flex items-center gap-2 text-[#F6D365] font-bold text-xs">
-                <Upload className="w-4 h-4 text-[#F6D365]" />
+            <div className="bg-[var(--input-bg)] p-5 rounded-2xl border border-[var(--border)] space-y-3">
+              <div className="flex items-center gap-2 text-[var(--gold-primary)] font-bold text-xs">
+                <Upload className="w-4 h-4 text-[var(--gold-primary)]" />
                 Restore Data dari File JSON
               </div>
-              <p className="text-[11px] text-[#7C8799]">
+              <p className="text-[11px] text-[var(--text-secondary)]">
                 Pulihkan data dari cadangan file JSON sebelumnya.
               </p>
-              <label className="w-full py-2.5 bg-[rgba(255,255,255,0.04)] hover:bg-[rgba(255,255,255,0.08)] text-[#BFC8D6] font-extrabold text-xs rounded-2xl transition-colors text-center block cursor-pointer border border-[rgba(255,255,255,0.08)]">
+              <label className="w-full py-2.5 bg-[var(--surface-secondary)] hover:bg-[var(--border)] text-[var(--text-primary)] font-extrabold text-xs rounded-2xl transition-colors text-center block cursor-pointer border border-[var(--border)]">
                 Pilih File JSON Backup
                 <input type="file" accept=".json" onChange={handleFileUpload} className="hidden" />
               </label>
             </div>
           </div>
 
-          <div className="pt-4 border-t border-[rgba(255,255,255,0.08)]">
+          <div className="pt-4 border-t border-[var(--border)]">
             <button
               onClick={resetAllData}
-              className="py-2.5 px-4 bg-[rgba(239,68,68,0.15)] hover:bg-[rgba(239,68,68,0.25)] text-[#EF4444] border border-[rgba(239,68,68,0.3)] text-xs font-bold rounded-2xl transition-colors"
+              className="py-2.5 px-4 bg-red-500/15 hover:bg-red-500/25 text-red-500 border border-red-500/30 text-xs font-bold rounded-2xl transition-colors"
             >
               Reset Seluruh Data Ke Kondisi Awal (Default)
             </button>
@@ -255,20 +283,20 @@ export const SettingsView: React.FC = () => {
 
       {/* SUBTAB 4: AUDIT LOGS */}
       {activeTab === 'audit' && (
-        <div className="bg-[#121A2A] p-6 rounded-3xl border border-[rgba(255,255,255,0.08)] shadow-2xl space-y-4">
-          <h4 className="text-sm font-extrabold text-white">Audit Log Activity Tracker</h4>
+        <div className="bg-[var(--card-bg)] p-6 rounded-3xl border border-[var(--card-border)] shadow-2xl space-y-4 transition-colors">
+          <h4 className="text-sm font-extrabold text-[var(--text-primary)] font-['Plus_Jakarta_Sans',sans-serif]">Audit Log Activity Tracker</h4>
 
           <div className="space-y-2">
             {auditLogs.map(log => (
-              <div key={log.id} className="p-3.5 bg-[#0B1220] rounded-2xl border border-[rgba(255,255,255,0.08)] flex items-center justify-between text-xs">
+              <div key={log.id} className="p-3.5 bg-[var(--input-bg)] rounded-2xl border border-[var(--border)] flex items-center justify-between text-xs">
                 <div>
-                  <div className="flex items-center gap-2 font-bold text-white">
-                    <span className="text-[#F6D365]">[{log.module}]</span>
+                  <div className="flex items-center gap-2 font-bold text-[var(--text-primary)]">
+                    <span className="text-[var(--gold-primary)]">[{log.module}]</span>
                     <span>{log.action}</span>
                   </div>
-                  <p className="text-[11px] text-[#7C8799] mt-0.5">{log.description}</p>
+                  <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">{log.description}</p>
                 </div>
-                <span className="text-[10px] text-[#7C8799] font-mono">
+                <span className="text-[10px] text-[var(--text-muted)] font-mono">
                   {new Date(log.timestamp).toLocaleTimeString('id-ID')}
                 </span>
               </div>

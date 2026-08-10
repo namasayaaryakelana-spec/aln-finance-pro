@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FinanceProvider, useFinance } from './context/FinanceContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { SplashScreen } from './components/layout/SplashScreen';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
@@ -34,6 +35,7 @@ const AppContent: React.FC = () => {
   const { isAuthModalOpen, closeAuthModal } = useFinance();
   const [showSplash, setShowSplash] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   // Modals state
   const [isAddTxOpen, setIsAddTxOpen] = useState(false);
@@ -77,7 +79,7 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen ambient-mesh text-slate-100 flex flex-col antialiased selection:bg-emerald-500 selection:text-slate-950 font-sans">
+    <div className="min-h-screen ambient-bg text-[var(--text-primary)] flex flex-col antialiased selection:bg-emerald-500 selection:text-slate-950 font-sans transition-colors duration-250">
       {/* Toast Notifier */}
       <OfflineNotifier />
 
@@ -86,12 +88,15 @@ const AppContent: React.FC = () => {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         openAddTxModal={() => setIsAddTxOpen(true)}
+        isCollapsed={isSidebarCollapsed}
+        setIsCollapsed={setIsSidebarCollapsed}
       />
 
       {/* Main Content Layout */}
-      <div className="lg:pl-64 flex-1 flex flex-col min-h-screen">
+      <div className={`${isSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-64'} flex-1 flex flex-col min-h-screen transition-all duration-200 ease-in-out`}>
         <Header
           activeTab={activeTab}
+          setActiveTab={setActiveTab}
           openAddTxModal={() => setIsAddTxOpen(true)}
           openFastAITxModal={() => setIsFastAITxOpen(true)}
           openNotificationModal={() => setIsNotificationOpen(true)}
@@ -193,9 +198,11 @@ const AppContent: React.FC = () => {
 
 export function App() {
   return (
-    <FinanceProvider>
-      <AppContent />
-    </FinanceProvider>
+    <ThemeProvider>
+      <FinanceProvider>
+        <AppContent />
+      </FinanceProvider>
+    </ThemeProvider>
   );
 }
 

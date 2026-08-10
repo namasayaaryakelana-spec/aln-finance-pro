@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useFinance } from '../../context/FinanceContext';
-import { X, ArrowDownRight, ArrowUpRight, Sparkles, Edit3 } from 'lucide-react';
+import { X, ArrowDownRight, ArrowUpRight, Sparkles, Edit3, ShieldCheck } from 'lucide-react';
 import { TransactionType, Scope } from '../../types';
 import { AITransactionRecorder } from '../ai/AITransactionRecorder';
 import { getSubcategoriesForCategory, masterCategories } from '../../data/subcategories';
@@ -83,118 +83,132 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#0B1220]/85 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-[#121A2A] border border-[rgba(255,255,255,0.12)] w-full max-w-xl rounded-3xl p-6 relative text-white shadow-2xl space-y-4 my-auto animate-fade-in">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-[var(--card-bg)] border border-[var(--card-border)] w-full max-w-xl rounded-3xl p-6 relative text-[var(--text-primary)] shadow-2xl space-y-4 my-auto animate-fade-in transition-colors">
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 z-20 p-2 rounded-2xl bg-[#0B1220] text-[#7C8799] hover:text-white border border-[rgba(255,255,255,0.08)] transition-all"
+          className="absolute top-5 right-5 z-20 p-2 rounded-2xl bg-[var(--surface-secondary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-[var(--border)] transition-all"
         >
           <X className="w-4 h-4" />
         </button>
 
         <div>
-          <h3 className="text-base font-extrabold text-white">Catat Transaksi Keuangan</h3>
-          <p className="text-xs text-[#7C8799]">Pilih metode AI Otomatis atau Form Manual</p>
+          <h3 className="text-base font-black text-[var(--text-primary)] font-['Plus_Jakarta_Sans',sans-serif]">
+            Catat Transaksi Keuangan
+          </h3>
+          <p className="text-xs text-[var(--text-secondary)]">Pilih metode AI Otomatis atau Form Manual Ledger</p>
         </div>
 
         {/* Input Method Tabs */}
-        <div className="grid grid-cols-2 gap-2 p-1.5 bg-[#0B1220] rounded-2xl border border-[rgba(255,255,255,0.08)]">
+        <div className="grid grid-cols-2 gap-2 p-1.5 bg-[var(--input-bg)] rounded-2xl border border-[var(--border)] text-xs font-bold">
           <button
             type="button"
             onClick={() => setInputMethod('ai')}
-            className={`py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+            className={`py-2 rounded-xl flex items-center justify-center gap-2 transition-all ${
               inputMethod === 'ai'
-                ? 'bg-[rgba(212,175,55,0.15)] text-[#F6D365] border border-[rgba(212,175,55,0.3)] shadow-sm font-extrabold'
-                : 'text-[#7C8799] hover:text-white'
+                ? 'bg-[var(--gold-badge-bg)] text-[var(--gold-primary)] border border-[var(--gold-badge-border)] shadow-sm font-extrabold'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
             }`}
           >
-            <Sparkles className="w-4 h-4 text-[#F6D365]" />
-            <span>AI Fast Input (Chat/Struk/Suara)</span>
+            <Sparkles className="w-4 h-4 text-[var(--gold-primary)]" />
+            <span>Asisten AI (Cepat)</span>
           </button>
-
           <button
             type="button"
             onClick={() => setInputMethod('manual')}
-            className={`py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+            className={`py-2 rounded-xl flex items-center justify-center gap-2 transition-all ${
               inputMethod === 'manual'
-                ? 'bg-[rgba(34,197,94,0.15)] text-[#22C55E] border border-[rgba(34,197,94,0.3)] shadow-sm font-extrabold'
-                : 'text-[#7C8799] hover:text-white'
+                ? 'btn-gold text-[#0B1220] font-extrabold shadow-sm'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
             }`}
           >
-            <Edit3 className="w-4 h-4 text-[#22C55E]" />
+            <Edit3 className="w-4 h-4" />
             <span>Form Manual</span>
           </button>
         </div>
 
-        {/* Content based on selected tab */}
         {inputMethod === 'ai' ? (
-          <AITransactionRecorder onSuccess={onClose} isModal={true} />
+          <AITransactionRecorder />
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4 text-xs pt-1">
-            {/* Type selector */}
-            <div className="grid grid-cols-2 gap-2 p-1.5 bg-[#0B1220] rounded-2xl border border-[rgba(255,255,255,0.08)]">
+          <form onSubmit={handleSubmit} className="space-y-4 text-xs font-semibold">
+            {/* Transaction Type Buttons */}
+            <div className="grid grid-cols-2 gap-2 p-1 bg-[var(--input-bg)] rounded-2xl border border-[var(--border)]">
               <button
                 type="button"
                 onClick={() => setType('expense')}
-                className={`py-2.5 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-colors ${
+                className={`py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
                   type === 'expense'
-                    ? 'bg-[rgba(239,68,68,0.15)] text-[#EF4444] border border-[rgba(239,68,68,0.3)] font-extrabold'
-                    : 'text-[#7C8799]'
+                    ? 'bg-red-500/15 text-red-500 border border-red-500/30'
+                    : 'text-[var(--text-muted)]'
                 }`}
               >
-                <ArrowUpRight className="w-4 h-4" />
-                Pengeluaran
+                <ArrowUpRight className="w-4 h-4 text-red-500" />
+                <span>Pengeluaran (-)</span>
               </button>
-
               <button
                 type="button"
                 onClick={() => setType('income')}
-                className={`py-2.5 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-colors ${
+                className={`py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
                   type === 'income'
-                    ? 'bg-[rgba(34,197,94,0.15)] text-[#22C55E] border border-[rgba(34,197,94,0.3)] font-extrabold'
-                    : 'text-[#7C8799]'
+                    ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
+                    : 'text-[var(--text-muted)]'
                 }`}
               >
-                <ArrowDownRight className="w-4 h-4" />
-                Pemasukan
+                <ArrowDownRight className="w-4 h-4 text-emerald-500" />
+                <span>Pemasukan (+)</span>
               </button>
             </div>
 
+            {/* Nominal Amount Visual Lead */}
             <div>
-              <label className="block text-[#BFC8D6] font-bold mb-1">Judul Transaksi</label>
-              <input
-                type="text"
-                placeholder="Mis: Makan Siang Soto Kudus, Beli Bensin"
-                value={title}
-                onChange={e => setTitle(e.target.value)}
-                className="w-full bg-[#0B1220] px-4 py-3 rounded-2xl border border-[rgba(255,255,255,0.08)] text-white placeholder-[#7C8799] focus:outline-none focus:border-[#D4AF37]"
-              />
+              <label className="block text-[var(--text-secondary)] font-bold mb-1">Nominal Transaksi (Rp)</label>
+              <div className="relative">
+                <span className="absolute left-4 top-3.5 text-base text-[var(--gold-primary)] font-black">Rp</span>
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={amount}
+                  onChange={e => setAmount(e.target.value)}
+                  className="w-full bg-[var(--input-bg)] text-xl font-black font-mono pl-12 pr-4 py-3 rounded-2xl border border-[var(--input-border)] text-[var(--input-text)] focus:outline-none focus:border-[var(--gold-primary)]"
+                  required
+                />
+              </div>
             </div>
 
-            <div>
-              <label className="block text-[#BFC8D6] font-bold mb-1">Nominal (Rp)</label>
-              <input
-                type="number"
-                placeholder="0"
-                value={amount}
-                onChange={e => setAmount(e.target.value)}
-                className="w-full bg-[#0B1220] px-4 py-3 rounded-2xl border border-[rgba(255,255,255,0.08)] text-white placeholder-[#7C8799] focus:outline-none focus:border-[#D4AF37] font-extrabold text-sm font-mono"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
+            {/* Judul & Tanggal */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-[#BFC8D6] font-bold mb-1">Kategori Utama</label>
+                <label className="block text-[var(--text-secondary)] font-bold mb-1">Judul / Deskripsi</label>
+                <input
+                  type="text"
+                  placeholder="Mis: Belanja Dapur, Gaji Bulanan"
+                  value={title}
+                  onChange={e => setTitle(e.target.value)}
+                  className="w-full bg-[var(--input-bg)] px-4 py-3 rounded-2xl border border-[var(--input-border)] text-[var(--input-text)] focus:outline-none focus:border-[var(--gold-primary)]"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-[var(--text-secondary)] font-bold mb-1">Tanggal</label>
+                <input
+                  type="date"
+                  value={date}
+                  onChange={e => setDate(e.target.value)}
+                  className="w-full bg-[var(--input-bg)] px-4 py-3 rounded-2xl border border-[var(--input-border)] text-[var(--input-text)] focus:outline-none focus:border-[var(--gold-primary)]"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Kategori & Sub-Kategori */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[var(--text-secondary)] font-bold mb-1">Kategori Utama</label>
                 <select
-                  id="kategori-utama"
                   value={category}
-                  onChange={e => {
-                    const selectedCat = e.target.value;
-                    setCategory(selectedCat);
-                    const subs = getSubcategoriesForCategory(selectedCat, categories);
-                    setSubcategory(subs[0] || '');
-                  }}
-                  className="w-full bg-[#0B1220] px-4 py-3 rounded-2xl border border-[rgba(255,255,255,0.08)] text-white focus:outline-none focus:border-[#D4AF37] font-medium"
+                  onChange={e => setCategory(e.target.value)}
+                  className="w-full bg-[var(--input-bg)] px-4 py-3 rounded-2xl border border-[var(--input-border)] text-[var(--input-text)] focus:outline-none focus:border-[var(--gold-primary)] font-bold"
                 >
                   {availableCategories.map(cat => (
                     <option key={cat} value={cat}>
@@ -205,12 +219,11 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen
               </div>
 
               <div>
-                <label className="block text-[#BFC8D6] font-bold mb-1">Sub-kategori</label>
+                <label className="block text-[var(--text-secondary)] font-bold mb-1">Sub-Kategori Spesifik</label>
                 <select
-                  id="sub-kategori"
                   value={subcategory}
                   onChange={e => setSubcategory(e.target.value)}
-                  className="w-full bg-[#0B1220] px-4 py-3 rounded-2xl border border-[rgba(255,255,255,0.08)] text-[#F6D365] focus:outline-none focus:border-[#D4AF37] font-medium"
+                  className="w-full bg-[var(--input-bg)] px-4 py-3 rounded-2xl border border-[var(--input-border)] text-[var(--gold-primary)] focus:outline-none focus:border-[var(--gold-primary)] font-bold"
                 >
                   {availableSubcategories.map((sub, idx) => (
                     <option key={idx} value={sub}>
@@ -221,55 +234,45 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[#BFC8D6] font-bold mb-1">Dompet / Akun</label>
-                <select
-                  value={walletId}
-                  onChange={e => setWalletId(e.target.value)}
-                  className="w-full bg-[#0B1220] px-4 py-3 rounded-2xl border border-[rgba(255,255,255,0.08)] text-white focus:outline-none focus:border-[#D4AF37]"
-                >
-                  {filteredWallets.map(w => (
-                    <option key={w.id} value={w.id}>
-                      {w.name} (Rp {w.balance.toLocaleString('id-ID')})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[#BFC8D6] font-bold mb-1">Tanggal</label>
-                <input
-                  type="date"
-                  value={date}
-                  onChange={e => setDate(e.target.value)}
-                  className="w-full bg-[#0B1220] px-4 py-3 rounded-2xl border border-[rgba(255,255,255,0.08)] text-white focus:outline-none focus:border-[#D4AF37]"
-                />
-              </div>
+            {/* Sumber Dompet */}
+            <div>
+              <label className="block text-[var(--text-secondary)] font-bold mb-1">Sumber Dompet / Rekening</label>
+              <select
+                value={walletId}
+                onChange={e => setWalletId(e.target.value)}
+                className="w-full bg-[var(--input-bg)] px-4 py-3 rounded-2xl border border-[var(--input-border)] text-[var(--input-text)] focus:outline-none focus:border-[var(--gold-primary)] font-bold"
+              >
+                {filteredWallets.map(w => (
+                  <option key={w.id} value={w.id}>
+                    {w.name} (Saldo: Rp {w.balance.toLocaleString('id-ID')})
+                  </option>
+                ))}
+              </select>
             </div>
 
+            {/* Catatan Tambahan */}
             <div>
-              <label className="block text-[#BFC8D6] font-bold mb-1">Catatan Tambahan (Opsional)</label>
-              <textarea
-                placeholder="Catatan detail transaksi..."
+              <label className="block text-[var(--text-secondary)] font-bold mb-1">Catatan (Opsional)</label>
+              <input
+                type="text"
+                placeholder="Mis: Pembayaran via Transfer QRIS"
                 value={note}
                 onChange={e => setNote(e.target.value)}
-                rows={2}
-                className="w-full bg-[#0B1220] px-4 py-3 rounded-2xl border border-[rgba(255,255,255,0.08)] text-white placeholder-[#7C8799] focus:outline-none focus:border-[#D4AF37]"
+                className="w-full bg-[var(--input-bg)] px-4 py-3 rounded-2xl border border-[var(--input-border)] text-[var(--input-text)] focus:outline-none focus:border-[var(--gold-primary)]"
               />
             </div>
 
             <div className="pt-3 flex gap-2">
               <button
                 type="submit"
-                className="flex-1 py-3 btn-gold text-[#0B1220] font-extrabold rounded-2xl shadow-md transition-all text-xs"
+                className="flex-1 py-3.5 btn-gold text-[#0B1220] font-black rounded-2xl shadow-md transition-all text-xs active:scale-95"
               >
-                Simpan Transaksi
+                + Simpan Transaksi
               </button>
               <button
                 type="button"
                 onClick={onClose}
-                className="py-3 px-4 bg-[rgba(255,255,255,0.06)] hover:bg-[rgba(255,255,255,0.12)] text-[#BFC8D6] font-bold rounded-2xl text-xs"
+                className="py-3.5 px-4 bg-[var(--surface-secondary)] hover:bg-[var(--border)] text-[var(--text-secondary)] font-bold rounded-2xl text-xs transition-colors"
               >
                 Batal
               </button>

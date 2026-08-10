@@ -46,8 +46,6 @@ export const PlanningView: React.FC<PlanningViewProps> = ({
     updateDebt,
     deleteDebt,
     addInvestment,
-    updateInvestment,
-    deleteInvestment,
     addToast
   } = useFinance();
 
@@ -60,7 +58,6 @@ export const PlanningView: React.FC<PlanningViewProps> = ({
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
   const [editingGoal, setEditingGoal] = useState<FinancialGoal | null>(null);
   const [editingDebt, setEditingDebt] = useState<BillAndDebt | null>(null);
-  const [editingInvestment, setEditingInvestment] = useState<Investment | null>(null);
   const [isAddInvestmentOpen, setIsAddInvestmentOpen] = useState(false);
 
   // New investment form state
@@ -117,14 +114,14 @@ export const PlanningView: React.FC<PlanningViewProps> = ({
   return (
     <div className="space-y-6 pb-20">
       {/* Header Banner */}
-      <div className="bg-[#121A2A] p-6 rounded-3xl border border-[rgba(255,255,255,0.08)] shadow-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="bg-[var(--card-bg)] p-6 rounded-3xl border border-[var(--card-border)] shadow-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-colors">
         <div className="flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-2xl bg-[rgba(212,175,55,0.12)] border border-[rgba(212,175,55,0.25)] flex items-center justify-center text-[#F6D365] font-bold">
-            <Target className="w-5 h-5 text-[#F6D365]" />
+          <div className="w-11 h-11 rounded-2xl bg-[var(--gold-badge-bg)] border border-[var(--gold-badge-border)] flex items-center justify-center text-[var(--gold-primary)] font-bold">
+            <Target className="w-5 h-5 text-[var(--gold-primary)]" />
           </div>
           <div>
-            <h3 className="text-base font-extrabold text-white">Perencanaan & Target Keuangan</h3>
-            <p className="text-xs text-[#7C8799]">Budgeting, Financial Goals, Tagihan & Portofolio Investasi</p>
+            <h3 className="text-base font-black text-[var(--text-primary)] font-['Plus_Jakarta_Sans',sans-serif]">Perencanaan & Target Keuangan</h3>
+            <p className="text-xs text-[var(--text-secondary)]">Budgeting, Financial Goals, Tagihan & Portofolio Investasi (Financial Planning)</p>
           </div>
         </div>
 
@@ -132,7 +129,7 @@ export const PlanningView: React.FC<PlanningViewProps> = ({
           {activeSubtab === 'budgets' && (
             <button
               onClick={openAddBudgetModal}
-              className="px-4 py-2 rounded-2xl btn-gold text-[#0B1220] text-xs font-extrabold flex items-center gap-1.5 shadow-lg transition-all"
+              className="px-4 py-2.5 rounded-2xl btn-gold text-[#0B1220] text-xs font-extrabold flex items-center gap-1.5 shadow-lg transition-all active:scale-95"
             >
               <Plus className="w-4 h-4 stroke-[3]" />
               Tambah Anggaran
@@ -142,7 +139,7 @@ export const PlanningView: React.FC<PlanningViewProps> = ({
           {activeSubtab === 'goals' && (
             <button
               onClick={openAddGoalModal}
-              className="px-4 py-2 rounded-2xl btn-gold text-[#0B1220] text-xs font-extrabold flex items-center gap-1.5 shadow-lg transition-all"
+              className="px-4 py-2.5 rounded-2xl btn-gold text-[#0B1220] text-xs font-extrabold flex items-center gap-1.5 shadow-lg transition-all active:scale-95"
             >
               <Plus className="w-4 h-4 stroke-[3]" />
               Tambah Target Goal
@@ -152,7 +149,7 @@ export const PlanningView: React.FC<PlanningViewProps> = ({
           {activeSubtab === 'debts' && (
             <button
               onClick={openAddDebtModal}
-              className="px-4 py-2 rounded-2xl btn-gold text-[#0B1220] text-xs font-extrabold flex items-center gap-1.5 shadow-lg transition-all"
+              className="px-4 py-2.5 rounded-2xl btn-gold text-[#0B1220] text-xs font-extrabold flex items-center gap-1.5 shadow-lg transition-all active:scale-95"
             >
               <Plus className="w-4 h-4 stroke-[3]" />
               Tambah Catatan Tagihan
@@ -162,7 +159,7 @@ export const PlanningView: React.FC<PlanningViewProps> = ({
           {activeSubtab === 'investments' && (
             <button
               onClick={() => setIsAddInvestmentOpen(true)}
-              className="px-4 py-2 rounded-2xl btn-gold text-[#0B1220] text-xs font-extrabold flex items-center gap-1.5 shadow-lg transition-all"
+              className="px-4 py-2.5 rounded-2xl btn-gold text-[#0B1220] text-xs font-extrabold flex items-center gap-1.5 shadow-lg transition-all active:scale-95"
             >
               <Plus className="w-4 h-4 stroke-[3]" />
               Tambah Investasi
@@ -172,7 +169,7 @@ export const PlanningView: React.FC<PlanningViewProps> = ({
       </div>
 
       {/* Subtabs Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-[#0B1220] p-2 rounded-3xl border border-[rgba(255,255,255,0.08)]">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-[var(--input-bg)] p-2 rounded-3xl border border-[var(--border)]">
         {[
           { id: 'budgets', label: 'Budgeting Anggaran', icon: PieIcon },
           { id: 'goals', label: 'Financial Goals', icon: Target },
@@ -187,8 +184,8 @@ export const PlanningView: React.FC<PlanningViewProps> = ({
               onClick={() => setActiveSubtab(tab.id as any)}
               className={`py-2.5 px-3.5 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition-all ${
                 isActive
-                  ? 'bg-[rgba(212,175,55,0.15)] text-[#F6D365] border border-[rgba(212,175,55,0.3)] shadow-md font-extrabold'
-                  : 'text-[#7C8799] hover:text-[#BFC8D6]'
+                  ? 'bg-[var(--gold-badge-bg)] text-[var(--gold-primary)] border border-[var(--gold-badge-border)] shadow-md font-extrabold'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
               <Icon className="w-4 h-4" />
@@ -207,24 +204,24 @@ export const PlanningView: React.FC<PlanningViewProps> = ({
             return (
               <div
                 key={b.id}
-                className={`bg-[#121A2A] p-6 rounded-3xl border shadow-2xl flex flex-col justify-between ${
-                  isOverbudget ? 'border-[rgba(239,68,68,0.4)] bg-[rgba(239,68,68,0.05)]' : 'border-[rgba(255,255,255,0.08)]'
+                className={`bg-[var(--card-bg)] p-6 rounded-3xl border shadow-2xl flex flex-col justify-between transition-colors ${
+                  isOverbudget ? 'border-red-500/40 bg-red-500/5' : 'border-[var(--card-border)]'
                 }`}
               >
                 <div>
                   <div className="flex items-center justify-between mb-3.5">
                     <div className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full bg-[#F6D365]" />
-                      <h4 className="text-sm font-extrabold text-white">{b.categoryName}</h4>
+                      <span className="w-3 h-3 rounded-full bg-[var(--gold-primary)]" />
+                      <h4 className="text-sm font-extrabold text-[var(--text-primary)] font-['Plus_Jakarta_Sans',sans-serif]">{b.categoryName}</h4>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] uppercase font-bold text-[#F6D365] px-2.5 py-0.5 rounded-full bg-[rgba(212,175,55,0.12)] border border-[rgba(212,175,55,0.25)]">
+                      <span className="text-[10px] uppercase font-bold text-[var(--gold-primary)] px-2.5 py-0.5 rounded-full bg-[var(--gold-badge-bg)] border border-[var(--gold-badge-border)]">
                         {b.scope}
                       </span>
                       <button
                         onClick={() => setEditingBudget(b)}
                         title="Edit Anggaran"
-                        className="p-1.5 rounded-xl bg-[#0B1220] hover:bg-[rgba(255,255,255,0.08)] text-[#BFC8D6] hover:text-[#F6D365] transition-colors border border-[rgba(255,255,255,0.08)]"
+                        className="p-1.5 rounded-xl bg-[var(--input-bg)] hover:bg-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--gold-primary)] transition-colors border border-[var(--border)]"
                       >
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
@@ -232,35 +229,35 @@ export const PlanningView: React.FC<PlanningViewProps> = ({
                   </div>
 
                   <div className="flex justify-between text-xs mb-2 font-bold">
-                    <span className="text-[#7C8799]">
-                      Terpakai: <strong className="text-white">Rp {b.spent.toLocaleString('id-ID')}</strong>
+                    <span className="text-[var(--text-secondary)]">
+                      Terpakai: <strong className="text-[var(--text-primary)] font-mono">Rp {b.spent.toLocaleString('id-ID')}</strong>
                     </span>
-                    <span className="text-[#7C8799]">
-                      Batas: <strong className="text-[#F6D365]">Rp {b.monthlyLimit.toLocaleString('id-ID')}</strong>
+                    <span className="text-[var(--text-secondary)]">
+                      Batas: <strong className="text-[var(--gold-primary)] font-mono">Rp {b.monthlyLimit.toLocaleString('id-ID')}</strong>
                     </span>
                   </div>
 
                   {/* Progress bar */}
-                  <div className="w-full bg-[#0B1220] h-3 rounded-full overflow-hidden p-0.5 border border-[rgba(255,255,255,0.08)]">
+                  <div className="w-full bg-[var(--input-bg)] h-3 rounded-full overflow-hidden p-0.5 border border-[var(--border)]">
                     <div
                       className={`h-full rounded-full transition-all ${
-                        isOverbudget ? 'bg-[#EF4444]' : pct > 80 ? 'bg-[#F6D365]' : 'bg-[#22C55E]'
+                        isOverbudget ? 'bg-red-500' : pct > 80 ? 'bg-[var(--gold-primary)]' : 'bg-emerald-500'
                       }`}
                       style={{ width: `${pct}%` }}
                     />
                   </div>
                 </div>
 
-                <div className="mt-4 pt-3.5 border-t border-[rgba(255,255,255,0.08)] flex items-center justify-between text-xs">
-                  <span className="text-[11px] font-bold text-[#7C8799]">{pct}% dari Batas</span>
+                <div className="mt-4 pt-3.5 border-t border-[var(--border)] flex items-center justify-between text-xs">
+                  <span className="text-[11px] font-bold text-[var(--text-secondary)] font-mono">{pct}% Teralokasi</span>
 
                   {isOverbudget ? (
-                    <span className="text-[#EF4444] font-bold flex items-center gap-1 text-[11px]">
+                    <span className="text-red-500 font-bold flex items-center gap-1 text-[11px]">
                       <AlertTriangle className="w-3.5 h-3.5" />
                       Melebihi Anggaran!
                     </span>
                   ) : (
-                    <span className="text-[#22C55E] font-bold text-[11px]">Sisa: Rp {(b.monthlyLimit - b.spent).toLocaleString('id-ID')}</span>
+                    <span className="text-emerald-500 font-bold text-[11px] font-mono">Sisa: Rp {(b.monthlyLimit - b.spent).toLocaleString('id-ID')}</span>
                   )}
                 </div>
               </div>
@@ -277,7 +274,7 @@ export const PlanningView: React.FC<PlanningViewProps> = ({
             return (
               <div
                 key={g.id}
-                className="bg-[#121A2A] p-6 rounded-3xl border border-[rgba(255,255,255,0.08)] shadow-2xl flex flex-col justify-between"
+                className="bg-[var(--card-bg)] p-6 rounded-3xl border border-[var(--card-border)] shadow-2xl flex flex-col justify-between transition-colors"
               >
                 <div>
                   <div className="flex items-center justify-between mb-3.5">
@@ -288,47 +285,47 @@ export const PlanningView: React.FC<PlanningViewProps> = ({
                       {g.category}
                     </span>
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-[#7C8799] font-mono">Tenggat: {g.deadline}</span>
+                      <span className="text-[10px] text-[var(--text-secondary)] font-mono">Tenggat: {g.deadline}</span>
                       <button
                         onClick={() => setEditingGoal(g)}
                         title="Edit Target"
-                        className="p-1.5 rounded-xl bg-[#0B1220] hover:bg-[rgba(255,255,255,0.08)] text-[#BFC8D6] hover:text-[#F6D365] transition-colors border border-[rgba(255,255,255,0.08)]"
+                        className="p-1.5 rounded-xl bg-[var(--input-bg)] hover:bg-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--gold-primary)] transition-colors border border-[var(--border)]"
                       >
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
 
-                  <h4 className="text-sm font-extrabold text-white mb-3">{g.title}</h4>
+                  <h4 className="text-sm font-extrabold text-[var(--text-primary)] mb-3 font-['Plus_Jakarta_Sans',sans-serif]">{g.title}</h4>
 
-                  <div className="text-xs space-y-1.5 mb-3">
-                    <div className="flex justify-between text-[#7C8799]">
+                  <div className="text-xs space-y-1.5 mb-3 font-mono">
+                    <div className="flex justify-between text-[var(--text-secondary)]">
                       <span>Terkumpul:</span>
-                      <strong className="text-[#22C55E]">Rp {g.currentAmount.toLocaleString('id-ID')}</strong>
+                      <strong className="text-emerald-500 font-black">Rp {g.currentAmount.toLocaleString('id-ID')}</strong>
                     </div>
-                    <div className="flex justify-between text-[#7C8799]">
+                    <div className="flex justify-between text-[var(--text-secondary)]">
                       <span>Target:</span>
-                      <strong className="text-white">Rp {g.targetAmount.toLocaleString('id-ID')}</strong>
+                      <strong className="text-[var(--text-primary)] font-black">Rp {g.targetAmount.toLocaleString('id-ID')}</strong>
                     </div>
                   </div>
 
                   {/* Progress bar */}
-                  <div className="w-full bg-[#0B1220] h-3 rounded-full overflow-hidden p-0.5 border border-[rgba(255,255,255,0.08)]">
-                    <div className="h-full bg-[#22C55E] rounded-full" style={{ width: `${pct}%` }} />
+                  <div className="w-full bg-[var(--input-bg)] h-3 rounded-full overflow-hidden p-0.5 border border-[var(--border)]">
+                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${pct}%` }} />
                   </div>
-                  <span className="text-[10px] text-[#7C8799] font-bold block mt-1 text-right">{pct}% Terpenuhi</span>
+                  <span className="text-[10px] text-[var(--text-secondary)] font-bold block mt-1 text-right font-mono">{pct}% Terpenuhi</span>
                 </div>
 
                 {selectedGoalId === g.id ? (
-                  <div className="mt-4 pt-3.5 border-t border-[rgba(255,255,255,0.08)] space-y-3 bg-[#0B1220] p-4 rounded-2xl border border-[rgba(255,255,255,0.08)]">
+                  <div className="mt-4 pt-3.5 border-t border-[var(--border)] space-y-3 bg-[var(--input-bg)] p-4 rounded-2xl border border-[var(--border)]">
                     <div>
-                      <label className="text-[10px] font-bold text-[#BFC8D6] block mb-1">
+                      <label className="text-[10px] font-bold text-[var(--text-secondary)] block mb-1">
                         Sumber Akun / Dompet:
                       </label>
                       <select
                         value={selectedTopupWalletId || (filteredWallets[0]?.id || '')}
                         onChange={e => setSelectedTopupWalletId(e.target.value)}
-                        className="w-full bg-[#121A2A] text-xs p-2.5 rounded-xl border border-[rgba(255,255,255,0.08)] text-white font-bold"
+                        className="w-full bg-[var(--card-bg)] text-xs p-2.5 rounded-xl border border-[var(--input-border)] text-[var(--text-primary)] font-bold"
                       >
                         {filteredWallets.map(w => (
                           <option key={w.id} value={w.id}>
@@ -339,7 +336,7 @@ export const PlanningView: React.FC<PlanningViewProps> = ({
                     </div>
 
                     <div>
-                      <label className="text-[10px] font-bold text-[#BFC8D6] block mb-1">
+                      <label className="text-[10px] font-bold text-[var(--text-secondary)] block mb-1">
                         Nominal Topup (Rp):
                       </label>
                       <input
@@ -347,7 +344,7 @@ export const PlanningView: React.FC<PlanningViewProps> = ({
                         placeholder="Masukkan nominal (cth: 500000)"
                         value={topupAmount}
                         onChange={e => setTopupAmount(e.target.value)}
-                        className="w-full bg-[#121A2A] text-xs p-2.5 rounded-xl border border-[rgba(255,255,255,0.08)] text-white font-bold"
+                        className="w-full bg-[var(--card-bg)] text-xs p-2.5 rounded-xl border border-[var(--input-border)] text-[var(--text-primary)] font-bold font-mono"
                       />
                     </div>
 
@@ -360,7 +357,7 @@ export const PlanningView: React.FC<PlanningViewProps> = ({
                       </button>
                       <button
                         onClick={() => setSelectedGoalId(null)}
-                        className="py-2 px-3.5 bg-[rgba(255,255,255,0.06)] hover:bg-[rgba(255,255,255,0.12)] text-[#BFC8D6] font-bold text-xs rounded-xl transition-colors"
+                        className="py-2 px-3.5 bg-[var(--surface-secondary)] hover:bg-[var(--border)] text-[var(--text-secondary)] font-bold text-xs rounded-xl transition-colors"
                       >
                         Batal
                       </button>
@@ -374,9 +371,9 @@ export const PlanningView: React.FC<PlanningViewProps> = ({
                         setSelectedTopupWalletId(filteredWallets[0].id);
                       }
                     }}
-                    className="w-full mt-4 py-2.5 bg-[rgba(212,175,55,0.1)] hover:bg-[rgba(212,175,55,0.2)] text-[#F6D365] border border-[rgba(212,175,55,0.25)] font-bold text-xs rounded-2xl transition-all flex items-center justify-center gap-1.5"
+                    className="w-full mt-4 py-2.5 bg-[var(--gold-badge-bg)] hover:bg-[var(--gold-badge-border)] text-[var(--gold-primary)] border border-[var(--gold-badge-border)] font-bold text-xs rounded-2xl transition-all flex items-center justify-center gap-1.5"
                   >
-                    <WalletIcon className="w-3.5 h-3.5 text-[#F6D365]" />
+                    <WalletIcon className="w-3.5 h-3.5 text-[var(--gold-primary)]" />
                     + Topup Tabungan
                   </button>
                 )}
@@ -388,10 +385,10 @@ export const PlanningView: React.FC<PlanningViewProps> = ({
 
       {/* SUBTAB 3: BILLS & DEBTS */}
       {activeSubtab === 'debts' && (
-        <div className="bg-[#121A2A] rounded-3xl border border-[rgba(255,255,255,0.08)] shadow-2xl overflow-hidden">
+        <div className="bg-[var(--card-bg)] rounded-3xl border border-[var(--card-border)] shadow-2xl overflow-hidden transition-colors">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="border-b border-[rgba(255,255,255,0.08)] bg-[#0B1220] text-[11px] text-[#7C8799] font-extrabold uppercase">
+              <tr className="border-b border-[var(--border)] bg-[var(--input-bg)] text-[11px] text-[var(--text-secondary)] font-extrabold uppercase">
                 <th className="p-4">Deskripsi Tagihan / Hutang</th>
                 <th className="p-4">Pihak Terkait</th>
                 <th className="p-4">Tipe</th>
@@ -401,23 +398,23 @@ export const PlanningView: React.FC<PlanningViewProps> = ({
                 <th className="p-4 text-center">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[rgba(255,255,255,0.06)] font-medium">
+            <tbody className="divide-y divide-[var(--border)] font-medium">
               {debts.map(d => (
-                <tr key={d.id} className="hover:bg-[rgba(255,255,255,0.03)]">
-                  <td className="p-4 font-bold text-white">{d.title}</td>
-                  <td className="p-4 text-[#BFC8D6]">{d.party || '-'}</td>
-                  <td className="p-4 text-[#7C8799] uppercase font-mono text-[10px]">{d.type}</td>
-                  <td className="p-4 text-[#BFC8D6]">{d.dueDate}</td>
-                  <td className="p-4 text-right font-extrabold text-white font-mono">Rp {d.amount.toLocaleString('id-ID')}</td>
+                <tr key={d.id} className="hover:bg-[var(--input-bg)] transition-colors">
+                  <td className="p-4 font-bold text-[var(--text-primary)]">{d.title}</td>
+                  <td className="p-4 text-[var(--text-secondary)]">{d.party || '-'}</td>
+                  <td className="p-4 text-[var(--text-muted)] uppercase font-mono text-[10px]">{d.type}</td>
+                  <td className="p-4 text-[var(--text-secondary)] font-mono">{d.dueDate}</td>
+                  <td className="p-4 text-right font-black text-[var(--text-primary)] font-mono">Rp {d.amount.toLocaleString('id-ID')}</td>
                   <td className="p-4 text-center">
                     <button
                       onClick={() => markDebtStatus(d.id, d.status === 'paid' ? 'pending' : 'paid')}
-                      className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase ${
+                      className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase transition-all ${
                         d.status === 'paid'
-                          ? 'bg-[rgba(34,197,94,0.15)] text-[#22C55E] border border-[rgba(34,197,94,0.3)]'
+                          ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
                           : d.status === 'overdue'
-                          ? 'bg-[rgba(239,68,68,0.15)] text-[#EF4444] border border-[rgba(239,68,68,0.3)]'
-                          : 'bg-[rgba(212,175,55,0.15)] text-[#F6D365] border border-[rgba(212,175,55,0.3)]'
+                          ? 'bg-red-500/15 text-red-500 border border-red-500/30'
+                          : 'bg-[var(--gold-badge-bg)] text-[var(--gold-primary)] border border-[var(--gold-badge-border)]'
                       }`}
                     >
                       {d.status}
@@ -428,7 +425,7 @@ export const PlanningView: React.FC<PlanningViewProps> = ({
                       <button
                         onClick={() => setEditingDebt(d)}
                         title="Edit Tagihan"
-                        className="p-1.5 rounded-xl bg-[rgba(255,255,255,0.06)] hover:bg-[rgba(255,255,255,0.12)] text-[#BFC8D6] hover:text-[#F6D365] transition-colors"
+                        className="p-1.5 rounded-xl bg-[var(--input-bg)] hover:bg-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--gold-primary)] transition-colors border border-[var(--border)]"
                       >
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
@@ -445,34 +442,27 @@ export const PlanningView: React.FC<PlanningViewProps> = ({
       {activeSubtab === 'investments' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
           {investments.map(inv => (
-            <div key={inv.id} className="bg-[#121A2A] p-6 rounded-3xl border border-[rgba(255,255,255,0.08)] shadow-2xl space-y-3.5">
+            <div key={inv.id} className="bg-[var(--card-bg)] p-6 rounded-3xl border border-[var(--card-border)] shadow-2xl space-y-3.5 transition-colors">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-[rgba(212,175,55,0.12)] text-[#F6D365] border border-[rgba(212,175,55,0.25)]">
+                <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-[var(--gold-badge-bg)] text-[var(--gold-primary)] border border-[var(--gold-badge-border)]">
                   {inv.category}
                 </span>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-bold text-[#22C55E]">+{inv.returnPercentage}% Return</span>
-                  <button
-                    onClick={() => setEditingInvestment(inv)}
-                    title="Edit Investasi"
-                    className="p-1.5 rounded-xl bg-[#0B1220] hover:bg-[rgba(255,255,255,0.08)] text-[#BFC8D6] hover:text-[#F6D365]"
-                  >
-                    <Pencil className="w-3 h-3" />
-                  </button>
+                  <span className="text-[10px] font-bold text-emerald-500">+{inv.returnPercentage}% Return</span>
                 </div>
               </div>
 
-              <h4 className="text-sm font-extrabold text-white">{inv.name}</h4>
+              <h4 className="text-sm font-extrabold text-[var(--text-primary)] font-['Plus_Jakarta_Sans',sans-serif]">{inv.name}</h4>
 
               <div>
-                <span className="text-[10px] text-[#7C8799] block font-bold uppercase">Nilai Saat Ini:</span>
-                <div className="text-lg font-extrabold text-[#F6D365] font-mono mt-0.5">
+                <span className="text-[10px] text-[var(--text-muted)] block font-bold uppercase tracking-wider">Nilai Saat Ini:</span>
+                <div className="text-lg font-black text-[var(--gold-primary)] font-mono mt-0.5">
                   Rp {inv.currentAmount.toLocaleString('id-ID')}
                 </div>
               </div>
 
-              <div className="text-[11px] text-[#7C8799] pt-2 border-t border-[rgba(255,255,255,0.08)]">
-                Platform: <strong className="text-white">{inv.platform}</strong>
+              <div className="text-[11px] text-[var(--text-secondary)] pt-2 border-t border-[var(--border)]">
+                Platform: <strong className="text-[var(--text-primary)]">{inv.platform}</strong>
               </div>
             </div>
           ))}
@@ -481,32 +471,32 @@ export const PlanningView: React.FC<PlanningViewProps> = ({
 
       {/* EDIT BUDGET MODAL */}
       {editingBudget && (
-        <div className="fixed inset-0 z-50 bg-[#0B1220]/85 backdrop-blur-xl flex items-center justify-center p-4">
-          <div className="bg-[#121A2A] border border-[rgba(255,255,255,0.12)] rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-fade-in">
-            <div className="flex justify-between items-center border-b border-[rgba(255,255,255,0.08)] pb-3">
-              <h3 className="font-extrabold text-white text-base">Edit Anggaran ({editingBudget.categoryName})</h3>
-              <button onClick={() => setEditingBudget(null)} className="text-[#7C8799] hover:text-white">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xl flex items-center justify-center p-4">
+          <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-fade-in text-[var(--text-primary)]">
+            <div className="flex justify-between items-center border-b border-[var(--border)] pb-3">
+              <h3 className="font-extrabold text-[var(--text-primary)] text-base">Edit Anggaran ({editingBudget.categoryName})</h3>
+              <button onClick={() => setEditingBudget(null)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="block font-bold text-[#BFC8D6] mb-1">Batas Anggaran Bulanan (Rp)</label>
+                <label className="block font-bold text-[var(--text-secondary)] mb-1">Batas Anggaran Bulanan (Rp)</label>
                 <input
                   type="number"
                   value={editingBudget.monthlyLimit}
                   onChange={e => setEditingBudget({ ...editingBudget, monthlyLimit: parseFloat(e.target.value) || 0 })}
-                  className="w-full bg-[#0B1220] border border-[rgba(255,255,255,0.08)] rounded-2xl p-3 text-white font-bold"
+                  className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-2xl p-3 text-[var(--text-primary)] font-black font-mono"
                 />
               </div>
 
               <div>
-                <label className="block font-bold text-[#BFC8D6] mb-1">Scope Tampilan</label>
+                <label className="block font-bold text-[var(--text-secondary)] mb-1">Scope Tampilan</label>
                 <select
                   value={editingBudget.scope}
                   onChange={e => setEditingBudget({ ...editingBudget, scope: e.target.value as any })}
-                  className="w-full bg-[#0B1220] border border-[rgba(255,255,255,0.08)] rounded-2xl p-3 text-white font-bold"
+                  className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-2xl p-3 text-[var(--text-primary)] font-bold"
                 >
                   <option value="personal">Pribadi (Personal)</option>
                   <option value="business">Bisnis (Business)</option>
@@ -515,13 +505,13 @@ export const PlanningView: React.FC<PlanningViewProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-2 pt-3 border-t border-[rgba(255,255,255,0.08)]">
+            <div className="flex items-center gap-2 pt-3 border-t border-[var(--border)]">
               <button
                 onClick={() => {
                   deleteBudget(editingBudget.id);
                   setEditingBudget(null);
                 }}
-                className="px-4 py-2 bg.rgba(239,68,68,0.15) text-[#EF4444] font-bold text-xs rounded-2xl border border-[rgba(239,68,68,0.3)] flex items-center gap-1"
+                className="px-4 py-2 bg-red-500/15 text-red-500 font-bold text-xs rounded-2xl border border-red-500/30 flex items-center gap-1"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 Hapus
@@ -529,7 +519,7 @@ export const PlanningView: React.FC<PlanningViewProps> = ({
               <div className="flex-1 flex gap-2 justify-end">
                 <button
                   onClick={() => setEditingBudget(null)}
-                  className="px-4 py-2 bg-[rgba(255,255,255,0.06)] hover:bg-[rgba(255,255,255,0.12)] text-[#BFC8D6] font-bold text-xs rounded-2xl"
+                  className="px-4 py-2 bg-[var(--surface-secondary)] text-[var(--text-secondary)] font-bold text-xs rounded-2xl"
                 >
                   Batal
                 </button>
@@ -541,7 +531,7 @@ export const PlanningView: React.FC<PlanningViewProps> = ({
                   className="px-4 py-2 btn-gold text-[#0B1220] font-extrabold text-xs rounded-2xl flex items-center gap-1"
                 >
                   <Check className="w-4 h-4" />
-                  Simpan Perubahan
+                  Simpan
                 </button>
               </div>
             </div>
@@ -551,74 +541,74 @@ export const PlanningView: React.FC<PlanningViewProps> = ({
 
       {/* EDIT GOAL MODAL */}
       {editingGoal && (
-        <div className="fixed inset-0 z-50 bg-[#0B1220]/85 backdrop-blur-xl flex items-center justify-center p-4">
-          <div className="bg-[#121A2A] border border-[rgba(255,255,255,0.12)] rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-fade-in">
-            <div className="flex justify-between items-center border-b border-[rgba(255,255,255,0.08)] pb-3">
-              <h3 className="font-extrabold text-white text-base">Edit Financial Goal</h3>
-              <button onClick={() => setEditingGoal(null)} className="text-[#7C8799] hover:text-white">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xl flex items-center justify-center p-4">
+          <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-fade-in text-[var(--text-primary)]">
+            <div className="flex justify-between items-center border-b border-[var(--border)] pb-3">
+              <h3 className="font-extrabold text-[var(--text-primary)] text-base">Edit Financial Goal</h3>
+              <button onClick={() => setEditingGoal(null)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="block font-bold text-[#BFC8D6] mb-1">Judul Target</label>
+                <label className="block font-bold text-[var(--text-secondary)] mb-1">Judul Target</label>
                 <input
                   type="text"
                   value={editingGoal.title}
                   onChange={e => setEditingGoal({ ...editingGoal, title: e.target.value })}
-                  className="w-full bg-[#0B1220] border border-[rgba(255,255,255,0.08)] rounded-2xl p-3 text-white"
+                  className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-2xl p-3 text-[var(--text-primary)]"
                 />
               </div>
 
               <div>
-                <label className="block font-bold text-[#BFC8D6] mb-1">Target Nominal (Rp)</label>
+                <label className="block font-bold text-[var(--text-secondary)] mb-1">Target Nominal (Rp)</label>
                 <input
                   type="number"
                   value={editingGoal.targetAmount}
                   onChange={e => setEditingGoal({ ...editingGoal, targetAmount: parseFloat(e.target.value) || 0 })}
-                  className="w-full bg-[#0B1220] border border-[rgba(255,255,255,0.08)] rounded-2xl p-3 text-white font-bold"
+                  className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-2xl p-3 text-[var(--text-primary)] font-bold font-mono"
                 />
               </div>
 
               <div>
-                <label className="block font-bold text-[#BFC8D6] mb-1">Terkumpul Saat Ini (Rp)</label>
+                <label className="block font-bold text-[var(--text-secondary)] mb-1">Terkumpul Saat Ini (Rp)</label>
                 <input
                   type="number"
                   value={editingGoal.currentAmount}
                   onChange={e => setEditingGoal({ ...editingGoal, currentAmount: parseFloat(e.target.value) || 0 })}
-                  className="w-full bg-[#0B1220] border border-[rgba(255,255,255,0.08)] rounded-2xl p-3 text-white font-bold"
+                  className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-2xl p-3 text-[var(--text-primary)] font-bold font-mono"
                 />
               </div>
 
               <div>
-                <label className="block font-bold text-[#BFC8D6] mb-1">Tenggat Waktu / Deadline</label>
+                <label className="block font-bold text-[var(--text-secondary)] mb-1">Tenggat Waktu / Deadline</label>
                 <input
                   type="date"
                   value={editingGoal.deadline}
                   onChange={e => setEditingGoal({ ...editingGoal, deadline: e.target.value })}
-                  className="w-full bg-[#0B1220] border border-[rgba(255,255,255,0.08)] rounded-2xl p-3 text-white"
+                  className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-2xl p-3 text-[var(--text-primary)]"
                 />
               </div>
 
               <div>
-                <label className="block font-bold text-[#BFC8D6] mb-1">Kategori Target</label>
+                <label className="block font-bold text-[var(--text-secondary)] mb-1">Kategori Target</label>
                 <input
                   type="text"
                   value={editingGoal.category}
                   onChange={e => setEditingGoal({ ...editingGoal, category: e.target.value })}
-                  className="w-full bg-[#0B1220] border border-[rgba(255,255,255,0.08)] rounded-2xl p-3 text-white"
+                  className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-2xl p-3 text-[var(--text-primary)]"
                 />
               </div>
             </div>
 
-            <div className="flex items-center gap-2 pt-3 border-t border-[rgba(255,255,255,0.08)]">
+            <div className="flex items-center gap-2 pt-3 border-t border-[var(--border)]">
               <button
                 onClick={() => {
                   deleteGoal(editingGoal.id);
                   setEditingGoal(null);
                 }}
-                className="px-4 py-2 bg-[rgba(239,68,68,0.15)] text-[#EF4444] font-bold text-xs rounded-2xl border border-[rgba(239,68,68,0.3)] flex items-center gap-1"
+                className="px-4 py-2 bg-red-500/15 text-red-500 font-bold text-xs rounded-2xl border border-red-500/30 flex items-center gap-1"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 Hapus
@@ -626,7 +616,7 @@ export const PlanningView: React.FC<PlanningViewProps> = ({
               <div className="flex-1 flex gap-2 justify-end">
                 <button
                   onClick={() => setEditingGoal(null)}
-                  className="px-4 py-2 bg-[rgba(255,255,255,0.06)] hover:bg-[rgba(255,255,255,0.12)] text-[#BFC8D6] font-bold text-xs rounded-2xl"
+                  className="px-4 py-2 bg-[var(--surface-secondary)] text-[var(--text-secondary)] font-bold text-xs rounded-2xl"
                 >
                   Batal
                 </button>
@@ -638,321 +628,11 @@ export const PlanningView: React.FC<PlanningViewProps> = ({
                   className="px-4 py-2 btn-gold text-[#0B1220] font-extrabold text-xs rounded-2xl flex items-center gap-1"
                 >
                   <Check className="w-4 h-4" />
-                  Simpan Perubahan
+                  Simpan
                 </button>
               </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* EDIT DEBT MODAL */}
-      {editingDebt && (
-        <div className="fixed inset-0 z-50 bg-[#0B1220]/85 backdrop-blur-xl flex items-center justify-center p-4">
-          <div className="bg-[#121A2A] border border-[rgba(255,255,255,0.12)] rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-fade-in">
-            <div className="flex justify-between items-center border-b border-[rgba(255,255,255,0.08)] pb-3">
-              <h3 className="font-extrabold text-white text-base">Edit Catatan Tagihan / Hutang</h3>
-              <button onClick={() => setEditingDebt(null)} className="text-[#7C8799] hover:text-white">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div>
-                <label className="block font-bold text-[#BFC8D6] mb-1">Deskripsi / Judul Tagihan</label>
-                <input
-                  type="text"
-                  value={editingDebt.title}
-                  onChange={e => setEditingDebt({ ...editingDebt, title: e.target.value })}
-                  className="w-full bg-[#0B1220] border border-[rgba(255,255,255,0.08)] rounded-2xl p-3 text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-[#BFC8D6] mb-1">Pihak Terkait (Atas Nama/Penagih)</label>
-                <input
-                  type="text"
-                  value={editingDebt.party || ''}
-                  onChange={e => setEditingDebt({ ...editingDebt, party: e.target.value })}
-                  className="w-full bg-[#0B1220] border border-[rgba(255,255,255,0.08)] rounded-2xl p-3 text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-[#BFC8D6] mb-1">Nominal (Rp)</label>
-                <input
-                  type="number"
-                  value={editingDebt.amount}
-                  onChange={e => setEditingDebt({ ...editingDebt, amount: parseFloat(e.target.value) || 0 })}
-                  className="w-full bg-[#0B1220] border border-[rgba(255,255,255,0.08)] rounded-2xl p-3 text-white font-bold"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-[#BFC8D6] mb-1">Tanggal Jatuh Tempo</label>
-                <input
-                  type="date"
-                  value={editingDebt.dueDate}
-                  onChange={e => setEditingDebt({ ...editingDebt, dueDate: e.target.value })}
-                  className="w-full bg-[#0B1220] border border-[rgba(255,255,255,0.08)] rounded-2xl p-3 text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-[#BFC8D6] mb-1">Tipe Catatan</label>
-                <select
-                  value={editingDebt.type}
-                  onChange={e => setEditingDebt({ ...editingDebt, type: e.target.value as any })}
-                  className="w-full bg-[#0B1220] border border-[rgba(255,255,255,0.08)] rounded-2xl p-3 text-white"
-                >
-                  <option value="bill">Tagihan Rutin (Bill)</option>
-                  <option value="debt_payable">Hutang Saya (Payable)</option>
-                  <option value="receivable">Piutang / Orang Berhutang (Receivable)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block font-bold text-[#BFC8D6] mb-1">Status Pembayaran</label>
-                <select
-                  value={editingDebt.status}
-                  onChange={e => setEditingDebt({ ...editingDebt, status: e.target.value as any })}
-                  className="w-full bg-[#0B1220] border border-[rgba(255,255,255,0.08)] rounded-2xl p-3 text-white"
-                >
-                  <option value="pending">Belum Dibayar (Pending)</option>
-                  <option value="paid">Lunas (Paid)</option>
-                  <option value="overdue">Terlambat (Overdue)</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 pt-3 border-t border-[rgba(255,255,255,0.08)]">
-              <button
-                onClick={() => {
-                  deleteDebt(editingDebt.id);
-                  setEditingDebt(null);
-                }}
-                className="px-4 py-2 bg-[rgba(239,68,68,0.15)] text-[#EF4444] font-bold text-xs rounded-2xl border border-[rgba(239,68,68,0.3)] flex items-center gap-1"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                Hapus
-              </button>
-              <div className="flex-1 flex gap-2 justify-end">
-                <button
-                  onClick={() => setEditingDebt(null)}
-                  className="px-4 py-2 bg-[rgba(255,255,255,0.06)] hover:bg-[rgba(255,255,255,0.12)] text-[#BFC8D6] font-bold text-xs rounded-2xl"
-                >
-                  Batal
-                </button>
-                <button
-                  onClick={() => {
-                    updateDebt(editingDebt);
-                    setEditingDebt(null);
-                  }}
-                  className="px-4 py-2 btn-gold text-[#0B1220] font-extrabold text-xs rounded-2xl flex items-center gap-1"
-                >
-                  <Check className="w-4 h-4" />
-                  Simpan Perubahan
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* EDIT INVESTMENT MODAL */}
-      {editingInvestment && (
-        <div className="fixed inset-0 z-50 bg-[#0B1220]/85 backdrop-blur-xl flex items-center justify-center p-4">
-          <div className="bg-[#121A2A] border border-[rgba(255,255,255,0.12)] rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-fade-in">
-            <div className="flex justify-between items-center border-b border-[rgba(255,255,255,0.08)] pb-3">
-              <h3 className="font-extrabold text-white text-base">Edit Aset Investasi</h3>
-              <button onClick={() => setEditingInvestment(null)} className="text-[#7C8799] hover:text-white">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div>
-                <label className="block font-bold text-[#BFC8D6] mb-1">Nama Aset / Produk</label>
-                <input
-                  type="text"
-                  value={editingInvestment.name}
-                  onChange={e => setEditingInvestment({ ...editingInvestment, name: e.target.value })}
-                  className="w-full bg-[#0B1220] border border-[rgba(255,255,255,0.08)] rounded-2xl p-3 text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-[#BFC8D6] mb-1">Kategori Aset</label>
-                <select
-                  value={editingInvestment.category}
-                  onChange={e => setEditingInvestment({ ...editingInvestment, category: e.target.value as any })}
-                  className="w-full bg-[#0B1220] border border-[rgba(255,255,255,0.08)] rounded-2xl p-3 text-white"
-                >
-                  <option value="saham">Saham (Stocks)</option>
-                  <option value="reksadana">Reksadana (Mutual Funds)</option>
-                  <option value="crypto">Kripto (Crypto)</option>
-                  <option value="emas">Emas (Gold)</option>
-                  <option value="properti">Properti (Real Estate)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block font-bold text-[#BFC8D6] mb-1">Nilai Saat Ini (Rp)</label>
-                <input
-                  type="number"
-                  value={editingInvestment.currentAmount}
-                  onChange={e => setEditingInvestment({ ...editingInvestment, currentAmount: parseFloat(e.target.value) || 0 })}
-                  className="w-full bg-[#0B1220] border border-[rgba(255,255,255,0.08)] rounded-2xl p-3 text-white font-bold"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-[#BFC8D6] mb-1">Return / Imbal Hasil (%)</label>
-                <input
-                  type="number"
-                  value={editingInvestment.returnPercentage}
-                  onChange={e => setEditingInvestment({ ...editingInvestment, returnPercentage: parseFloat(e.target.value) || 0 })}
-                  className="w-full bg-[#0B1220] border border-[rgba(255,255,255,0.08)] rounded-2xl p-3 text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-[#BFC8D6] mb-1">Platform / Sekuritas</label>
-                <input
-                  type="text"
-                  value={editingInvestment.platform}
-                  onChange={e => setEditingInvestment({ ...editingInvestment, platform: e.target.value })}
-                  className="w-full bg-[#0B1220] border border-[rgba(255,255,255,0.08)] rounded-2xl p-3 text-white"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 pt-3 border-t border-[rgba(255,255,255,0.08)]">
-              <button
-                onClick={() => {
-                  deleteInvestment(editingInvestment.id);
-                  setEditingInvestment(null);
-                }}
-                className="px-4 py-2 bg-[rgba(239,68,68,0.15)] text-[#EF4444] font-bold text-xs rounded-2xl border border-[rgba(239,68,68,0.3)] flex items-center gap-1"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                Hapus
-              </button>
-              <div className="flex-1 flex gap-2 justify-end">
-                <button
-                  onClick={() => setEditingInvestment(null)}
-                  className="px-4 py-2 bg-[rgba(255,255,255,0.06)] hover:bg-[rgba(255,255,255,0.12)] text-[#BFC8D6] font-bold text-xs rounded-2xl"
-                >
-                  Batal
-                </button>
-                <button
-                  onClick={() => {
-                    updateInvestment(editingInvestment);
-                    setEditingInvestment(null);
-                  }}
-                  className="px-4 py-2 btn-gold text-[#0B1220] font-extrabold text-xs rounded-2xl flex items-center gap-1"
-                >
-                  <Check className="w-4 h-4" />
-                  Simpan Perubahan
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ADD INVESTMENT MODAL */}
-      {isAddInvestmentOpen && (
-        <div className="fixed inset-0 z-50 bg-[#0B1220]/85 backdrop-blur-xl flex items-center justify-center p-4">
-          <form onSubmit={handleCreateInvestment} className="bg-[#121A2A] border border-[rgba(255,255,255,0.12)] rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-fade-in">
-            <div className="flex justify-between items-center border-b border-[rgba(255,255,255,0.08)] pb-3">
-              <h3 className="font-extrabold text-white text-base">Tambah Portofolio Investasi Baru</h3>
-              <button type="button" onClick={() => setIsAddInvestmentOpen(false)} className="text-[#7C8799] hover:text-white">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div>
-                <label className="block font-bold text-[#BFC8D6] mb-1">Nama Instrumen / Aset</label>
-                <input
-                  type="text"
-                  placeholder="Contoh: BBCA, Reksadana Sucor, Emas Antam"
-                  value={newInv.name}
-                  onChange={e => setNewInv({ ...newInv, name: e.target.value })}
-                  className="w-full bg-[#0B1220] border border-[rgba(255,255,255,0.08)] rounded-2xl p-3 text-white"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-[#BFC8D6] mb-1">Kategori Investasi</label>
-                <select
-                  value={newInv.category}
-                  onChange={e => setNewInv({ ...newInv, category: e.target.value as any })}
-                  className="w-full bg-[#0B1220] border border-[rgba(255,255,255,0.08)] rounded-2xl p-3 text-white"
-                >
-                  <option value="saham">Saham (Stocks)</option>
-                  <option value="reksadana">Reksadana (Mutual Funds)</option>
-                  <option value="crypto">Kripto (Crypto)</option>
-                  <option value="emas">Emas (Gold)</option>
-                  <option value="properti">Properti (Real Estate)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block font-bold text-[#BFC8D6] mb-1">Nilai Investasi Saat Ini (Rp)</label>
-                <input
-                  type="number"
-                  placeholder="0"
-                  value={newInv.currentAmount || ''}
-                  onChange={e => setNewInv({ ...newInv, currentAmount: parseFloat(e.target.value) || 0 })}
-                  className="w-full bg-[#0B1220] border border-[rgba(255,255,255,0.08)] rounded-2xl p-3 text-white font-bold"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-[#BFC8D6] mb-1">Return / Keuntungan (%)</label>
-                <input
-                  type="number"
-                  placeholder="0"
-                  value={newInv.returnPercentage || ''}
-                  onChange={e => setNewInv({ ...newInv, returnPercentage: parseFloat(e.target.value) || 0 })}
-                  className="w-full bg-[#0B1220] border border-[rgba(255,255,255,0.08)] rounded-2xl p-3 text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-[#BFC8D6] mb-1">Platform / Sekuritas / Exchange</label>
-                <input
-                  type="text"
-                  placeholder="Contoh: Ajaib, Bibit, Tokocrypto, Pegadaian"
-                  value={newInv.platform}
-                  onChange={e => setNewInv({ ...newInv, platform: e.target.value })}
-                  className="w-full bg-[#0B1220] border border-[rgba(255,255,255,0.08)] rounded-2xl p-3 text-white"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-3 border-t border-[rgba(255,255,255,0.08)]">
-              <button
-                type="button"
-                onClick={() => setIsAddInvestmentOpen(false)}
-                className="px-4 py-2 bg-[rgba(255,255,255,0.06)] hover:bg-[rgba(255,255,255,0.12)] text-[#BFC8D6] font-bold text-xs rounded-2xl"
-              >
-                Batal
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 btn-gold text-[#0B1220] font-extrabold text-xs rounded-2xl flex items-center gap-1"
-              >
-                <Plus className="w-4 h-4" />
-                Simpan Investasi
-              </button>
-            </div>
-          </form>
         </div>
       )}
     </div>

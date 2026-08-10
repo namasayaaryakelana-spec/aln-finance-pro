@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useFinance } from '../../context/FinanceContext';
-import { X } from 'lucide-react';
+import { X, Target } from 'lucide-react';
 import { Scope } from '../../types';
 
 interface AddGoalModalProps {
@@ -30,7 +30,7 @@ export const AddGoalModal: React.FC<AddGoalModalProps> = ({ isOpen, onClose }) =
       deadline,
       category,
       scope,
-      color: '#10B981'
+      color: '#D4AF37'
     });
 
     onClose();
@@ -39,47 +39,59 @@ export const AddGoalModal: React.FC<AddGoalModalProps> = ({ isOpen, onClose }) =
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="bg-[#0A0F1D] border border-slate-800 w-full max-w-md rounded-3xl p-6 relative text-slate-100 shadow-2xl space-y-4">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xl flex items-center justify-center p-4">
+      <div className="bg-[var(--card-bg)] border border-[var(--card-border)] w-full max-w-md rounded-3xl p-6 relative text-[var(--text-primary)] shadow-2xl space-y-4 animate-fade-in transition-colors">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-full bg-slate-900 text-slate-400 hover:text-white"
+          className="absolute top-5 right-5 p-2 rounded-2xl bg-[var(--surface-secondary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-[var(--border)] transition-all"
         >
           <X className="w-4 h-4" />
         </button>
 
-        <h3 className="text-base font-extrabold text-white">Tambah Target Tabungan (Financial Goal)</h3>
-
-        <form onSubmit={handleSubmit} className="space-y-3 text-xs">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-2xl bg-[var(--gold-badge-bg)] text-[var(--gold-primary)] border border-[var(--gold-badge-border)]">
+            <Target className="w-5 h-5 text-[var(--gold-primary)]" />
+          </div>
           <div>
-            <label className="block text-slate-400 font-bold mb-1">Nama Target Tabungan</label>
+            <h3 className="text-base font-black text-[var(--text-primary)] font-['Plus_Jakarta_Sans',sans-serif]">
+              Tambah Target Tabungan
+            </h3>
+            <p className="text-[11px] text-[var(--text-secondary)]">Financial goal & impian masa depan</p>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4 text-xs font-semibold">
+          <div>
+            <label className="block text-[var(--text-secondary)] font-bold mb-1">Nama Target Tabungan</label>
             <input
               type="text"
               placeholder="Mis: Dana Darurat 6 Bulan, Beli Mobil Operasional"
               value={title}
               onChange={e => setTitle(e.target.value)}
-              className="w-full bg-slate-950 px-3.5 py-2.5 rounded-xl border border-slate-800 text-white focus:outline-none focus:border-emerald-500"
+              className="w-full bg-[var(--input-bg)] px-4 py-3 rounded-2xl border border-[var(--input-border)] text-[var(--input-text)] focus:outline-none focus:border-[var(--gold-primary)] font-medium"
+              required
             />
           </div>
 
           <div>
-            <label className="block text-slate-400 font-bold mb-1">Target Nominal (Rp)</label>
+            <label className="block text-[var(--text-secondary)] font-bold mb-1">Target Nominal (Rp)</label>
             <input
               type="number"
               placeholder="Mis: 50000000"
               value={targetAmount}
               onChange={e => setTargetAmount(e.target.value)}
-              className="w-full bg-slate-950 px-3.5 py-2.5 rounded-xl border border-slate-800 text-white font-bold text-sm focus:outline-none focus:border-emerald-500"
+              className="w-full bg-[var(--input-bg)] px-4 py-3 rounded-2xl border border-[var(--input-border)] text-[var(--input-text)] font-black text-sm focus:outline-none focus:border-[var(--gold-primary)] font-mono"
+              required
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-400 font-bold mb-1">Kategori Target</label>
+              <label className="block text-[var(--text-secondary)] font-bold mb-1">Kategori Target</label>
               <select
                 value={category}
                 onChange={e => setCategory(e.target.value)}
-                className="w-full bg-slate-950 px-3.5 py-2.5 rounded-xl border border-slate-800 text-white focus:outline-none focus:border-emerald-500"
+                className="w-full bg-[var(--input-bg)] px-4 py-3 rounded-2xl border border-[var(--input-border)] text-[var(--input-text)] focus:outline-none focus:border-[var(--gold-primary)] font-bold"
               >
                 <option value="Dana Darurat">Dana Darurat</option>
                 <option value="Investasi Aset">Investasi Aset</option>
@@ -90,12 +102,12 @@ export const AddGoalModal: React.FC<AddGoalModalProps> = ({ isOpen, onClose }) =
             </div>
 
             <div>
-              <label className="block text-slate-400 font-bold mb-1">Tenggat Waktu</label>
+              <label className="block text-[var(--text-secondary)] font-bold mb-1">Tenggat Waktu</label>
               <input
                 type="date"
                 value={deadline}
                 onChange={e => setDeadline(e.target.value)}
-                className="w-full bg-slate-950 px-3.5 py-2.5 rounded-xl border border-slate-800 text-white focus:outline-none focus:border-emerald-500"
+                className="w-full bg-[var(--input-bg)] px-4 py-3 rounded-2xl border border-[var(--input-border)] text-[var(--input-text)] focus:outline-none focus:border-[var(--gold-primary)] font-mono"
               />
             </div>
           </div>
@@ -103,14 +115,14 @@ export const AddGoalModal: React.FC<AddGoalModalProps> = ({ isOpen, onClose }) =
           <div className="pt-3 flex gap-2">
             <button
               type="submit"
-              className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold rounded-xl shadow-md transition-all"
+              className="flex-1 py-3 btn-gold text-[#0B1220] font-extrabold rounded-2xl shadow-md transition-all text-xs active:scale-95"
             >
               + Simpan Target Goal
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl"
+              className="py-3 px-4 bg-[var(--surface-secondary)] hover:bg-[var(--border)] text-[var(--text-secondary)] font-bold rounded-2xl text-xs transition-colors"
             >
               Batal
             </button>

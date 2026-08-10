@@ -1,6 +1,95 @@
 @import "tailwindcss";
 
+:root, [data-theme="dark"] {
+  /* DARK — Premium Private Banking */
+  --bg-main: #070B12;
+  --bg-secondary: #0B111C;
+  
+  --surface: #111827;
+  --surface-secondary: #151E2D;
+  --surface-elevated: #182234;
+  
+  --border: #263244;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  
+  --gold-primary: #D4AF37;
+  --gold-hover: #E4C45A;
+  --gold-light: #F6D365;
+  --gold-badge-bg: rgba(212, 175, 55, 0.12);
+  --gold-badge-border: rgba(212, 175, 55, 0.25);
+  
+  --success: #10B981;
+  --danger: #EF4444;
+  --warning: #F59E0B;
+  --info: #3B82F6;
+
+  --card-bg: #121A2A;
+  --card-border: rgba(255, 255, 255, 0.08);
+  --card-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+  
+  --input-bg: #0B1220;
+  --input-border: rgba(255, 255, 255, 0.08);
+  --input-text: #F8FAFC;
+  
+  --debit-metallic-bg: linear-gradient(135deg, #151E2E 0%, #0E1624 50%, #1A2436 100%);
+  --debit-gold-bg: linear-gradient(135deg, #241D0B 0%, #161208 50%, #2F260E 100%);
+
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  /* LIGHT — Clean Executive Banking */
+  --bg-main: #F5F7FA;
+  --bg-secondary: #EBF0F7;
+  
+  --surface: #FFFFFF;
+  --surface-secondary: #F8FAFC;
+  --surface-elevated: #FFFFFF;
+  
+  --border: #E2E8F0;
+  --border-subtle: #E2E8F0;
+  
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #64748B;
+  
+  --gold-primary: #B89220;
+  --gold-hover: #C9A227;
+  --gold-light: #B89220;
+  --gold-badge-bg: rgba(184, 146, 32, 0.1);
+  --gold-badge-border: rgba(184, 146, 32, 0.25);
+  
+  --success: #059669;
+  --danger: #DC2626;
+  --warning: #D97706;
+  --info: #2563EB;
+
+  --card-bg: #FFFFFF;
+  --card-border: #E2E8F0;
+  --card-shadow: 0 4px 20px -4px rgba(15, 23, 42, 0.06);
+  
+  --input-bg: #F8FAFC;
+  --input-border: #CBD5E1;
+  --input-text: #0F172A;
+  
+  --debit-metallic-bg: linear-gradient(135deg, #FFFFFF 0%, #F1F5F9 50%, #E2E8F0 100%);
+  --debit-gold-bg: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
+
+  color-scheme: light;
+}
+
 @layer utilities {
+  /* Base Body & Root Colors */
+  body {
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+
   /* Hide scrollbar */
   .no-scrollbar::-webkit-scrollbar {
     display: none;
@@ -16,43 +105,43 @@
     height: 5px;
   }
   .custom-scrollbar::-webkit-scrollbar-track {
-    background: #0B1220;
+    background: var(--bg-main);
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.12);
+    background: var(--border);
     border-radius: 9999px;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #D4AF37;
+    background: var(--gold-primary);
   }
 
   /* Luxury Glassmorphism Card System */
   .glass-card-luxury {
-    background: rgba(255, 255, 255, 0.035);
+    background: var(--surface-secondary);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--border);
+    box-shadow: var(--card-shadow);
   }
 
   .glass-card-surface {
-    background: #121A2A;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.4);
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--card-shadow);
   }
 
   .glass-card-hover {
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .glass-card-hover:hover {
-    border-color: rgba(212, 175, 55, 0.35);
+    border-color: var(--gold-badge-border);
     box-shadow: 0 16px 36px -10px rgba(212, 175, 55, 0.15);
     transform: translateY(-2px);
   }
 
   /* Gold Gradient CTA Button */
   .btn-gold {
-    background: linear-gradient(135deg, #D4AF37 0%, #F6D365 100%);
+    background: linear-gradient(135deg, var(--gold-primary) 0%, #F6D365 100%);
     color: #0B1220;
     font-weight: 700;
     box-shadow: 0 8px 24px -6px rgba(212, 175, 55, 0.35);
@@ -70,36 +159,36 @@
 
   /* Secondary Outline Gold Button */
   .btn-gold-outline {
-    background: rgba(212, 175, 55, 0.08);
-    border: 1px solid rgba(212, 175, 55, 0.25);
-    color: #F6D365;
+    background: var(--gold-badge-bg);
+    border: 1px solid var(--gold-badge-border);
+    color: var(--gold-primary);
     font-weight: 600;
     transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .btn-gold-outline:hover {
-    background: rgba(212, 175, 55, 0.16);
-    border-color: rgba(212, 175, 55, 0.45);
+    background: var(--gold-badge-bg);
+    border-color: var(--gold-primary);
     transform: translateY(-1px);
   }
 
   /* Gold Gradient Text */
   .text-gradient-gold {
-    background: linear-gradient(135deg, #FFF 10%, #F6D365 60%, #D4AF37 100%);
+    background: linear-gradient(135deg, var(--text-primary) 10%, var(--gold-primary) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
   }
 
   /* Premium Debit Card Styling */
   .card-debit-metallic {
-    background: linear-gradient(135deg, #151E2E 0%, #0E1624 50%, #1A2436 100%);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 20px 45px -15px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    background: var(--debit-metallic-bg);
+    border: 1px solid var(--border);
+    box-shadow: var(--card-shadow);
   }
   
   .card-debit-gold {
-    background: linear-gradient(135deg, #241D0B 0%, #161208 50%, #2F260E 100%);
-    border: 1px solid rgba(212, 175, 55, 0.3);
-    box-shadow: 0 20px 45px -15px rgba(212, 175, 55, 0.2), inset 0 1px 0 rgba(246, 211, 101, 0.3);
+    background: var(--debit-gold-bg);
+    border: 1px solid var(--gold-badge-border);
+    box-shadow: var(--card-shadow);
   }
 
   .chip-gold {
@@ -110,10 +199,10 @@
 
   /* Ambient Subtle Glows */
   .ambient-bg {
-    background-color: #0B1220;
+    background-color: var(--bg-main);
     background-image: 
-      radial-gradient(at 10% 0%, rgba(212, 175, 55, 0.04) 0px, transparent 40%),
-      radial-gradient(at 90% 100%, rgba(18, 26, 42, 0.8) 0px, transparent 50%);
+      radial-gradient(at 10% 0%, var(--gold-badge-bg) 0px, transparent 40%),
+      radial-gradient(at 90% 100%, var(--surface-secondary) 0px, transparent 50%);
     background-attachment: fixed;
   }
 }

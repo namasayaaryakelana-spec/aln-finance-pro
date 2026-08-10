@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useFinance } from '../../context/FinanceContext';
 import {
   Receipt,
@@ -10,7 +10,14 @@ import {
   Download,
   Calendar,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  ArrowDownRight,
+  ArrowUpRight,
+  TrendingUp,
+  Filter,
+  FileSpreadsheet,
+  ShieldCheck,
+  CreditCard
 } from 'lucide-react';
 import { ExportService } from '../../services/export';
 import { AITransactionRecorder } from '../ai/AITransactionRecorder';
@@ -26,36 +33,46 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
   openFastAITxModal,
   openCategoryModal
 }) => {
-  const { filteredTransactions, deleteTransaction, categories } = useFinance();
+  const { filteredTransactions, deleteTransaction, categories, totalIncome, totalExpense, netFlow } = useFinance();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense' | 'transfer'>('all');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [showAIRecorder, setShowAIRecorder] = useState(true);
 
-  const transactions = filteredTransactions.filter(tx => {
-    const matchesSearch =
-      tx.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tx.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (tx.note && tx.note.toLowerCase().includes(searchTerm.toLowerCase()));
+  const transactions = useMemo(() => {
+    return filteredTransactions.filter(tx => {
+      const matchesSearch =
+        tx.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        tx.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (tx.note && tx.note.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    const matchesType = filterType === 'all' || tx.type === filterType;
-    const matchesCategory = filterCategory === 'all' || tx.category === filterCategory;
+      const matchesType = filterType === 'all' || tx.type === filterType;
+      const matchesCategory = filterCategory === 'all' || tx.category === filterCategory;
 
-    return matchesSearch && matchesType && matchesCategory;
-  });
+      return matchesSearch && matchesType && matchesCategory;
+    });
+  }, [filteredTransactions, searchTerm, filterType, filterCategory]);
 
   return (
-    <div className="space-y-6 pb-20">
-      {/* Top Action Bar */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 bg-[#121A2A] p-6 rounded-3xl border border-[rgba(255,255,255,0.08)] shadow-2xl">
+    <div className="space-y-6 pb-20 select-none">
+      {/* 1. TOP EXECUTIVE HEADER BANNER */}
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 bg-[var(--card-bg)] p-6 rounded-3xl border border-[var(--border)] shadow-2xl transition-colors">
         <div className="flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-2xl bg-[rgba(212,175,55,0.12)] border border-[rgba(212,175,55,0.25)] flex items-center justify-center text-[#F6D365] font-bold">
-            <Receipt className="w-5 h-5 text-[#F6D365]" />
+          <div className="w-11 h-11 rounded-2xl bg-[var(--gold-badge-bg)] border border-[var(--gold-badge-border)] flex items-center justify-center text-[var(--gold-primary)] font-bold shrink-0">
+            <Receipt className="w-5 h-5 text-[var(--gold-primary)]" />
           </div>
           <div>
-            <h3 className="text-base font-extrabold text-white">Buku Kas & Transaksi Pribadi</h3>
-            <p className="text-xs text-[#7C8799]">Total {transactions.length} transaksi tercatat</p>
+            <div className="flex items-center gap-1.5 text-[10px] text-[var(--gold-primary)] font-extrabold uppercase tracking-widest font-['Plus_Jakarta_Sans',sans-serif]">
+              <ShieldCheck className="w-3 h-3 text-[var(--gold-primary)]" />
+              FINANCIAL LEDGER
+            </div>
+            <h2 className="text-lg font-black text-[var(--text-primary)] font-['Plus_Jakarta_Sans',sans-serif]">
+              Buku Kas & Transaksi Keuangan
+            </h2>
+            <p className="text-xs text-[var(--text-secondary)] font-medium">
+              Riwayat pemasukan, pengeluaran, dan transfer dana Anda ({transactions.length} Entri)
+            </p>
           </div>
         </div>
 
@@ -64,38 +81,71 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
             onClick={() => setShowAIRecorder(!showAIRecorder)}
             className={`px-3.5 py-2 rounded-2xl text-xs font-bold flex items-center gap-2 transition-all ${
               showAIRecorder
-                ? 'bg-[rgba(212,175,55,0.2)] text-[#F6D365] border border-[rgba(212,175,55,0.4)] shadow-md'
-                : 'bg-[rgba(255,255,255,0.04)] text-[#BFC8D6] border border-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.08)]'
+                ? 'bg-[var(--gold-badge-bg)] text-[var(--gold-primary)] border border-[var(--gold-badge-border)] shadow-sm'
+                : 'bg-[var(--surface-secondary)] text-[var(--text-secondary)] border border-[var(--border)] hover:bg-[var(--border)]'
             }`}
           >
-            <Sparkles className="w-4 h-4 text-[#F6D365]" />
-            <span>Catat AI (Chat/Gambar/Suara)</span>
+            <Sparkles className="w-4 h-4 text-[var(--gold-primary)]" />
+            <span>Catat AI</span>
             {showAIRecorder ? <ChevronUp className="w-3.5 h-3.5 ml-0.5" /> : <ChevronDown className="w-3.5 h-3.5 ml-0.5" />}
           </button>
 
           <button
             onClick={openCategoryModal}
-            className="px-3.5 py-2 rounded-2xl bg-[rgba(255,255,255,0.04)] hover:bg-[rgba(255,255,255,0.08)] text-[#BFC8D6] text-xs font-bold flex items-center gap-2 border border-[rgba(255,255,255,0.08)] transition-all"
+            className="px-3.5 py-2 rounded-2xl bg-[var(--surface-secondary)] hover:bg-[var(--border)] text-[var(--text-primary)] text-xs font-bold flex items-center gap-2 border border-[var(--border)] transition-all"
           >
-            <Tag className="w-3.5 h-3.5 text-[#F6D365]" />
+            <Tag className="w-3.5 h-3.5 text-[var(--gold-primary)]" />
             Master Kategori
           </button>
 
           <button
             onClick={() => ExportService.exportTransactionsCSV(transactions)}
-            className="px-3.5 py-2 rounded-2xl bg-[rgba(255,255,255,0.04)] hover:bg-[rgba(255,255,255,0.08)] text-[#BFC8D6] text-xs font-bold flex items-center gap-2 border border-[rgba(255,255,255,0.08)] transition-all"
+            className="px-3.5 py-2 rounded-2xl bg-[var(--surface-secondary)] hover:bg-[var(--border)] text-[var(--text-primary)] text-xs font-bold flex items-center gap-2 border border-[var(--border)] transition-all"
           >
-            <Download className="w-3.5 h-3.5 text-[#BFC8D6]" />
+            <Download className="w-3.5 h-3.5 text-[var(--text-secondary)]" />
             Ekspor CSV
           </button>
 
           <button
             onClick={openAddTxModal}
-            className="px-4 py-2 rounded-2xl btn-gold text-[#0B1220] text-xs font-extrabold flex items-center gap-1.5 shadow-lg transition-all"
+            className="px-4 py-2 rounded-2xl btn-gold text-[#0B1220] text-xs font-extrabold flex items-center gap-1.5 shadow-md transition-all active:scale-95"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
             Catat Manual
           </button>
+        </div>
+      </div>
+
+      {/* 2. SUMMARY METRICS ROW */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-[var(--card-bg)] p-4.5 rounded-2xl border border-[var(--border)] shadow-sm">
+          <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider flex items-center gap-1">
+            <ArrowDownRight className="w-3.5 h-3.5 text-emerald-500" />
+            Total Pemasukan
+          </span>
+          <p className="text-xl font-black text-emerald-500 mt-1 font-['Space_Grotesk',sans-serif]">
+            +Rp {totalIncome.toLocaleString('id-ID')}
+          </p>
+        </div>
+
+        <div className="bg-[var(--card-bg)] p-4.5 rounded-2xl border border-[var(--border)] shadow-sm">
+          <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider flex items-center gap-1">
+            <ArrowUpRight className="w-3.5 h-3.5 text-red-500" />
+            Total Pengeluaran
+          </span>
+          <p className="text-xl font-black text-red-500 mt-1 font-['Space_Grotesk',sans-serif]">
+            -Rp {totalExpense.toLocaleString('id-ID')}
+          </p>
+        </div>
+
+        <div className="bg-[var(--card-bg)] p-4.5 rounded-2xl border border-[var(--border)] shadow-sm">
+          <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider flex items-center gap-1">
+            <TrendingUp className="w-3.5 h-3.5 text-[var(--gold-primary)]" />
+            Net Arus Kas
+          </span>
+          <p className={`text-xl font-black mt-1 font-['Space_Grotesk',sans-serif] ${netFlow >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+            Rp {netFlow.toLocaleString('id-ID')}
+          </p>
         </div>
       </div>
 
@@ -104,23 +154,23 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
         <AITransactionRecorder />
       )}
 
-      {/* Filter & Search Bar */}
+      {/* 3. PREMIUM FILTER BAR */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
         <div className="relative">
-          <Search className="w-4 h-4 text-[#7C8799] absolute left-3.5 top-3" />
+          <Search className="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-3.5" />
           <input
             type="text"
             placeholder="Cari transaksi atau catatan..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full bg-[#121A2A] text-xs pl-10 pr-4 py-3 rounded-2xl border border-[rgba(255,255,255,0.08)] text-white placeholder-[#7C8799] focus:outline-none focus:border-[#D4AF37]"
+            className="w-full bg-[var(--input-bg)] text-xs pl-10 pr-4 py-3 rounded-2xl border border-[var(--input-border)] text-[var(--input-text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--gold-primary)]"
           />
         </div>
 
         <select
           value={filterType}
           onChange={e => setFilterType(e.target.value as any)}
-          className="bg-[#121A2A] text-xs px-4 py-3 rounded-2xl border border-[rgba(255,255,255,0.08)] text-[#BFC8D6] focus:outline-none focus:border-[#D4AF37]"
+          className="bg-[var(--input-bg)] text-xs px-4 py-3 rounded-2xl border border-[var(--input-border)] text-[var(--input-text)] focus:outline-none focus:border-[var(--gold-primary)] font-bold"
         >
           <option value="all">Semua Tipe (Pemasukan / Pengeluaran / Transfer)</option>
           <option value="income">Pemasukan (+)</option>
@@ -131,7 +181,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
         <select
           value={filterCategory}
           onChange={e => setFilterCategory(e.target.value)}
-          className="bg-[#121A2A] text-xs px-4 py-3 rounded-2xl border border-[rgba(255,255,255,0.08)] text-[#BFC8D6] focus:outline-none focus:border-[#D4AF37]"
+          className="bg-[var(--input-bg)] text-xs px-4 py-3 rounded-2xl border border-[var(--input-border)] text-[var(--input-text)] focus:outline-none focus:border-[var(--gold-primary)] font-bold"
         >
           <option value="all">Semua Kategori</option>
           {categories.map(c => (
@@ -142,12 +192,13 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
         </select>
       </div>
 
-      {/* Transactions Data Table */}
-      <div className="bg-[#121A2A] rounded-3xl border border-[rgba(255,255,255,0.08)] shadow-2xl overflow-hidden">
-        <div className="overflow-x-auto">
+      {/* 4. DESKTOP LEDGER TABLE & MOBILE CARDS VIEW */}
+      <div className="bg-[var(--card-bg)] rounded-3xl border border-[var(--border)] shadow-2xl overflow-hidden transition-colors">
+        {/* DESKTOP TABLE VIEW */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-[rgba(255,255,255,0.08)] bg-[#0B1220] text-[11px] text-[#7C8799] font-extrabold uppercase tracking-wider">
+              <tr className="border-b border-[var(--border)] bg-[var(--surface-secondary)] text-[11px] text-[var(--text-muted)] font-extrabold uppercase tracking-wider">
                 <th className="p-4">Tanggal</th>
                 <th className="p-4">Deskripsi Transaksi</th>
                 <th className="p-4">Kategori</th>
@@ -155,41 +206,43 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
                 <th className="p-4 text-center">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[rgba(255,255,255,0.06)] text-xs font-medium">
+            <tbody className="divide-y divide-[var(--border)] text-xs font-medium">
               {transactions.length > 0 ? (
                 transactions.map(tx => (
-                  <tr key={tx.id} className="hover:bg-[rgba(255,255,255,0.03)] transition-colors">
-                    <td className="p-4 text-[#BFC8D6] whitespace-nowrap flex items-center gap-2 font-mono">
-                      <Calendar className="w-3.5 h-3.5 text-[#7C8799]" />
-                      {tx.date}
+                  <tr key={tx.id} className="hover:bg-[var(--surface-secondary)]/50 transition-colors">
+                    <td className="p-4 text-[var(--text-secondary)] whitespace-nowrap font-mono font-semibold">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+                        {tx.date}
+                      </div>
                     </td>
 
                     <td className="p-4">
-                      <div className="font-bold text-white">{tx.title}</div>
-                      {tx.note && <div className="text-[10px] text-[#7C8799] mt-0.5">{tx.note}</div>}
+                      <div className="font-bold text-[var(--text-primary)]">{tx.title}</div>
+                      {tx.note && <div className="text-[10px] text-[var(--text-muted)] mt-0.5">{tx.note}</div>}
                     </td>
 
                     <td className="p-4 whitespace-nowrap">
                       <div className="flex flex-col gap-1 items-start">
-                        <span className="px-2.5 py-1 rounded-xl bg-[rgba(255,255,255,0.05)] text-[#BFC8D6] font-bold text-[10px] border border-[rgba(255,255,255,0.08)]">
+                        <span className="px-2.5 py-1 rounded-xl bg-[var(--surface-secondary)] text-[var(--text-primary)] font-bold text-[10px] border border-[var(--border)]">
                           {tx.category}
                         </span>
                         {tx.subcategory && (
-                          <span className="px-2 py-0.5 rounded-lg bg-[rgba(212,175,55,0.12)] text-[#F6D365] border border-[rgba(212,175,55,0.25)] font-semibold text-[9px]">
+                          <span className="px-2 py-0.5 rounded-lg bg-[var(--gold-badge-bg)] text-[var(--gold-primary)] border border-[var(--gold-badge-border)] font-semibold text-[9px]">
                             {tx.subcategory}
                           </span>
                         )}
                       </div>
                     </td>
 
-                    <td className="p-4 text-right font-extrabold whitespace-nowrap font-mono">
+                    <td className="p-4 text-right font-black whitespace-nowrap font-mono">
                       <span
                         className={
                           tx.type === 'income'
-                            ? 'text-[#22C55E]'
+                            ? 'text-emerald-500'
                             : tx.type === 'expense'
-                            ? 'text-[#EF4444]'
-                            : 'text-[#F6D365]'
+                            ? 'text-red-500'
+                            : 'text-[var(--gold-primary)]'
                         }
                       >
                         {tx.type === 'income' ? '+' : tx.type === 'expense' ? '-' : ''} Rp{' '}
@@ -200,8 +253,9 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
                     <td className="p-4 text-center whitespace-nowrap">
                       <button
                         onClick={() => deleteTransaction(tx.id)}
-                        className="p-1.5 rounded-xl text-[#7C8799] hover:text-[#EF4444] hover:bg-[rgba(239,68,68,0.1)] transition-colors"
+                        className="p-2 rounded-xl text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center mx-auto"
                         title="Hapus Transaksi"
+                        aria-label="Hapus Transaksi"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -210,13 +264,81 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="p-10 text-center text-[#7C8799] text-xs">
+                  <td colSpan={5} className="p-10 text-center text-[var(--text-muted)] text-xs font-semibold">
                     Tidak ditemukan data transaksi yang sesuai filter.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* MOBILE CARD VIEW (Touch Targets >= 44px) */}
+        <div className="md:hidden p-4 space-y-3">
+          {transactions.length > 0 ? (
+            transactions.map(tx => (
+              <div
+                key={tx.id}
+                className="p-4 rounded-2xl bg-[var(--surface-secondary)] border border-[var(--border)] flex items-center justify-between gap-3"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
+                      tx.type === 'income'
+                        ? 'bg-emerald-500/15 text-emerald-500'
+                        : tx.type === 'expense'
+                        ? 'bg-red-500/15 text-red-500'
+                        : 'bg-[var(--gold-badge-bg)] text-[var(--gold-primary)]'
+                    }`}
+                  >
+                    {tx.type === 'income' ? '+' : tx.type === 'expense' ? '-' : '⇄'}
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="text-xs font-extrabold text-[var(--text-primary)] truncate">{tx.title}</h4>
+                    <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-[var(--text-muted)] mt-0.5">
+                      <span className="font-bold">{tx.category}</span>
+                      <span>•</span>
+                      <span>{tx.date}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <span
+                    className={`text-xs font-black font-mono ${
+                      tx.type === 'income'
+                        ? 'text-emerald-500'
+                        : tx.type === 'expense'
+                        ? 'text-red-500'
+                        : 'text-[var(--gold-primary)]'
+                    }`}
+                  >
+                    {tx.type === 'income' ? '+' : tx.type === 'expense' ? '-' : ''} Rp {tx.amount.toLocaleString('id-ID')}
+                  </span>
+
+                  <button
+                    onClick={() => deleteTransaction(tx.id)}
+                    className="p-2 rounded-xl text-[var(--text-muted)] hover:text-red-500 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                    aria-label="Hapus Transaksi"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="p-8 text-center bg-[var(--surface-secondary)] rounded-2xl border border-[var(--border)] space-y-3">
+              <FileSpreadsheet className="w-8 h-8 text-[var(--gold-primary)] mx-auto opacity-70" />
+              <p className="text-xs font-bold text-[var(--text-primary)]">Belum Ada Transaksi</p>
+              <p className="text-[11px] text-[var(--text-secondary)]">Catat pemasukan atau pengeluaran pertama Anda.</p>
+              <button
+                onClick={openAddTxModal}
+                className="py-2.5 px-4 btn-gold text-[#0B1220] font-extrabold text-xs rounded-xl shadow-md"
+              >
+                + Catat Transaksi
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

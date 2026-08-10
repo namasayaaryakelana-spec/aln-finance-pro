@@ -111,20 +111,20 @@ Ada yang ingin Anda tanyakan atau butuh strategi penghematan taktis hari ini?`,
   return (
     <div className="space-y-6 pb-20">
       {/* Top Banner */}
-      <div className="bg-[#121A2A] p-6 rounded-3xl border border-[rgba(255,255,255,0.08)] shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative overflow-hidden">
+      <div className="bg-[var(--card-bg)] p-6 rounded-3xl border border-[var(--card-border)] shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative overflow-hidden transition-colors">
         <div className="flex items-center gap-4 relative z-10">
-          <div className="w-12 h-12 rounded-2xl bg-[rgba(212,175,55,0.12)] border border-[rgba(212,175,55,0.25)] flex items-center justify-center text-[#F6D365] shadow-lg">
-            <Sparkles className="w-6 h-6 text-[#F6D365]" />
+          <div className="w-12 h-12 rounded-2xl bg-[var(--gold-badge-bg)] border border-[var(--gold-badge-border)] flex items-center justify-center text-[var(--gold-primary)] shadow-lg">
+            <Sparkles className="w-6 h-6 text-[var(--gold-primary)]" />
           </div>
           <div>
-            <h3 className="text-lg font-extrabold text-white flex items-center gap-2">
-              ALN AI Financial Advisor
-              <span className="text-[10px] bg-[rgba(212,175,55,0.15)] text-[#F6D365] px-2.5 py-0.5 rounded-full border border-[rgba(212,175,55,0.3)] uppercase font-extrabold">
+            <h3 className="text-lg font-extrabold text-[var(--text-primary)] flex items-center gap-2 font-['Plus_Jakarta_Sans',sans-serif]">
+              AI Financial Advisor
+              <span className="text-[10px] bg-[var(--gold-badge-bg)] text-[var(--gold-primary)] px-2.5 py-0.5 rounded-full border border-[var(--gold-badge-border)] uppercase font-extrabold">
                 Gemini 3.6 Flash
               </span>
             </h3>
-            <p className="text-xs text-[#BFC8D6]">
-              Penasihat keuangan pintar untuk analisis rasio belanja, penghematan & prediksi arus kas.
+            <p className="text-xs text-[var(--text-secondary)]">
+              Personal Financial Intelligence: Penasihat keuangan pintar untuk analisis belanja & rasio arus kas.
             </p>
           </div>
         </div>
@@ -145,27 +145,27 @@ Ada yang ingin Anda tanyakan atau butuh strategi penghematan taktis hari ini?`,
 
       {/* Analysis Result Banner */}
       {analysis && (
-        <div className="bg-[#121A2A] p-6 rounded-3xl border border-[rgba(212,175,55,0.3)] shadow-2xl space-y-4">
-          <div className="flex items-center justify-between border-b border-[rgba(255,255,255,0.08)] pb-3.5">
+        <div className="bg-[var(--card-bg)] p-6 rounded-3xl border border-[var(--gold-badge-border)] shadow-2xl space-y-4 transition-colors">
+          <div className="flex items-center justify-between border-b border-[var(--border)] pb-3.5">
             <div className="flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-[#22C55E]" />
-              <h4 className="text-sm font-extrabold text-white">Hasil Audit Kesehatan Keuangan AI</h4>
+              <ShieldCheck className="w-5 h-5 text-emerald-500" />
+              <h4 className="text-sm font-extrabold text-[var(--text-primary)] font-['Plus_Jakarta_Sans',sans-serif]">Hasil Audit Kesehatan Keuangan AI</h4>
             </div>
-            <span className="text-xs font-bold text-[#F6D365] bg-[rgba(212,175,55,0.15)] px-3 py-1 rounded-full border border-[rgba(212,175,55,0.3)]">
+            <span className="text-xs font-bold text-[var(--gold-primary)] bg-[var(--gold-badge-bg)] px-3 py-1 rounded-full border border-[var(--gold-badge-border)] font-mono">
               Skor: {analysis.healthScore}/100 ({analysis.healthGrade})
             </span>
           </div>
 
-          <p className="text-xs text-[#BFC8D6] leading-relaxed">{analysis.summary}</p>
+          <p className="text-xs text-[var(--text-secondary)] leading-relaxed">{analysis.summary}</p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
             {/* Risks */}
-            <div className="bg-[#0B1220] p-4 rounded-2xl border border-[rgba(239,68,68,0.25)]">
-              <span className="font-bold text-[#EF4444] flex items-center gap-1.5 mb-2">
+            <div className="bg-[var(--input-bg)] p-4 rounded-2xl border border-red-500/30">
+              <span className="font-bold text-red-500 flex items-center gap-1.5 mb-2 font-['Plus_Jakarta_Sans',sans-serif]">
                 <AlertTriangle className="w-4 h-4" />
                 Risiko Potensial
               </span>
-              <ul className="space-y-1 text-[#BFC8D6] text-[11px] list-disc list-inside">
+              <ul className="space-y-1 text-[var(--text-secondary)] text-[11px] list-disc list-inside">
                 {analysis.risks.map((r, i) => (
                   <li key={i}>{r}</li>
                 ))}
@@ -173,12 +173,12 @@ Ada yang ingin Anda tanyakan atau butuh strategi penghematan taktis hari ini?`,
             </div>
 
             {/* Recommendations */}
-            <div className="bg-[#0B1220] p-4 rounded-2xl border border-[rgba(34,197,94,0.25)]">
-              <span className="font-bold text-[#22C55E] flex items-center gap-1.5 mb-2">
+            <div className="bg-[var(--input-bg)] p-4 rounded-2xl border border-emerald-500/30">
+              <span className="font-bold text-emerald-500 flex items-center gap-1.5 mb-2 font-['Plus_Jakarta_Sans',sans-serif]">
                 <Lightbulb className="w-4 h-4" />
                 Rekomendasi Taktis
               </span>
-              <ul className="space-y-1 text-[#BFC8D6] text-[11px] list-disc list-inside">
+              <ul className="space-y-1 text-[var(--text-secondary)] text-[11px] list-disc list-inside">
                 {analysis.recommendations.map((rec, i) => (
                   <li key={i}>{rec}</li>
                 ))}
@@ -189,7 +189,7 @@ Ada yang ingin Anda tanyakan atau butuh strategi penghematan taktis hari ini?`,
       )}
 
       {/* Main Chat Panel */}
-      <div className="bg-[#121A2A] rounded-3xl border border-[rgba(255,255,255,0.08)] shadow-2xl flex flex-col h-[520px] overflow-hidden">
+      <div className="bg-[var(--card-bg)] rounded-3xl border border-[var(--card-border)] shadow-2xl flex flex-col h-[520px] overflow-hidden transition-colors">
         {/* Chat Messages Stream */}
         <div className="flex-1 p-5 overflow-y-auto space-y-4 custom-scrollbar">
           {messages.map(msg => (
@@ -198,10 +198,10 @@ Ada yang ingin Anda tanyakan atau butuh strategi penghematan taktis hari ini?`,
               className={`flex items-start gap-3 ${msg.sender === 'user' ? 'flex-row-reverse' : ''}`}
             >
               <div
-                className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-white font-bold text-xs ${
+                className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 font-bold text-xs ${
                   msg.sender === 'user'
                     ? 'btn-gold text-[#0B1220]'
-                    : 'bg-[#0B1220] border border-[rgba(212,175,55,0.3)] text-[#F6D365]'
+                    : 'bg-[var(--input-bg)] border border-[var(--gold-badge-border)] text-[var(--gold-primary)]'
                 }`}
               >
                 {msg.sender === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
@@ -210,23 +210,23 @@ Ada yang ingin Anda tanyakan atau butuh strategi penghematan taktis hari ini?`,
               <div
                 className={`max-w-[80%] p-4 rounded-2xl text-xs leading-relaxed ${
                   msg.sender === 'user'
-                    ? 'bg-[rgba(212,175,55,0.15)] text-[#F6D365] border border-[rgba(212,175,55,0.3)] rounded-tr-none'
-                    : 'bg-[#0B1220] text-[#FFFFFF] border border-[rgba(255,255,255,0.08)] rounded-tl-none whitespace-pre-line'
+                    ? 'bg-[var(--gold-badge-bg)] text-[var(--gold-primary)] border border-[var(--gold-badge-border)] rounded-tr-none font-medium'
+                    : 'bg-[var(--input-bg)] text-[var(--text-primary)] border border-[var(--border)] rounded-tl-none whitespace-pre-line'
                 }`}
               >
                 <div>{msg.text}</div>
-                <span className="text-[9px] text-[#7C8799] block mt-2 text-right">{msg.timestamp}</span>
+                <span className="text-[9px] text-[var(--text-muted)] block mt-2 text-right font-mono">{msg.timestamp}</span>
               </div>
             </div>
           ))}
 
           {loading && (
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-[#0B1220] border border-[rgba(212,175,55,0.3)] text-[#F6D365] flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-xl bg-[var(--input-bg)] border border-[var(--gold-badge-border)] text-[var(--gold-primary)] flex items-center justify-center shrink-0">
                 <Bot className="w-4 h-4 animate-bounce" />
               </div>
-              <div className="bg-[#0B1220] p-3.5 rounded-2xl border border-[rgba(255,255,255,0.08)] text-xs text-[#F6D365] flex items-center gap-2">
-                <Sparkles className="w-4 h-4 animate-spin text-[#F6D365]" />
+              <div className="bg-[var(--input-bg)] p-3.5 rounded-2xl border border-[var(--border)] text-xs text-[var(--gold-primary)] flex items-center gap-2">
+                <Sparkles className="w-4 h-4 animate-spin text-[var(--gold-primary)]" />
                 <span>ALN AI sedang menganalisis data keuangan Anda...</span>
               </div>
             </div>
@@ -236,12 +236,12 @@ Ada yang ingin Anda tanyakan atau butuh strategi penghematan taktis hari ini?`,
         </div>
 
         {/* Suggested Prompts Pills */}
-        <div className="px-4 py-2.5 bg-[#0B1220] border-t border-[rgba(255,255,255,0.08)] flex items-center gap-2 overflow-x-auto no-scrollbar">
+        <div className="px-4 py-2.5 bg-[var(--input-bg)] border-t border-[var(--border)] flex items-center gap-2 overflow-x-auto no-scrollbar">
           {prompts.map((promptText, idx) => (
             <button
               key={idx}
               onClick={() => handleSendMessage(promptText)}
-              className="text-[10px] font-semibold text-[#BFC8D6] hover:text-white bg-[#121A2A] hover:bg-[rgba(255,255,255,0.06)] px-3 py-1.5 rounded-full border border-[rgba(255,255,255,0.08)] shrink-0 transition-colors"
+              className="text-[10px] font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--card-bg)] hover:bg-[var(--border)] px-3 py-1.5 rounded-full border border-[var(--border)] shrink-0 transition-colors"
             >
               💡 {promptText}
             </button>
@@ -249,14 +249,14 @@ Ada yang ingin Anda tanyakan atau butuh strategi penghematan taktis hari ini?`,
         </div>
 
         {/* Message Input Box */}
-        <div className="p-4 bg-[#0B1220] border-t border-[rgba(255,255,255,0.08)] flex items-center gap-2">
+        <div className="p-4 bg-[var(--input-bg)] border-t border-[var(--border)] flex items-center gap-2">
           <input
             type="text"
             placeholder="Tanyakan analisis keuangan, strategi hemat, atau tips investasi..."
             value={inputMessage}
             onChange={e => setInputMessage(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
-            className="flex-1 bg-[#121A2A] text-xs px-4 py-3 rounded-2xl border border-[rgba(255,255,255,0.08)] text-white placeholder-[#7C8799] focus:outline-none focus:border-[#D4AF37]"
+            className="flex-1 bg-[var(--card-bg)] text-xs px-4 py-3 rounded-2xl border border-[var(--input-border)] text-[var(--input-text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--gold-primary)]"
           />
 
           <button
