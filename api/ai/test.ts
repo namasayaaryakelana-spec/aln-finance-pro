@@ -22,8 +22,8 @@ export default async function handler(req: any, res: any) {
 
     // Stage 3 (Default): Full End-to-End Gemini API Test
     if (!hasKey) {
-      return res.status(401).json({
-        status: 'FUNCTION_OK',
+      return res.status(200).json({
+        status: 'FAIL',
         hasGeminiKey: false,
         error: 'GEMINI_API_KEY is missing from process.env on Vercel.'
       });
@@ -54,9 +54,10 @@ export default async function handler(req: any, res: any) {
     });
   } catch (error: any) {
     console.error('Error in api/ai/test:', error);
-    return res.status(error.status || 500).json({
+    return res.status(200).json({
       status: 'FAIL',
       hasGeminiKey: !!(process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || process.env.GOOGLE_API_KEY),
+      httpCode: error.status || error.statusCode || 403,
       error: error.message || String(error),
       details: String(error)
     });
