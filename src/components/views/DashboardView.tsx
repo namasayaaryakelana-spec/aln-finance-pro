@@ -4,11 +4,9 @@ import {
   Wallet,
   Coins,
   TrendingUp,
-  TrendingDown,
   Activity,
   ArrowUpRight,
   ArrowDownRight,
-  Plus,
   Sparkles,
   Zap,
   DollarSign,
@@ -50,7 +48,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     netFlow,
     healthScore,
     budgets,
-    categories,
     addTransaction,
     addToast
   } = useFinance();
@@ -61,7 +58,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [quickCategory, setQuickCategory] = useState('Makan');
   const [quickSubcategory, setQuickSubcategory] = useState('Belanja Dapur');
 
-  // Update quick category & subcategory defaults when quickType changes ('expense' -> EXPENSE, 'income' -> INCOME)
+  // Update quick category & subcategory defaults when quickType changes
   useEffect(() => {
     const typeKey = quickType === 'expense' ? 'EXPENSE' : 'INCOME';
     const cats = Object.keys(masterCategories[typeKey]);
@@ -89,7 +86,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
 
-  // Create last 7 months range up to current month
   const monthsList: { monthKey: string; monthLabel: string }[] = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date(currentYear, currentMonth - i, 1);
@@ -126,7 +122,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       categoryExpenses[t.category] = (categoryExpenses[t.category] || 0) + t.amount;
     });
 
-  const COLORS = ['#10B981', '#3B82F6', '#8B5CF6', '#F59E0B', '#EF4444', '#EC4899', '#06B6D4'];
+  const COLORS = ['#D4AF37', '#F6D365', '#22C55E', '#3B82F6', '#EF4444', '#A78BFA', '#06B6D4'];
 
   const pieData = Object.keys(categoryExpenses).map((catName, i) => ({
     name: catName,
@@ -166,83 +162,83 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   return (
     <div className="space-y-6 pb-20">
       {/* Top Banner & Health Score Metric */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Total Saldo & Health Card */}
-        <div className="lg:col-span-2 bg-gradient-to-br from-slate-900 via-[#0D1527] to-slate-950 p-6 rounded-3xl border border-slate-800/80 shadow-2xl relative overflow-hidden flex flex-col justify-between">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="lg:col-span-2 bg-[#121A2A] p-6 sm:p-7 rounded-3xl border border-[rgba(255,255,255,0.08)] shadow-2xl relative overflow-hidden flex flex-col justify-between">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-[rgba(212,175,55,0.04)] rounded-full blur-3xl pointer-events-none" />
 
           <div className="flex items-start justify-between relative z-10">
             <div>
-              <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
-                <Coins className="w-3.5 h-3.5 text-amber-400" />
+              <span className="text-[11px] font-bold text-[#F6D365] uppercase tracking-wider flex items-center gap-1.5 font-['Plus_Jakarta_Sans',sans-serif]">
+                <Coins className="w-3.5 h-3.5 text-[#D4AF37]" />
                 Total Aset Kekayaan Bersih ({currentScope.toUpperCase()})
               </span>
-              <h3 className="text-2xl sm:text-4xl font-extrabold text-white mt-2 tracking-tight">
+              <h3 className="text-2xl sm:text-4xl font-extrabold text-white mt-2 tracking-tight text-gradient-gold">
                 Rp {totalAssets.toLocaleString('id-ID')}
               </h3>
 
               {/* Sub Breakdown Pills */}
-              <div className="flex flex-wrap items-center gap-2 mt-3 text-xs">
+              <div className="flex flex-wrap items-center gap-2.5 mt-4 text-xs">
                 <button
                   onClick={() => setActiveTab('wallets')}
-                  className="bg-slate-950/80 hover:bg-slate-800 px-2.5 py-1 rounded-xl border border-slate-800 text-slate-300 flex items-center gap-1.5 transition-all"
+                  className="bg-[rgba(255,255,255,0.04)] hover:bg-[rgba(255,255,255,0.08)] px-3 py-1.5 rounded-2xl border border-[rgba(255,255,255,0.08)] text-[#BFC8D6] flex items-center gap-2 transition-all"
                 >
-                  <Wallet className="w-3.5 h-3.5 text-emerald-400" />
+                  <Wallet className="w-3.5 h-3.5 text-[#22C55E]" />
                   <span>Kas & Dompet:</span>
-                  <strong className="text-emerald-400">Rp {totalBalance.toLocaleString('id-ID')}</strong>
+                  <strong className="text-white font-extrabold">Rp {totalBalance.toLocaleString('id-ID')}</strong>
                 </button>
 
                 <button
                   onClick={() => setActiveTab('investments')}
-                  className="bg-slate-950/80 hover:bg-amber-950/50 px-2.5 py-1 rounded-xl border border-slate-800 hover:border-amber-500/40 text-slate-300 flex items-center gap-1.5 transition-all"
+                  className="bg-[rgba(255,255,255,0.04)] hover:bg-[rgba(212,175,55,0.1)] px-3 py-1.5 rounded-2xl border border-[rgba(212,175,55,0.2)] text-[#BFC8D6] flex items-center gap-2 transition-all"
                 >
-                  <Coins className="w-3.5 h-3.5 text-amber-400" />
+                  <Coins className="w-3.5 h-3.5 text-[#F6D365]" />
                   <span>Portofolio Investasi:</span>
-                  <strong className="text-amber-300">Rp {totalInvestment.toLocaleString('id-ID')}</strong>
+                  <strong className="text-[#F6D365] font-extrabold">Rp {totalInvestment.toLocaleString('id-ID')}</strong>
                 </button>
               </div>
             </div>
 
             <div className="flex flex-col items-end">
-              <div className="flex items-center gap-2 bg-slate-950/80 px-3 py-1.5 rounded-2xl border border-slate-800">
-                <Activity className="w-4 h-4 text-emerald-400" />
-                <span className="text-xs font-bold text-slate-200">Health Score</span>
-                <span className="text-sm font-extrabold text-emerald-400">{healthScore}/100</span>
+              <div className="flex items-center gap-2 bg-[#0B1220] px-3.5 py-1.5 rounded-2xl border border-[rgba(212,175,55,0.25)]">
+                <Activity className="w-4 h-4 text-[#F6D365]" />
+                <span className="text-xs font-bold text-[#BFC8D6]">Health Score</span>
+                <span className="text-sm font-extrabold text-[#F6D365]">{healthScore}/100</span>
               </div>
-              <span className="text-[10px] text-slate-400 mt-1">
+              <span className="text-[10px] text-[#7C8799] mt-1 font-semibold">
                 {healthScore >= 80 ? 'Sangat Sehat' : healthScore >= 65 ? 'Sehat & Stabil' : 'Perlu Perhatian'}
               </span>
             </div>
           </div>
 
           {/* Metric Flow Counters */}
-          <div className="grid grid-cols-3 gap-3 mt-6 pt-6 border-t border-slate-800/80 relative z-10">
-            <div className="bg-slate-950/60 p-3 rounded-2xl border border-slate-800/60">
-              <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-1">
-                <ArrowDownRight className="w-3.5 h-3.5 text-emerald-400" />
+          <div className="grid grid-cols-3 gap-3.5 mt-6 pt-6 border-t border-[rgba(255,255,255,0.08)] relative z-10">
+            <div className="bg-[rgba(255,255,255,0.025)] p-3.5 rounded-2xl border border-[rgba(255,255,255,0.06)]">
+              <span className="text-[10px] font-semibold text-[#7C8799] flex items-center gap-1">
+                <ArrowDownRight className="w-3.5 h-3.5 text-[#22C55E]" />
                 Pemasukan
               </span>
-              <p className="text-sm sm:text-base font-extrabold text-emerald-400 mt-1">
+              <p className="text-sm sm:text-base font-extrabold text-[#22C55E] mt-1">
                 +Rp {totalIncome.toLocaleString('id-ID')}
               </p>
             </div>
 
-            <div className="bg-slate-950/60 p-3 rounded-2xl border border-slate-800/60">
-              <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-1">
-                <ArrowUpRight className="w-3.5 h-3.5 text-red-400" />
+            <div className="bg-[rgba(255,255,255,0.025)] p-3.5 rounded-2xl border border-[rgba(255,255,255,0.06)]">
+              <span className="text-[10px] font-semibold text-[#7C8799] flex items-center gap-1">
+                <ArrowUpRight className="w-3.5 h-3.5 text-[#EF4444]" />
                 Pengeluaran
               </span>
-              <p className="text-sm sm:text-base font-extrabold text-red-400 mt-1">
+              <p className="text-sm sm:text-base font-extrabold text-[#EF4444] mt-1">
                 -Rp {totalExpense.toLocaleString('id-ID')}
               </p>
             </div>
 
-            <div className="bg-slate-950/60 p-3 rounded-2xl border border-slate-800/60">
-              <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-1">
-                <TrendingUp className="w-3.5 h-3.5 text-blue-400" />
+            <div className="bg-[rgba(255,255,255,0.025)] p-3.5 rounded-2xl border border-[rgba(255,255,255,0.06)]">
+              <span className="text-[10px] font-semibold text-[#7C8799] flex items-center gap-1">
+                <TrendingUp className="w-3.5 h-3.5 text-[#F6D365]" />
                 Net Arus Kas
               </span>
-              <p className={`text-sm sm:text-base font-extrabold mt-1 ${netFlow >= 0 ? 'text-emerald-300' : 'text-red-400'}`}>
+              <p className={`text-sm sm:text-base font-extrabold mt-1 ${netFlow >= 0 ? 'text-[#22C55E]' : 'text-[#EF4444]'}`}>
                 Rp {netFlow.toLocaleString('id-ID')}
               </p>
             </div>
@@ -250,16 +246,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Quick AI & Overbudget Widget Card */}
-        <div className="bg-slate-900/90 p-5 rounded-3xl border border-slate-800/80 flex flex-col justify-between shadow-xl">
+        <div className="bg-[#121A2A] p-5 rounded-3xl border border-[rgba(255,255,255,0.08)] flex flex-col justify-between shadow-2xl">
           <div>
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-3.5">
               <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                <Zap className="w-4 h-4 text-emerald-400" />
+                <Zap className="w-4 h-4 text-[#F6D365]" />
                 Quick Action Panel
               </h4>
               <button
-                onClick={openAddTxModal}
-                className="text-[10px] text-purple-300 bg-purple-500/20 px-2 py-0.5 rounded-lg border border-purple-500/30 font-semibold flex items-center gap-1 hover:bg-purple-500/30"
+                onClick={openFastAITxModal}
+                className="text-[10px] text-[#F6D365] bg-[rgba(212,175,55,0.12)] px-2.5 py-1 rounded-xl border border-[rgba(212,175,55,0.25)] font-bold flex items-center gap-1 hover:bg-[rgba(212,175,55,0.22)] transition-all"
               >
                 <Sparkles className="w-3 h-3" />
                 AI Auto-Parse
@@ -267,13 +263,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
 
             {/* Quick Transaction Form */}
-            <form onSubmit={handleQuickSubmit} className="space-y-2.5">
-              <div className="flex gap-1.5 p-1 bg-slate-950 rounded-xl border border-slate-800">
+            <form onSubmit={handleQuickSubmit} className="space-y-3">
+              <div className="flex gap-1.5 p-1 bg-[#0B1220] rounded-2xl border border-[rgba(255,255,255,0.08)]">
                 <button
                   type="button"
                   onClick={() => setQuickType('expense')}
-                  className={`flex-1 py-1 text-[11px] font-bold rounded-lg transition-colors ${
-                    quickType === 'expense' ? 'bg-red-500/20 text-red-300 border border-red-500/30' : 'text-slate-400'
+                  className={`flex-1 py-1.5 text-[11px] font-bold rounded-xl transition-all ${
+                    quickType === 'expense' ? 'bg-[rgba(239,68,68,0.15)] text-[#EF4444] border border-[rgba(239,68,68,0.3)]' : 'text-[#7C8799]'
                   }`}
                 >
                   Pengeluaran
@@ -281,8 +277,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setQuickType('income')}
-                  className={`flex-1 py-1 text-[11px] font-bold rounded-lg transition-colors ${
-                    quickType === 'income' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'text-slate-400'
+                  className={`flex-1 py-1.5 text-[11px] font-bold rounded-xl transition-all ${
+                    quickType === 'income' ? 'bg-[rgba(34,197,94,0.15)] text-[#22C55E] border border-[rgba(34,197,94,0.3)]' : 'text-[#7C8799]'
                   }`}
                 >
                   Pemasukan
@@ -294,17 +290,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 placeholder="Judul transaksi (mis: Kopi & Makan)"
                 value={quickTitle}
                 onChange={e => setQuickTitle(e.target.value)}
-                className="w-full bg-slate-950 text-xs px-3 py-2 rounded-xl border border-slate-800 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                className="w-full bg-[#0B1220] text-xs px-3.5 py-2.5 rounded-2xl border border-[rgba(255,255,255,0.08)] text-white placeholder-[#7C8799] focus:outline-none focus:border-[#D4AF37]"
               />
 
               <div className="relative">
-                <span className="absolute left-3 top-2 text-xs text-slate-500 font-bold">Rp</span>
+                <span className="absolute left-3.5 top-2.5 text-xs text-[#7C8799] font-bold">Rp</span>
                 <input
                   type="number"
                   placeholder="0"
                   value={quickAmount}
                   onChange={e => setQuickAmount(e.target.value)}
-                  className="w-full bg-slate-950 text-xs pl-9 pr-3 py-2 rounded-xl border border-slate-800 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-[#0B1220] text-xs pl-10 pr-3.5 py-2.5 rounded-2xl border border-[rgba(255,255,255,0.08)] text-white placeholder-[#7C8799] focus:outline-none focus:border-[#D4AF37]"
                 />
               </div>
 
@@ -320,7 +316,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       const subs = (masterCategories[typeKey] as Record<string, string[]>)[selectedCat] || getSubcategoriesForCategory(selectedCat);
                       setQuickSubcategory(subs[0] || '');
                     }}
-                    className="w-full bg-slate-950 text-[11px] px-2.5 py-1.5 rounded-xl border border-slate-800 text-slate-200 focus:outline-none focus:border-emerald-500 font-medium"
+                    className="w-full bg-[#0B1220] text-[11px] px-3 py-2 rounded-2xl border border-[rgba(255,255,255,0.08)] text-[#BFC8D6] focus:outline-none focus:border-[#D4AF37] font-medium"
                   >
                     {Object.keys(masterCategories[quickType === 'expense' ? 'EXPENSE' : 'INCOME']).map(cat => (
                       <option key={cat} value={cat}>
@@ -335,7 +331,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     id="sub-kategori"
                     value={quickSubcategory}
                     onChange={e => setQuickSubcategory(e.target.value)}
-                    className="w-full bg-slate-950 text-[11px] px-2.5 py-1.5 rounded-xl border border-slate-800 text-cyan-300 focus:outline-none focus:border-cyan-500 font-medium"
+                    className="w-full bg-[#0B1220] text-[11px] px-3 py-2 rounded-2xl border border-[rgba(255,255,255,0.08)] text-[#F6D365] focus:outline-none focus:border-[#D4AF37] font-medium"
                   >
                     {((masterCategories[quickType === 'expense' ? 'EXPENSE' : 'INCOME'] as Record<string, string[]>)[quickCategory] || getSubcategoriesForCategory(quickCategory)).map((sub, idx) => (
                       <option key={idx} value={sub}>
@@ -348,7 +344,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
               <button
                 type="submit"
-                className="w-full py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl shadow-md transition-all"
+                className="w-full py-2.5 btn-gold rounded-2xl text-[#0B1220] font-extrabold text-xs shadow-lg transition-all"
               >
                 + Simpan Kilat
               </button>
@@ -356,8 +352,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
 
           {overbudgetCount > 0 && (
-            <div className="mt-3 p-2.5 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center gap-2 text-[11px] text-red-300">
-              <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
+            <div className="mt-3 p-3 rounded-2xl bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.25)] flex items-center gap-2 text-[11px] text-[#EF4444] font-medium">
+              <AlertTriangle className="w-4 h-4 text-[#EF4444] shrink-0" />
               <span>
                 <strong>{overbudgetCount} Anggaran</strong> telah melewati batas!
               </span>
@@ -369,18 +365,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* Interactive Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recharts Cashflow Trend */}
-        <div className="lg:col-span-2 bg-slate-900/90 p-5 rounded-3xl border border-slate-800/80 shadow-xl">
-          <div className="flex items-center justify-between mb-4">
+        <div className="lg:col-span-2 bg-[#121A2A] p-6 rounded-3xl border border-[rgba(255,255,255,0.08)] shadow-2xl">
+          <div className="flex items-center justify-between mb-5">
             <div>
               <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-emerald-400" />
+                <TrendingUp className="w-4 h-4 text-[#F6D365]" />
                 Tren Arus Kas Bulanan
               </h3>
-              <p className="text-[11px] text-slate-400">Pemasukan vs Pengeluaran (2026)</p>
+              <p className="text-[11px] text-[#7C8799]">Pemasukan vs Pengeluaran (2026)</p>
             </div>
             <button
               onClick={() => setActiveTab('reports')}
-              className="text-xs text-emerald-400 hover:underline font-bold"
+              className="text-xs text-[#F6D365] hover:underline font-bold"
             >
               Lihat Laporan Lengkap ➔
             </button>
@@ -391,32 +387,32 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <AreaChart data={chartData}>
                 <defs>
                   <linearGradient id="incomeGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#10B981" stopOpacity={0.0} />
+                    <stop offset="5%" stopColor="#22C55E" stopOpacity={0.35} />
+                    <stop offset="95%" stopColor="#22C55E" stopOpacity={0.0} />
                   </linearGradient>
                   <linearGradient id="expenseGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#EF4444" stopOpacity={0.4} />
+                    <stop offset="5%" stopColor="#EF4444" stopOpacity={0.35} />
                     <stop offset="95%" stopColor="#EF4444" stopOpacity={0.0} />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="month" stroke="#64748B" fontSize={11} tickLine={false} />
+                <XAxis dataKey="month" stroke="#7C8799" fontSize={11} tickLine={false} />
                 <YAxis
-                  stroke="#64748B"
+                  stroke="#7C8799"
                   fontSize={10}
                   tickLine={false}
                   tickFormatter={v => `${(v / 1000000).toFixed(0)}Jt`}
                 />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: '#0A0F1D',
-                    borderColor: '#1E293B',
-                    borderRadius: '12px',
+                    backgroundColor: '#121A2A',
+                    borderColor: 'rgba(255,255,255,0.12)',
+                    borderRadius: '16px',
                     fontSize: '12px',
                     color: '#fff'
                   }}
                   formatter={(val: any) => [`Rp ${Number(val).toLocaleString('id-ID')}`]}
                 />
-                <Area type="monotone" dataKey="income" name="Pemasukan" stroke="#10B981" strokeWidth={2} fillOpacity={1} fill="url(#incomeGrad)" />
+                <Area type="monotone" dataKey="income" name="Pemasukan" stroke="#22C55E" strokeWidth={2} fillOpacity={1} fill="url(#incomeGrad)" />
                 <Area type="monotone" dataKey="expense" name="Pengeluaran" stroke="#EF4444" strokeWidth={2} fillOpacity={1} fill="url(#expenseGrad)" />
               </AreaChart>
             </ResponsiveContainer>
@@ -424,10 +420,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Expense Category Pie Breakdown */}
-        <div className="bg-slate-900/90 p-5 rounded-3xl border border-slate-800/80 shadow-xl flex flex-col justify-between">
+        <div className="bg-[#121A2A] p-6 rounded-3xl border border-[rgba(255,255,255,0.08)] shadow-2xl flex flex-col justify-between">
           <div>
             <h3 className="text-sm font-extrabold text-white mb-1">Breakdown Pengeluaran</h3>
-            <p className="text-[11px] text-slate-400 mb-3">Distribusi Kategori Bulan Ini</p>
+            <p className="text-[11px] text-[#7C8799] mb-3">Distribusi Kategori Bulan Ini</p>
 
             <div className="h-44 w-full relative flex items-center justify-center">
               {pieData.length > 0 ? (
@@ -448,9 +444,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     </Pie>
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: '#0A0F1D',
-                        borderColor: '#1E293B',
-                        borderRadius: '12px',
+                        backgroundColor: '#121A2A',
+                        borderColor: 'rgba(255,255,255,0.12)',
+                        borderRadius: '16px',
                         fontSize: '11px',
                         color: '#fff'
                       }}
@@ -459,17 +455,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <p className="text-xs text-slate-500">Belum ada data pengeluaran</p>
+                <p className="text-xs text-[#7C8799]">Belum ada data pengeluaran</p>
               )}
             </div>
           </div>
 
-          <div className="space-y-1.5 mt-2 border-t border-slate-800 pt-3">
+          <div className="space-y-2 mt-2 border-t border-[rgba(255,255,255,0.08)] pt-3.5">
             {pieData.slice(0, 4).map((item, idx) => (
               <div key={idx} className="flex items-center justify-between text-[11px]">
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                  <span className="text-slate-300 font-medium">{item.name}</span>
+                  <span className="text-[#BFC8D6] font-medium">{item.name}</span>
                 </div>
                 <span className="text-white font-bold">Rp {item.value.toLocaleString('id-ID')}</span>
               </div>
@@ -481,47 +477,47 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* Recent Activity & Wallet Overview */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent Transactions List */}
-        <div className="lg:col-span-2 bg-slate-900/90 p-5 rounded-3xl border border-slate-800/80 shadow-xl">
+        <div className="lg:col-span-2 bg-[#121A2A] p-6 rounded-3xl border border-[rgba(255,255,255,0.08)] shadow-2xl">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-extrabold text-white">Transaksi Terbaru</h3>
             <button
               onClick={() => setActiveTab('transactions')}
-              className="text-xs text-emerald-400 hover:underline font-bold"
+              className="text-xs text-[#F6D365] hover:underline font-bold"
             >
               Lihat Semua ({filteredTransactions.length})
             </button>
           </div>
 
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             {filteredTransactions.slice(0, 5).map(tx => (
               <div
                 key={tx.id}
-                className="p-3 rounded-2xl bg-slate-950/70 border border-slate-800/80 hover:border-slate-700 transition-colors flex items-center justify-between"
+                className="p-3.5 rounded-2xl bg-[#0B1220] border border-[rgba(255,255,255,0.06)] hover:border-[rgba(212,175,55,0.25)] transition-all flex items-center justify-between"
               >
                 <div className="flex items-center gap-3">
                   <div
                     className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold ${
                       tx.type === 'income'
-                        ? 'bg-emerald-500/20 text-emerald-400'
+                        ? 'bg-[rgba(34,197,94,0.15)] text-[#22C55E]'
                         : tx.type === 'expense'
-                        ? 'bg-red-500/20 text-red-400'
-                        : 'bg-blue-500/20 text-blue-400'
+                        ? 'bg-[rgba(239,68,68,0.15)] text-[#EF4444]'
+                        : 'bg-[rgba(212,175,55,0.15)] text-[#F6D365]'
                     }`}
                   >
                     {tx.type === 'income' ? '+' : tx.type === 'expense' ? '-' : '⇄'}
                   </div>
                   <div>
                     <h5 className="text-xs font-bold text-white line-clamp-1">{tx.title}</h5>
-                    <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-slate-400 mt-0.5">
+                    <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-[#7C8799] mt-0.5">
                       <span>{tx.category}</span>
                       {tx.subcategory && (
-                        <span className="px-1.5 py-0.2 rounded bg-cyan-950/90 text-cyan-300 border border-cyan-800/50 text-[9px] font-semibold">
+                        <span className="px-2 py-0.5 rounded-lg bg-[rgba(255,255,255,0.06)] text-[#BFC8D6] text-[9px] font-semibold">
                           {tx.subcategory}
                         </span>
                       )}
                       <span>•</span>
                       <span>{tx.date}</span>
-                      <span className="px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 text-[9px] uppercase font-bold">
+                      <span className="px-2 py-0.5 rounded-lg bg-[rgba(212,175,55,0.1)] text-[#F6D365] text-[9px] uppercase font-bold border border-[rgba(212,175,55,0.2)]">
                         {tx.scope}
                       </span>
                     </div>
@@ -532,10 +528,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   <span
                     className={`text-xs font-extrabold ${
                       tx.type === 'income'
-                        ? 'text-emerald-400'
+                        ? 'text-[#22C55E]'
                         : tx.type === 'expense'
-                        ? 'text-red-400'
-                        : 'text-blue-400'
+                        ? 'text-[#EF4444]'
+                        : 'text-[#F6D365]'
                     }`}
                   >
                     {tx.type === 'income' ? '+' : tx.type === 'expense' ? '-' : ''} Rp {tx.amount.toLocaleString('id-ID')}
@@ -547,35 +543,35 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Wallets Quick Card List */}
-        <div className="bg-slate-900/90 p-5 rounded-3xl border border-slate-800/80 shadow-xl flex flex-col justify-between">
+        <div className="bg-[#121A2A] p-6 rounded-3xl border border-[rgba(255,255,255,0.08)] shadow-2xl flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-extrabold text-white">Akun Dompet Saya</h3>
               <button
                 onClick={() => setActiveTab('wallets')}
-                className="text-xs text-emerald-400 font-bold hover:underline"
+                className="text-xs text-[#F6D365] font-bold hover:underline"
               >
                 Kelola
               </button>
             </div>
 
-            <div className="space-y-2.5">
+            <div className="space-y-3">
               {filteredWallets.map(w => (
-                <div key={w.id} className="p-3 rounded-2xl bg-slate-950 border border-slate-800/80 flex items-center justify-between">
+                <div key={w.id} className="p-3.5 rounded-2xl bg-[#0B1220] border border-[rgba(255,255,255,0.06)] flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div
-                      className="w-8 h-8 rounded-xl flex items-center justify-center font-bold text-white text-xs"
+                      className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white text-xs"
                       style={{ backgroundColor: w.color }}
                     >
                       <DollarSign className="w-4 h-4" />
                     </div>
                     <div>
                       <h5 className="text-xs font-bold text-white">{w.name}</h5>
-                      <span className="text-[10px] text-slate-400">{w.accountNumber || w.type.toUpperCase()}</span>
+                      <span className="text-[10px] text-[#7C8799]">{w.accountNumber || w.type.toUpperCase()}</span>
                     </div>
                   </div>
 
-                  <span className={`text-xs font-extrabold ${w.balance >= 0 ? 'text-emerald-300' : 'text-red-400'}`}>
+                  <span className={`text-xs font-extrabold ${w.balance >= 0 ? 'text-[#22C55E]' : 'text-[#EF4444]'}`}>
                     Rp {w.balance.toLocaleString('id-ID')}
                   </span>
                 </div>
@@ -585,7 +581,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
           <button
             onClick={() => setActiveTab('wallets')}
-            className="w-full mt-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl transition-colors"
+            className="w-full mt-4 py-2.5 bg-[rgba(255,255,255,0.06)] hover:bg-[rgba(255,255,255,0.1)] text-white font-bold text-xs rounded-2xl border border-[rgba(255,255,255,0.08)] transition-all"
           >
             + Tambah Dompet Baru
           </button>

@@ -48,50 +48,50 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
   return (
     <div className="space-y-6 pb-20">
       {/* Top Action Bar */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 bg-slate-900/90 p-5 rounded-3xl border border-slate-800/80 shadow-xl">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold">
-            <Receipt className="w-5 h-5" />
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 bg-[#121A2A] p-6 rounded-3xl border border-[rgba(255,255,255,0.08)] shadow-2xl">
+        <div className="flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-2xl bg-[rgba(212,175,55,0.12)] border border-[rgba(212,175,55,0.25)] flex items-center justify-center text-[#F6D365] font-bold">
+            <Receipt className="w-5 h-5 text-[#F6D365]" />
           </div>
           <div>
             <h3 className="text-base font-extrabold text-white">Buku Kas & Transaksi Pribadi</h3>
-            <p className="text-xs text-slate-400">Total {transactions.length} transaksi tercatat</p>
+            <p className="text-xs text-[#7C8799]">Total {transactions.length} transaksi tercatat</p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2.5">
           <button
             onClick={() => setShowAIRecorder(!showAIRecorder)}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
+            className={`px-3.5 py-2 rounded-2xl text-xs font-bold flex items-center gap-2 transition-all ${
               showAIRecorder
-                ? 'bg-purple-600 text-white shadow-lg shadow-purple-950/40'
-                : 'bg-purple-500/20 text-purple-300 border border-purple-500/30 hover:bg-purple-500/30'
+                ? 'bg-[rgba(212,175,55,0.2)] text-[#F6D365] border border-[rgba(212,175,55,0.4)] shadow-md'
+                : 'bg-[rgba(255,255,255,0.04)] text-[#BFC8D6] border border-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.08)]'
             }`}
           >
-            <Sparkles className="w-4 h-4 text-purple-300" />
+            <Sparkles className="w-4 h-4 text-[#F6D365]" />
             <span>Catat AI (Chat/Gambar/Suara)</span>
             {showAIRecorder ? <ChevronUp className="w-3.5 h-3.5 ml-0.5" /> : <ChevronDown className="w-3.5 h-3.5 ml-0.5" />}
           </button>
 
           <button
             onClick={openCategoryModal}
-            className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1.5 border border-slate-700"
+            className="px-3.5 py-2 rounded-2xl bg-[rgba(255,255,255,0.04)] hover:bg-[rgba(255,255,255,0.08)] text-[#BFC8D6] text-xs font-bold flex items-center gap-2 border border-[rgba(255,255,255,0.08)] transition-all"
           >
-            <Tag className="w-3.5 h-3.5 text-emerald-400" />
+            <Tag className="w-3.5 h-3.5 text-[#F6D365]" />
             Master Kategori
           </button>
 
           <button
             onClick={() => ExportService.exportTransactionsCSV(transactions)}
-            className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1.5 border border-slate-700"
+            className="px-3.5 py-2 rounded-2xl bg-[rgba(255,255,255,0.04)] hover:bg-[rgba(255,255,255,0.08)] text-[#BFC8D6] text-xs font-bold flex items-center gap-2 border border-[rgba(255,255,255,0.08)] transition-all"
           >
-            <Download className="w-3.5 h-3.5 text-blue-400" />
+            <Download className="w-3.5 h-3.5 text-[#BFC8D6]" />
             Ekspor CSV
           </button>
 
           <button
             onClick={openAddTxModal}
-            className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold flex items-center gap-1 shadow-md shadow-emerald-950/40"
+            className="px-4 py-2 rounded-2xl btn-gold text-[#0B1220] text-xs font-extrabold flex items-center gap-1.5 shadow-lg transition-all"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
             Catat Manual
@@ -105,22 +105,22 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
       )}
 
       {/* Filter & Search Bar */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
         <div className="relative">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+          <Search className="w-4 h-4 text-[#7C8799] absolute left-3.5 top-3" />
           <input
             type="text"
             placeholder="Cari transaksi atau catatan..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full bg-slate-900 text-xs pl-10 pr-4 py-2.5 rounded-2xl border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+            className="w-full bg-[#121A2A] text-xs pl-10 pr-4 py-3 rounded-2xl border border-[rgba(255,255,255,0.08)] text-white placeholder-[#7C8799] focus:outline-none focus:border-[#D4AF37]"
           />
         </div>
 
         <select
           value={filterType}
           onChange={e => setFilterType(e.target.value as any)}
-          className="bg-slate-900 text-xs px-4 py-2.5 rounded-2xl border border-slate-800 text-slate-200 focus:outline-none focus:border-emerald-500"
+          className="bg-[#121A2A] text-xs px-4 py-3 rounded-2xl border border-[rgba(255,255,255,0.08)] text-[#BFC8D6] focus:outline-none focus:border-[#D4AF37]"
         >
           <option value="all">Semua Tipe (Pemasukan / Pengeluaran / Transfer)</option>
           <option value="income">Pemasukan (+)</option>
@@ -131,7 +131,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
         <select
           value={filterCategory}
           onChange={e => setFilterCategory(e.target.value)}
-          className="bg-slate-900 text-xs px-4 py-2.5 rounded-2xl border border-slate-800 text-slate-200 focus:outline-none focus:border-emerald-500"
+          className="bg-[#121A2A] text-xs px-4 py-3 rounded-2xl border border-[rgba(255,255,255,0.08)] text-[#BFC8D6] focus:outline-none focus:border-[#D4AF37]"
         >
           <option value="all">Semua Kategori</option>
           {categories.map(c => (
@@ -143,11 +143,11 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
       </div>
 
       {/* Transactions Data Table */}
-      <div className="bg-slate-900/90 rounded-3xl border border-slate-800/80 shadow-xl overflow-hidden">
+      <div className="bg-[#121A2A] rounded-3xl border border-[rgba(255,255,255,0.08)] shadow-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-800 bg-slate-950/80 text-[11px] text-slate-400 font-bold uppercase tracking-wider">
+              <tr className="border-b border-[rgba(255,255,255,0.08)] bg-[#0B1220] text-[11px] text-[#7C8799] font-extrabold uppercase tracking-wider">
                 <th className="p-4">Tanggal</th>
                 <th className="p-4">Deskripsi Transaksi</th>
                 <th className="p-4">Kategori</th>
@@ -155,41 +155,41 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
                 <th className="p-4 text-center">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 text-xs font-medium">
+            <tbody className="divide-y divide-[rgba(255,255,255,0.06)] text-xs font-medium">
               {transactions.length > 0 ? (
                 transactions.map(tx => (
-                  <tr key={tx.id} className="hover:bg-slate-800/50 transition-colors">
-                    <td className="p-4 text-slate-400 whitespace-nowrap flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                  <tr key={tx.id} className="hover:bg-[rgba(255,255,255,0.03)] transition-colors">
+                    <td className="p-4 text-[#BFC8D6] whitespace-nowrap flex items-center gap-2 font-mono">
+                      <Calendar className="w-3.5 h-3.5 text-[#7C8799]" />
                       {tx.date}
                     </td>
 
                     <td className="p-4">
                       <div className="font-bold text-white">{tx.title}</div>
-                      {tx.note && <div className="text-[10px] text-slate-400 mt-0.5">{tx.note}</div>}
+                      {tx.note && <div className="text-[10px] text-[#7C8799] mt-0.5">{tx.note}</div>}
                     </td>
 
                     <td className="p-4 whitespace-nowrap">
                       <div className="flex flex-col gap-1 items-start">
-                        <span className="px-2.5 py-1 rounded-xl bg-slate-800 text-slate-300 font-bold text-[10px]">
+                        <span className="px-2.5 py-1 rounded-xl bg-[rgba(255,255,255,0.05)] text-[#BFC8D6] font-bold text-[10px] border border-[rgba(255,255,255,0.08)]">
                           {tx.category}
                         </span>
                         {tx.subcategory && (
-                          <span className="px-2 py-0.5 rounded-lg bg-cyan-950/80 text-cyan-300 border border-cyan-800/50 font-semibold text-[9px]">
+                          <span className="px-2 py-0.5 rounded-lg bg-[rgba(212,175,55,0.12)] text-[#F6D365] border border-[rgba(212,175,55,0.25)] font-semibold text-[9px]">
                             {tx.subcategory}
                           </span>
                         )}
                       </div>
                     </td>
 
-                    <td className="p-4 text-right font-extrabold whitespace-nowrap">
+                    <td className="p-4 text-right font-extrabold whitespace-nowrap font-mono">
                       <span
                         className={
                           tx.type === 'income'
-                            ? 'text-emerald-400'
+                            ? 'text-[#22C55E]'
                             : tx.type === 'expense'
-                            ? 'text-red-400'
-                            : 'text-blue-400'
+                            ? 'text-[#EF4444]'
+                            : 'text-[#F6D365]'
                         }
                       >
                         {tx.type === 'income' ? '+' : tx.type === 'expense' ? '-' : ''} Rp{' '}
@@ -200,7 +200,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
                     <td className="p-4 text-center whitespace-nowrap">
                       <button
                         onClick={() => deleteTransaction(tx.id)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-slate-800 transition-colors"
+                        className="p-1.5 rounded-xl text-[#7C8799] hover:text-[#EF4444] hover:bg-[rgba(239,68,68,0.1)] transition-colors"
                         title="Hapus Transaksi"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -210,7 +210,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-slate-500 text-xs">
+                  <td colSpan={5} className="p-10 text-center text-[#7C8799] text-xs">
                     Tidak ditemukan data transaksi yang sesuai filter.
                   </td>
                 </tr>
