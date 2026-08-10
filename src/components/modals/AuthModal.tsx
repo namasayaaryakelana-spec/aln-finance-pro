@@ -43,14 +43,27 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
     setLoading(true);
 
-    if (mode === 'login') {
-      const ok = await loginWithSupabaseEmail(email.trim(), password);
+    try {
+      if (mode === 'login') {
+        const ok = await loginWithSupabaseEmail(email.trim(), password);
+        if (ok) {
+          onClose();
+        }
+      } else {
+        const ok = await signUpWithSupabaseEmail(email.trim(), password);
+        if (ok) {
+          onClose();
+        }
+      }
+    } catch (error) {
+      console.error('[AuthModal] Authentication error:', error);
+      addToast(
+        'error',
+        'Login Gagal',
+        'Terjadi kesalahan saat memproses login. Silakan coba lagi.'
+      );
+    } finally {
       setLoading(false);
-      if (ok) onClose();
-    } else {
-      const ok = await signUpWithSupabaseEmail(email.trim(), password);
-      setLoading(false);
-      if (ok) onClose();
     }
   };
 

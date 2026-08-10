@@ -6,8 +6,24 @@ const STORAGE_KEYS = {
 };
 
 export function getSupabaseCredentials(): { url: string; anonKey: string } {
-  const envUrl = (import.meta as any).env?.VITE_SUPABASE_URL || '';
-  const envKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || '';
+  const envUrl =
+    (import.meta as any).env?.VITE_SUPABASE_URL ||
+    (import.meta as any).env?.SUPABASE_URL ||
+    (typeof process !== 'undefined' ? process.env?.VITE_SUPABASE_URL || process.env?.SUPABASE_URL : '') ||
+    '';
+
+  const envKey =
+    (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_KEY ||
+    (import.meta as any).env?.VITE_SUPABASE_ANON_KEY ||
+    (import.meta as any).env?.SUPABASE_PUBLISHABLE_KEY ||
+    (import.meta as any).env?.SUPABASE_ANON_KEY ||
+    (typeof process !== 'undefined'
+      ? process.env?.VITE_SUPABASE_PUBLISHABLE_KEY ||
+        process.env?.VITE_SUPABASE_ANON_KEY ||
+        process.env?.SUPABASE_PUBLISHABLE_KEY ||
+        process.env?.SUPABASE_ANON_KEY
+      : '') ||
+    '';
 
   const storedUrl = localStorage.getItem(STORAGE_KEYS.SUPABASE_URL) || '';
   const storedKey = localStorage.getItem(STORAGE_KEYS.SUPABASE_ANON_KEY) || '';
@@ -21,14 +37,18 @@ export function getSupabaseCredentials(): { url: string; anonKey: string } {
 export function setSupabaseCredentials(url: string, anonKey: string) {
   if (url) localStorage.setItem(STORAGE_KEYS.SUPABASE_URL, url.trim());
   if (anonKey) localStorage.setItem(STORAGE_KEYS.SUPABASE_ANON_KEY, anonKey.trim());
-  
-  // Re-initialize client
+
+  supabaseInstance = null;
   initSupabaseClient();
 }
 
 let supabaseInstance: SupabaseClient | null = null;
 
 export function initSupabaseClient(): SupabaseClient | null {
+  if (supabaseInstance) {
+    return supabaseInstance;
+  }
+
   const { url, anonKey } = getSupabaseCredentials();
 
   if (!url || !anonKey || !url.startsWith('http')) {

@@ -248,21 +248,34 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
   const loginWithSupabaseEmail = async (email: string, pass: string): Promise<boolean> => {
     const client = initSupabaseClient();
     if (!client) {
-      addToast('error', 'Supabase Not Configured', 'Konfigurasikan Supabase URL & Anon Key di menu Auth Modal.');
+      addToast('error', 'Supabase Tidak Terhubung', 'Silakan konfigurasi URL dan ANON Key di tab Config DB.');
       return false;
     }
 
     try {
       const { data, error } = await client.auth.signInWithPassword({ email, password: pass });
       if (error) {
-        addToast('error', 'Login Gagal', error.message);
+        const msg = error.message?.toLowerCase() || '';
+        if (msg.includes('email not confirmed') || msg.includes('user not confirmed')) {
+          addToast('warning', 'Email Belum Diverifikasi', 'Silakan verifikasi email Anda sebelum masuk.');
+        } else if (msg.includes('invalid login credentials') || msg.includes('invalid_credentials')) {
+          addToast('error', 'Login Gagal', 'Email atau Password yang Anda masukkan salah.');
+        } else if (msg.includes('user not found')) {
+          addToast('error', 'Login Gagal', 'Akun dengan email tersebut tidak ditemukan.');
+        } else {
+          addToast('error', 'Login Gagal', error.message);
+        }
         return false;
       }
-      if (data.user) {
-        setCurrentUser(data.user);
-        addToast('success', 'Supabase Login Berhasil', `Terhubung sebagai ${data.user.email}`);
+
+      const user = data?.user || data?.session?.user;
+      if (user) {
+        setCurrentUser(user);
+        addToast('success', 'Login Berhasil', `Terhubung sebagai ${user.email}`);
         return true;
       }
+
+      addToast('error', 'Login Gagal', 'Data pengguna tidak ditemukan dari respons Supabase.');
       return false;
     } catch (err: any) {
       addToast('error', 'Login Error', err.message || String(err));
