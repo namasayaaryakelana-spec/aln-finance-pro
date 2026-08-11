@@ -421,13 +421,26 @@ export const PlanningView: React.FC<PlanningViewProps> = ({
                     </button>
                   </td>
                   <td className="p-4 text-center">
-                    <div className="flex items-center justify-center gap-1">
+                    <div className="flex items-center justify-center gap-1.5">
                       <button
+                        type="button"
                         onClick={() => setEditingDebt(d)}
                         title="Edit Tagihan"
-                        className="p-1.5 rounded-xl bg-[var(--input-bg)] hover:bg-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--gold-primary)] transition-colors border border-[var(--border)]"
+                        className="p-2 rounded-xl bg-[var(--input-bg)] hover:bg-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--gold-primary)] transition-all border border-[var(--border)] cursor-pointer active:scale-95"
                       >
                         <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (window.confirm(`Apakah Anda yakin ingin menghapus tagihan "${d.title}"?`)) {
+                            deleteDebt(d.id);
+                          }
+                        }}
+                        title="Hapus Tagihan"
+                        className="p-2 rounded-xl bg-[var(--input-bg)] hover:bg-red-500/15 text-[var(--text-secondary)] hover:text-red-500 transition-all border border-[var(--border)] cursor-pointer active:scale-95"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </td>
@@ -632,6 +645,147 @@ export const PlanningView: React.FC<PlanningViewProps> = ({
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT DEBT / BILL MODAL */}
+      {editingDebt && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xl flex items-center justify-center p-4">
+          <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-fade-in text-[var(--text-primary)]">
+            <div className="flex justify-between items-center border-b border-[var(--border)] pb-3">
+              <h3 className="font-extrabold text-[var(--text-primary)] text-base">Edit Tagihan / Hutang</h3>
+              <button
+                type="button"
+                onClick={() => setEditingDebt(null)}
+                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                updateDebt(editingDebt);
+                setEditingDebt(null);
+              }}
+              className="space-y-3 text-xs"
+            >
+              <div>
+                <label className="block font-bold text-[var(--text-secondary)] mb-1">Deskripsi / Judul Tagihan</label>
+                <input
+                  type="text"
+                  value={editingDebt.title}
+                  onChange={e => setEditingDebt({ ...editingDebt, title: e.target.value })}
+                  className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-2xl p-3 text-[var(--text-primary)] font-medium"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-[var(--text-secondary)] mb-1">Pihak Terkait</label>
+                  <input
+                    type="text"
+                    value={editingDebt.party || ''}
+                    onChange={e => setEditingDebt({ ...editingDebt, party: e.target.value })}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-2xl p-3 text-[var(--text-primary)] font-medium"
+                    placeholder="Nama vendor / penagih"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-[var(--text-secondary)] mb-1">Tipe</label>
+                  <select
+                    value={editingDebt.type === 'debt' ? 'debt_payable' : editingDebt.type}
+                    onChange={e => setEditingDebt({ ...editingDebt, type: e.target.value as any })}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-2xl p-3 text-[var(--text-primary)] font-bold"
+                  >
+                    <option value="bill">Tagihan Rutin (Bill)</option>
+                    <option value="debt_payable">Hutang Saya (Debt)</option>
+                    <option value="receivable">Piutang (Receivable)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-[var(--text-secondary)] mb-1">Nominal (Rp)</label>
+                  <input
+                    type="number"
+                    value={editingDebt.amount}
+                    onChange={e => setEditingDebt({ ...editingDebt, amount: parseFloat(e.target.value) || 0 })}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-2xl p-3 text-[var(--text-primary)] font-bold font-mono"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-[var(--text-secondary)] mb-1">Jatuh Tempo</label>
+                  <input
+                    type="date"
+                    value={editingDebt.dueDate}
+                    onChange={e => setEditingDebt({ ...editingDebt, dueDate: e.target.value })}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-2xl p-3 text-[var(--text-primary)] font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-[var(--text-secondary)] mb-1">Status</label>
+                <select
+                  value={editingDebt.status}
+                  onChange={e => setEditingDebt({ ...editingDebt, status: e.target.value as any })}
+                  className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-2xl p-3 text-[var(--text-primary)] font-bold"
+                >
+                  <option value="pending">PENDING (Belum Lunas)</option>
+                  <option value="paid">PAID (Sudah Lunas)</option>
+                  <option value="overdue">OVERDUE (Jatuh Tempo)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-bold text-[var(--text-secondary)] mb-1">Catatan Tambahan</label>
+                <input
+                  type="text"
+                  value={editingDebt.note || ''}
+                  onChange={e => setEditingDebt({ ...editingDebt, note: e.target.value })}
+                  className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-2xl p-3 text-[var(--text-primary)] font-medium"
+                  placeholder="Catatan / Keterangan"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-3 border-t border-[var(--border)]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    deleteDebt(editingDebt.id);
+                    setEditingDebt(null);
+                  }}
+                  className="px-4 py-2 bg-red-500/15 text-red-500 font-bold text-xs rounded-2xl border border-red-500/30 flex items-center gap-1 cursor-pointer hover:bg-red-500/25 transition-all"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Hapus
+                </button>
+                <div className="flex-1 flex gap-2 justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setEditingDebt(null)}
+                    className="px-4 py-2 bg-[var(--surface-secondary)] text-[var(--text-secondary)] font-bold text-xs rounded-2xl cursor-pointer hover:bg-[var(--border)] transition-all"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 btn-gold text-[#0B1220] font-extrabold text-xs rounded-2xl flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                  >
+                    <Check className="w-4 h-4" />
+                    Simpan
+                  </button>
+                </div>
+              </div>
+            </form>
           </div>
         </div>
       )}

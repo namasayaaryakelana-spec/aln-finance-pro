@@ -987,6 +987,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const deleteDebt = (id: string) => {
+    const targetDebt = debts.find(x => x.id === id);
     setDebts(prev => {
       const next = prev.filter(x => x.id !== id);
       StorageService.saveDebts(next);
@@ -995,6 +996,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (currentUser) {
       SupabaseSyncService.deleteRow('debts', id, currentUser.id);
     }
+    addToast('info', 'Tagihan Dihapus', targetDebt ? `Catatan "${targetDebt.title}" telah dihapus.` : 'Catatan tagihan / hutang telah dihapus.');
   };
 
   const markDebtStatus = (debtId: string, status: 'pending' | 'paid' | 'overdue') => {
