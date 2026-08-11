@@ -15,10 +15,78 @@ import {
   Cpu
 } from 'lucide-react';
 
+const renderInlineBold = (text: string) => {
+  if (!text) return null;
+  if (!text.includes('**')) return text;
+
+  const parts = text.split('**');
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (!part) return null;
+        if (i % 2 === 1) {
+          return <strong key={i} className="font-extrabold text-[var(--text-primary)]">{part}</strong>;
+        }
+        return <span key={i}>{part}</span>;
+      })}
+    </>
+  );
+};
+
+const renderFormattedText = (text: string) => {
+  if (!text) return null;
+
+  const cleanText = text.replace(/\r/g, '');
+  const lines = cleanText.split('\n');
+
+  return (
+    <div className="space-y-1.5 font-['Plus_Jakarta_Sans',sans-serif]">
+      {lines.map((rawLine, idx) => {
+        const line = rawLine.trim();
+        if (!line) return <div key={idx} className="h-1" />;
+
+        if (line.startsWith('#')) {
+          const headerText = line.replace(/^#+\s*/, '');
+          return (
+            <h4 key={idx} className="font-extrabold text-[var(--gold-primary)] text-xs mt-2 mb-1.5 uppercase tracking-wide">
+              {renderInlineBold(headerText)}
+            </h4>
+          );
+        }
+
+        if (line.startsWith('• ') || line.startsWith('- ') || line.startsWith('* ')) {
+          const content = line.replace(/^[•\-\*]\s*/, '');
+          return (
+            <div key={idx} className="flex items-start gap-2 text-[var(--text-secondary)] pl-1">
+              <span className="text-[var(--gold-primary)] font-bold text-xs shrink-0 select-none">•</span>
+              <div className="flex-1 text-[11px] leading-relaxed">{renderInlineBold(content)}</div>
+            </div>
+          );
+        }
+
+        const numMatch = line.match(/^(\d+\.)\s+(.*)/);
+        if (numMatch) {
+          return (
+            <div key={idx} className="flex items-start gap-2 text-[var(--text-secondary)] pl-1">
+              <span className="font-bold text-[var(--gold-primary)] text-xs shrink-0 font-mono select-none">{numMatch[1]}</span>
+              <div className="flex-1 text-[11px] leading-relaxed">{renderInlineBold(numMatch[2])}</div>
+            </div>
+          );
+        }
+
+        return (
+          <p key={idx} className="text-[var(--text-primary)] text-xs leading-relaxed">
+            {renderInlineBold(line)}
+          </p>
+        );
+      })}
+    </div>
+  );
+};
+
 export const AIAdvisorView: React.FC = () => {
   const { filteredTransactions, filteredWallets, totalBalance, totalIncome, totalExpense, budgets, debts, financialGoals, investments } = useFinance();
 
-  // Financial Data Object for local engine
   const financialData = {
     wallets: filteredWallets,
     transactions: filteredTransactions,
@@ -31,19 +99,18 @@ export const AIAdvisorView: React.FC = () => {
     totalExpense
   };
 
-  // Initial Health Score from local engine
   const initialHealth = FinancialAdvisorService.calculateFinancialHealth(financialData);
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'm-1',
       sender: 'assistant',
-      text: `Halo! Saya **ALN Financial Advisor** (ALN Local Financial Intelligence Engine).
+      text: `Halo! Saya ALN Financial Advisor (ALN Local Financial Intelligence Engine).
 
 Saya telah menganalisis kondisi keuangan Anda:
-• **Total Likuiditas:** Rp ${totalBalance.toLocaleString('id-ID')}
-• **Net Arus Kas:** Rp ${(totalIncome - totalExpense).toLocaleString('id-ID')}
-• **Skor Kesehatan Keuangan:** **${initialHealth.healthScore}/100** (${initialHealth.healthGrade})
+• Total Likuiditas: Rp ${totalBalance.toLocaleString('id-ID')}
+• Net Arus Kas: Rp ${(totalIncome - totalExpense).toLocaleString('id-ID')}
+• Skor Kesehatan Keuangan: ${initialHealth.healthScore}/100 (${initialHealth.healthGrade})
 
 Ada yang ingin Anda tanyakan atau butuh strategi penghematan taktis hari ini?`,
       timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
@@ -80,7 +147,6 @@ Ada yang ingin Anda tanyakan atau butuh strategi penghematan taktis hari ini?`,
     if (!customText) setInputMessage('');
     setLoading(true);
 
-    // Instant Local Intelligence Processing (No Gemini API Call)
     setTimeout(() => {
       const replyText = FinancialAdvisorService.answerAdvisorQuery(textToSend, financialData);
 
@@ -93,7 +159,7 @@ Ada yang ingin Anda tanyakan atau butuh strategi penghematan taktis hari ini?`,
 
       setMessages(prev => [...prev, botMsg]);
       setLoading(false);
-    }, 200);
+    }, 150);
   };
 
   const handleRunHealthCheck = () => {
@@ -102,7 +168,7 @@ Ada yang ingin Anda tanyakan atau butuh strategi penghematan taktis hari ini?`,
       const result = FinancialAdvisorService.calculateFinancialHealth(financialData);
       setAnalysis(result);
       setLoadingAnalysis(false);
-    }, 300);
+    }, 200);
   };
 
   const prompts = [
@@ -161,7 +227,9 @@ Ada yang ingin Anda tanyakan atau butuh strategi penghematan taktis hari ini?`,
             </span>
           </div>
 
-          <p className="text-xs text-[var(--text-secondary)] leading-relaxed">{analysis.summary}</p>
+          <div className="text-xs text-[var(--text-secondary)] leading-relaxed">
+            {renderFormattedText(analysis.summary)}
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
             {/* Risks */}
@@ -190,6 +258,20 @@ Ada yang ingin Anda tanyakan atau butuh strategi penghematan taktis hari ini?`,
               </ul>
             </div>
           </div>
+
+          {/* Info Notes (e.g. Single Category Info) */}
+          {analysis.infoNotes && analysis.infoNotes.length > 0 && (
+            <div className="bg-[var(--input-bg)] p-4 rounded-2xl border border-sky-500/30 text-[11px] text-[var(--text-secondary)]">
+              <span className="font-bold text-sky-500 flex items-center gap-1.5 mb-1.5 font-['Plus_Jakarta_Sans',sans-serif]">
+                ℹ️ Informasi Kategorisasi
+              </span>
+              <ul className="space-y-1 list-disc list-inside">
+                {analysis.infoNotes.map((note, i) => (
+                  <li key={i}>{note}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
 
@@ -216,10 +298,10 @@ Ada yang ingin Anda tanyakan atau butuh strategi penghematan taktis hari ini?`,
                 className={`max-w-[85%] sm:max-w-[80%] p-4 rounded-2xl text-xs leading-relaxed ${
                   msg.sender === 'user'
                     ? 'bg-[var(--gold-badge-bg)] text-[var(--gold-primary)] border border-[var(--gold-badge-border)] rounded-tr-none font-medium'
-                    : 'bg-[var(--input-bg)] text-[var(--text-primary)] border border-[var(--border)] rounded-tl-none whitespace-pre-line'
+                    : 'bg-[var(--input-bg)] text-[var(--text-primary)] border border-[var(--border)] rounded-tl-none font-sans'
                 }`}
               >
-                <div>{msg.text}</div>
+                <div>{renderFormattedText(msg.text)}</div>
                 <span className="text-[9px] text-[var(--text-muted)] block mt-2 text-right font-mono">{msg.timestamp}</span>
               </div>
             </div>

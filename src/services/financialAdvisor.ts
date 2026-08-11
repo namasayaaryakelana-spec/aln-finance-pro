@@ -14,7 +14,7 @@ export interface FinancialDataInput {
 
 export interface RecommendationItem {
   id: string;
-  priority: 'low' | 'medium' | 'high' | 'critical';
+  priority: 'info' | 'low' | 'medium' | 'high' | 'critical';
   title: string;
   description: string;
   action: string;
@@ -35,13 +35,16 @@ export interface FinancialHealthResult {
     budgetDiscipline: number;
   };
   risks: string[];
+  infoNotes: string[];
   recommendations: string[];
   structuredRecommendations: RecommendationItem[];
 }
 
 export const FINANCIAL_THRESHOLDS = {
-  HIGH_CATEGORY_WARNING_PERCENT: 25,
-  HIGH_CATEGORY_CRITICAL_PERCENT: 35,
+  CATEGORY_INFO_PERCENT: 25,
+  CATEGORY_ATTENTION_PERCENT: 50,
+  CATEGORY_WARNING_PERCENT: 70,
+  CATEGORY_HIGH_PRIORITY_PERCENT: 85,
   HIGH_TRANSACTION_AMOUNT: 200000,
   EXCELLENT_SAVINGS_RATE: 30,
   HEALTHY_SAVINGS_RATE: 20,
@@ -76,13 +79,13 @@ export const FinancialAdvisorService = {
       insight = 'Belum ada data pemasukan atau pengeluaran tercatat bulan ini.';
     } else if (netCashFlow > 0) {
       status = 'POSITIVE';
-      insight = `Arus kas positif! Anda menyisihkan surplus sebesar Rp ${netCashFlow.toLocaleString('id-ID')} (${cashFlowRatio.toFixed(1)}% dari pemasukan).`;
+      insight = `Arus kas bersih Anda positif sebesar Rp ${netCashFlow.toLocaleString('id-ID')} (${cashFlowRatio.toFixed(1)}% dari pemasukan).`;
     } else if (netCashFlow === 0) {
       status = 'NEUTRAL';
       insight = 'Arus kas seimbang (Pemasukan sama persis dengan pengeluaran). Solusi: Alokasikan tabungan di awal bulan.';
     } else {
       status = 'NEGATIVE';
-      insight = `Peringatan Defisit Arus Kas! Pengeluaran melebihi pemasukan sebesar Rp ${Math.abs(netCashFlow).toLocaleString('id-ID')}.`;
+      insight = `Arus kas bersih Anda negatif sebesar Rp ${Math.abs(netCashFlow).toLocaleString('id-ID')}. Pengeluaran melebihi pemasukan pada periode ini.`;
     }
 
     return {
@@ -106,7 +109,7 @@ export const FinancialAdvisorService = {
       return {
         savingsRate: 0,
         grade: 'Needs Improvement',
-        insight: 'Pemasukan belum tercatat. Rekomendasi tabungan membutuhkan data pemasukan bersih.'
+        insight: 'Belum cukup data pemasukan untuk menghitung savings rate.'
       };
     }
 
@@ -126,7 +129,7 @@ export const FinancialAdvisorService = {
     return {
       savingsRate,
       grade,
-      insight: `Rasio tabungan Anda saat ini berada di **${savingsRate.toFixed(1)}%** (${grade}). ${
+      insight: `Rasio tabungan Anda saat ini berada di ${savingsRate.toFixed(1)}% (${grade}). ${
         savingsRate >= 20 
           ? 'Pertahankan konsistensi alokasi tabungan bulanan.' 
           : 'Disarankan menyisihkan minimal 20% pemasukan bersih sebelum belanja.'
@@ -159,25 +162,43 @@ export const FinancialAdvisorService = {
       };
     }).sort((a, b) => b.total - a.total);
 
+    const categoryCount = categoryBreakdown.length;
     const topCategory = categoryBreakdown[0] || null;
     const warnings: string[] = [];
+    const infoNotes: string[] = [];
 
-    categoryBreakdown.forEach(item => {
-      if (item.percentage >= FINANCIAL_THRESHOLDS.HIGH_CATEGORY_CRITICAL_PERCENT) {
-        warnings.push(`Kategori "${item.category}" mendominasi ${item.percentage.toFixed(1)}% total pengeluaran (Batas Kritis: ${FINANCIAL_THRESHOLDS.HIGH_CATEGORY_CRITICAL_PERCENT}%).`);
-      } else if (item.percentage >= FINANCIAL_THRESHOLDS.HIGH_CATEGORY_WARNING_PERCENT) {
-        warnings.push(`Kategori "${item.category}" mengambil ${item.percentage.toFixed(1)}% pengeluaran (Batas Waspada: ${FINANCIAL_THRESHOLDS.HIGH_CATEGORY_WARNING_PERCENT}%).`);
-      }
-    });
+    if (categoryCount === 1 && topCategory) {
+      // Single category -> Pure INFO note. NEVER a risk or warning!
+      infoNotes.push(`Seluruh pengeluaran saat ini tercatat pada kategori "${topCategory.category}". Periksa kembali kategorisasi transaksi untuk memastikan seluruh transaksi telah tercatat dengan sesuai.`);
+    } else if (categoryCount >= 2) {
+      categoryBreakdown.forEach(item => {
+        if (item.percentage >= FINANCIAL_THRESHOLDS.CATEGORY_HIGH_PRIORITY_PERCENT) {
+          warnings.push(`Kategori "${item.category}" sangat dominan (${item.percentage.toFixed(1)}% dari total pengeluaran). Perlu diperiksa proporsinya.`);
+        } else if (item.percentage >= FINANCIAL_THRESHOLDS.CATEGORY_WARNING_PERCENT) {
+          warnings.push(`Kategori "${item.category}" mendominasi sebagian besar pengeluaran (${item.percentage.toFixed(1)}%).`);
+        } else if (item.percentage >= FINANCIAL_THRESHOLDS.CATEGORY_ATTENTION_PERCENT) {
+          infoNotes.push(`Kategori "${item.category}" memiliki proporsi pengeluaran cukup besar (${item.percentage.toFixed(1)}%).`);
+        } else if (item.percentage >= FINANCIAL_THRESHOLDS.CATEGORY_INFO_PERCENT) {
+          infoNotes.push(`Kategori "${item.category}" merupakan salah satu pengeluaran terbesar (${item.percentage.toFixed(1)}%).`);
+        }
+      });
+    }
 
     const highImpactCount = expenseTransactions.filter(t => (t.amount || 0) >= FINANCIAL_THRESHOLDS.HIGH_TRANSACTION_AMOUNT).length;
+    let highImpactNote = '';
+    if (highImpactCount > 0) {
+      highImpactNote = `Terdapat ${highImpactCount} transaksi bernilai relatif besar (> Rp 200.000) pada periode ini. Periksa apakah transaksi tersebut merupakan kebutuhan rutin atau pengeluaran satu kali.`;
+    }
 
     return {
       totalExpense,
       categoryBreakdown,
+      categoryCount,
       topCategory,
       warnings,
-      highImpactCount
+      infoNotes,
+      highImpactCount,
+      highImpactNote
     };
   },
 
@@ -192,7 +213,8 @@ export const FinancialAdvisorService = {
         totalBudgets: 0,
         overBudgetCount: 0,
         warningCount: 0,
-        insight: 'Belum ada Anggaran (Budget) yang dibuat. Membuat batas budget membantu mencegah overspending.'
+        items: [],
+        insight: 'Belum ada anggaran aktif yang dapat dievaluasi.'
       };
     }
 
@@ -250,8 +272,9 @@ export const FinancialAdvisorService = {
       return {
         hasDebt: false,
         totalDebt: 0,
-        monthlyPayment: 0,
-        message: 'No active debt detected'
+        activeCount: 0,
+        debtToIncomeRatio: 0,
+        message: 'No active debt detected.'
       };
     }
 
@@ -275,14 +298,14 @@ export const FinancialAdvisorService = {
     const wallets = data.wallets || [];
     const liquidFunds = data.totalBalance ?? wallets.reduce((sum, w) => sum + (w.balance || 0), 0);
     const cf = this.analyzeCashFlow(data);
-    const monthlyExpense = cf.totalExpense > 0 ? cf.totalExpense : 1;
+    const monthlyExpense = cf.totalExpense;
 
-    if (cf.totalExpense <= 0 && liquidFunds <= 0) {
+    if (monthlyExpense <= 0) {
       return {
-        status: 'Data belum cukup',
+        status: 'Needs Data',
         coverageMonths: 0,
-        liquidFunds: 0,
-        insight: 'Emergency fund belum dapat dihitung karena data saldo dan pengeluaran belum tersedia.'
+        liquidFunds,
+        insight: 'Belum cukup data pengeluaran untuk menghitung dana darurat.'
       };
     }
 
@@ -303,7 +326,7 @@ export const FinancialAdvisorService = {
       status,
       coverageMonths,
       liquidFunds,
-      insight: `Dana darurat likuid saat ini mencukupi untuk **${coverageMonths.toFixed(1)} bulan** biaya hidup (${status}). Target aman: 3-6 bulan pengeluaran.`
+      insight: `Dana darurat likuid saat ini mencukupi untuk ${coverageMonths.toFixed(1)} bulan biaya hidup (${status}). Target aman: 3-6 bulan pengeluaran.`
     };
   },
 
@@ -316,6 +339,7 @@ export const FinancialAdvisorService = {
       return {
         hasInvestments: false,
         totalValue: 0,
+        count: 0,
         insight: 'Belum ada aset investasi terdaftar dalam portofolio.'
       };
     }
@@ -325,7 +349,7 @@ export const FinancialAdvisorService = {
       hasInvestments: true,
       totalValue,
       count: investments.length,
-      insight: `Portofolio memiliki ${investments.length} instrumen investasi dengan estimasi nilai Rp ${totalValue.toLocaleString('id-ID')}. Perlu diperhatikan diversifikasi profil risiko.`
+      insight: `Portofolio memiliki ${investments.length} instrumen investasi dengan estimasi total nilai Rp ${totalValue.toLocaleString('id-ID')}. Perlu diperhatikan kesesuaian alokasi aset dengan profil risiko pribadi.`
     };
   },
 
@@ -355,7 +379,9 @@ export const FinancialAdvisorService = {
 
     // 2. Savings Score (20%)
     let savingsScore = 40;
-    if (savings.savingsRate >= 30) savingsScore = 100;
+    if (cf.totalIncome === 0) {
+      savingsScore = 50;
+    } else if (savings.savingsRate >= 30) savingsScore = 100;
     else if (savings.savingsRate >= 20) savingsScore = 80 + ((savings.savingsRate - 20) / 10) * 20;
     else if (savings.savingsRate >= 10) savingsScore = 60 + ((savings.savingsRate - 10) / 10) * 20;
     else if (savings.savingsRate >= 0) savingsScore = 40 + (savings.savingsRate / 10) * 20;
@@ -363,18 +389,27 @@ export const FinancialAdvisorService = {
 
     // 3. Expense Control Score (20%)
     let expenseControlScore = 100;
-    if (exp.topCategory && exp.topCategory.percentage > 35) {
-      expenseControlScore -= 20;
+    if (exp.categoryCount >= 2) {
+      if (exp.topCategory && exp.topCategory.percentage >= 85) {
+        expenseControlScore -= 20;
+      } else if (exp.topCategory && exp.topCategory.percentage >= 70) {
+        expenseControlScore -= 10;
+      }
+      if (exp.warnings.length > 0) {
+        expenseControlScore -= exp.warnings.length * 10;
+      }
     }
-    if (exp.warnings.length > 0) {
-      expenseControlScore -= exp.warnings.length * 10;
-    }
-    expenseControlScore = Math.max(20, expenseControlScore);
+    expenseControlScore = Math.max(30, expenseControlScore);
 
     // 4. Emergency Fund Score (15%)
-    let emergencyFundScore = 20;
-    if (ef.coverageMonths >= 6) emergencyFundScore = 100;
-    else emergencyFundScore = Math.min(100, (ef.coverageMonths / 6) * 100);
+    let emergencyFundScore = 50;
+    if (ef.status === 'Needs Data') {
+      emergencyFundScore = 50;
+    } else if (ef.coverageMonths >= 6) {
+      emergencyFundScore = 100;
+    } else {
+      emergencyFundScore = Math.min(100, (ef.coverageMonths / 6) * 100);
+    }
 
     // 5. Debt Score (10%)
     let debtScore = 100;
@@ -416,8 +451,9 @@ export const FinancialAdvisorService = {
     else if (healthScore >= 40) healthGrade = 'Needs Attention';
     else healthGrade = 'Critical';
 
-    // Build Risks & Recommendations
+    // Build Risks, Info Notes, & Recommendations
     const risks: string[] = [];
+    const infoNotes: string[] = [...exp.infoNotes];
     const recommendations: string[] = [];
     const structuredRecommendations: RecommendationItem[] = [];
 
@@ -447,15 +483,16 @@ export const FinancialAdvisorService = {
       });
     }
 
-    if (exp.topCategory && exp.topCategory.percentage > FINANCIAL_THRESHOLDS.HIGH_CATEGORY_WARNING_PERCENT) {
-      risks.push(`Dominasi pengeluaran pada kategori "${exp.topCategory.category}" mencapai ${exp.topCategory.percentage.toFixed(1)}%.`);
-      recommendations.push(`Lakukan efisiensi pada kategori "${exp.topCategory.category}".`);
+    // Category dominance ONLY added to risks if categoryCount >= 2 and percentage >= 70%
+    if (exp.categoryCount >= 2 && exp.topCategory && exp.topCategory.percentage >= FINANCIAL_THRESHOLDS.CATEGORY_WARNING_PERCENT) {
+      risks.push(`Kategori "${exp.topCategory.category}" mendominasi ${exp.topCategory.percentage.toFixed(1)}% total pengeluaran.`);
+      recommendations.push(`Periksa proporsi belanja pada kategori "${exp.topCategory.category}".`);
       structuredRecommendations.push({
         id: 'rec-exp-1',
         priority: 'medium',
-        title: `Efisiensi Pos ${exp.topCategory.category}`,
+        title: `Kaji Proporsi Pos ${exp.topCategory.category}`,
         description: `Kategori ini menyerap ${exp.topCategory.percentage.toFixed(1)}% dari total pengeluaran.`,
-        action: `Tetapkan batas anggaran ketat untuk ${exp.topCategory.category}.`,
+        action: `Tetapkan batas anggaran untuk ${exp.topCategory.category}.`,
         relatedMetric: 'Expenses'
       });
     }
@@ -473,7 +510,7 @@ export const FinancialAdvisorService = {
       });
     }
 
-    if (ef.coverageMonths < FINANCIAL_THRESHOLDS.HEALTHY_EMERGENCY_MONTHS) {
+    if (ef.status !== 'Needs Data' && ef.coverageMonths < FINANCIAL_THRESHOLDS.HEALTHY_EMERGENCY_MONTHS && cf.totalExpense > 0) {
       risks.push(`Dana darurat (${ef.coverageMonths.toFixed(1)} bulan) di bawah rekomendasi minimal 3 bulan.`);
       recommendations.push('Prioritaskan pengisian Dana Darurat hingga mencapai minimal 3 bulan pengeluaran.');
       structuredRecommendations.push({
@@ -487,16 +524,16 @@ export const FinancialAdvisorService = {
     }
 
     if (risks.length === 0) {
-      risks.push('Tidak ditemukan risiko kritis pada data keuangan Anda saat ini.');
+      risks.push('✓ Tidak ditemukan risiko kritis berdasarkan data keuangan saat ini.');
     }
     if (recommendations.length === 0) {
       recommendations.push('Pertahankan pola konsistensi pengeluaran dan tingkatkan portofolio investasi.');
     }
 
-    const summary = `Kesehatan keuangan Anda berada di tingkat **${healthGrade}** (Skor: ${healthScore}/100). ${
+    const summary = `Kesehatan keuangan Anda berada di tingkat ${healthGrade} (Skor: ${healthScore}/100). ${
       cf.netCashFlow >= 0 
-        ? `Arus kas bersih tercatat positif +Rp ${cf.netCashFlow.toLocaleString('id-ID')}.`
-        : `Terdapat defisit arus kas sebesar -Rp ${Math.abs(cf.netCashFlow).toLocaleString('id-ID')}.`
+        ? `Arus kas bersih Anda positif sebesar Rp ${cf.netCashFlow.toLocaleString('id-ID')}.`
+        : `Terdapat defisit arus kas sebesar Rp ${Math.abs(cf.netCashFlow).toLocaleString('id-ID')}.`
     }`;
 
     return {
@@ -513,6 +550,7 @@ export const FinancialAdvisorService = {
         budgetDiscipline: Math.round(budgetDisciplineScore)
       },
       risks,
+      infoNotes,
       recommendations,
       structuredRecommendations
     };
@@ -531,14 +569,18 @@ export const FinancialAdvisorService = {
     const ef = this.analyzeEmergencyFund(data);
     const health = this.calculateFinancialHealth(data);
 
-    // Intent 1: Pemborosan / Pengeluaran / Expense
+    // Intent 1: Pemborosan / Kategori Pengeluaran / Expense
     if (q.includes('boros') || q.includes('makan') || q.includes('pengeluaran') || q.includes('kategori') || q.includes('belanja')) {
-      let response = `### 📊 Analisis Pengeluaran & Potensi Pemborosan\n\n`;
+      let response = `### 📊 Analisis Pengeluaran & Proporsi Belanja\n\n`;
       response += `• **Total Pengeluaran:** Rp ${exp.totalExpense.toLocaleString('id-ID')}\n`;
       if (exp.topCategory) {
         response += `• **Kategori Terbesar:** **${exp.topCategory.category}** (Rp ${exp.topCategory.total.toLocaleString('id-ID')} atau ${exp.topCategory.percentage.toFixed(1)}% dari total pengeluaran)\n`;
       }
-      response += `• **Transaksi Nominal > Rp 200.000:** ${exp.highImpactCount} transaksi\n\n`;
+
+      if (exp.highImpactNote) {
+        response += `• **Transaksi Besar:** ${exp.highImpactNote}\n`;
+      }
+      response += `\n`;
 
       if (exp.categoryBreakdown.length > 0) {
         response += `**Rincian Kategori Pengeluaran Utama:**\n`;
@@ -548,10 +590,13 @@ export const FinancialAdvisorService = {
       }
 
       if (exp.warnings.length > 0) {
-        response += `\n⚠️ **Catatan Waspada Pemborosan:**\n`;
+        response += `\n**Catatan Proporsi Kategori:**\n`;
         exp.warnings.forEach(w => response += `- ${w}\n`);
+      } else if (exp.infoNotes.length > 0) {
+        response += `\n**Informasi Kategori:**\n`;
+        exp.infoNotes.forEach(n => response += `- ${n}\n`);
       } else {
-        response += `\n✅ **Status Pengeluaran:** Pembagian pengeluaran per kategori saat ini berada dalam batas normal.\n`;
+        response += `\n**Status Pengeluaran:** Pembagian pengeluaran per kategori saat ini berada dalam batas normal.\n`;
       }
 
       return response;
@@ -565,31 +610,31 @@ export const FinancialAdvisorService = {
       response += `• **Surplus Kas Bulanan:** Rp ${cf.netCashFlow.toLocaleString('id-ID')}\n\n`;
 
       response += `**3 Langkah Taktis Penghematan ALN Finance:**\n`;
-      response += `1. **Otomatisasi Tabungan 20%:** Pisahkan langsung minimal Rp ${(cf.totalIncome * 0.2).toLocaleString('id-ID')} ke dompet Tabungan saat pemasukan diterima.\n`;
+      response += `1. **Otomatisasi Tabungan 20%:**\n   Pertimbangkan menyisihkan minimal Rp ${(cf.totalIncome * 0.2).toLocaleString('id-ID')} ke dompet Tabungan saat pemasukan diterima.\n`;
       if (exp.topCategory) {
-        response += `2. **Efisiensi Pos ${exp.topCategory.category}:** Pangkas 15-20% biaya pada pos ini untuk menambah potensi tabungan Rp ${(exp.topCategory.total * 0.15).toLocaleString('id-ID')} per bulan.\n`;
+        response += `2. **Efisiensi Pos ${exp.topCategory.category}:**\n   Evaluasi pengeluaran kategori tersebut untuk potensi tambahan dana simpanan Rp ${(exp.topCategory.total * 0.15).toLocaleString('id-ID')} per bulan.\n`;
       } else {
-        response += `2. **Efisiensi Pengeluaran Variabel:** Evaluasi pengeluaran jajan dan hiburan mingguan.\n`;
+        response += `2. **Efisiensi Pengeluaran Variabel:**\n   Evaluasi pengeluaran jajan dan hiburan mingguan.\n`;
       }
-      response += `3. **Gunakan Fitur Budgeting ALN:** Tetapkan batas maksimal untuk setiap kategori agar tidak kebablasan.\n`;
+      response += `3. **Gunakan Fitur Budgeting ALN:**\n   Tetapkan batas maksimal untuk setiap kategori agar pengeluaran tidak melampaui batas anggaran.\n`;
 
       return response;
     }
 
     // Intent 3: Kesehatan Keuangan / Health Score
     if (q.includes('kesehatan') || q.includes('kondisi') || q.includes('skor') || q.includes('score') || q.includes('health')) {
-      let response = `### 🛡️ Audit Kesehatan Keuangan (Financial Health)\n\n`;
+      let response = `### 🛡️ Audit Kesehatan Keuangan ALN\n\n`;
       response += `• **Skor Kesehatan:** **${health.healthScore}/100** (${health.healthGrade})\n`;
       response += `• **Total Likuiditas Kas:** Rp ${(data.totalBalance || 0).toLocaleString('id-ID')}\n`;
       response += `• **Net Arus Kas:** Rp ${cf.netCashFlow.toLocaleString('id-ID')}\n\n`;
 
       response += `**Breakdown Indikator Keuangan:**\n`;
-      response += `- Arus Kas (25%): **${health.scores.cashFlow}/100**\n`;
-      response += `- Rasio Tabungan (20%): **${health.scores.savings}/100**\n`;
-      response += `- Kendali Pengeluaran (20%): **${health.scores.expenseControl}/100**\n`;
-      response += `- Dana Darurat (15%): **${health.scores.emergencyFund}/100**\n`;
-      response += `- Beban Utang (10%): **${health.scores.debt}/100**\n`;
-      response += `- Kedisiplinan Anggaran (10%): **${health.scores.budgetDiscipline}/100**\n\n`;
+      response += `- **Arus Kas (25%):** ${health.scores.cashFlow}/100\n`;
+      response += `- **Rasio Tabungan (20%):** ${health.scores.savings}/100\n`;
+      response += `- **Kendali Pengeluaran (20%):** ${health.scores.expenseControl}/100\n`;
+      response += `- **Dana Darurat (15%):** ${health.scores.emergencyFund}/100\n`;
+      response += `- **Beban Utang (10%):** ${health.scores.debt}/100\n`;
+      response += `- **Kedisiplinan Anggaran (10%):** ${health.scores.budgetDiscipline}/100\n\n`;
 
       response += `**Rekomendasi Utama:**\n`;
       health.recommendations.forEach(r => response += `• ${r}\n`);
@@ -617,9 +662,9 @@ export const FinancialAdvisorService = {
       response += `• **Estimasi Nilai Investasi:** Rp ${inv.totalValue.toLocaleString('id-ID')}\n\n`;
 
       if (ef.coverageMonths < 3) {
-        response += `⚠️ **Perlu Diperhatikan:** Sebelum menambah alokasi investasi berisiko tinggi, pastikan Dana Darurat likuid terisi minimal 3 bulan biaya hidup (Rp ${(cf.totalExpense * 3).toLocaleString('id-ID')}).\n`;
+        response += `**Perlu Diperhatikan:** Sebelum menambah alokasi investasi berisiko tinggi, pastikan Dana Darurat likuid terisi minimal 3 bulan biaya hidup (Rp ${(cf.totalExpense * 3).toLocaleString('id-ID')}).\n`;
       } else {
-        response += `✅ **Kondisi Aman:** Saldo likuid mencukupi untuk eksplorasi investasi berimbal hasil stabil seperti Reksa Dana Pasar Uang atau Obligasi Negara.\n`;
+        response += `**Kondisi Aman:** Saldo likuid mencukupi untuk eksplorasi investasi berimbal hasil stabil seperti Reksa Dana Pasar Uang atau Obligasi Negara.\n`;
       }
 
       return response;
