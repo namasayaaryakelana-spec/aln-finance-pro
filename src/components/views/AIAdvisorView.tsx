@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useFinance } from '../../context/FinanceContext';
-import { AIService } from '../../services/ai';
-import { ChatMessage, FinancialHealthAnalysis } from '../../types';
+import { FinancialAdvisorService, FinancialHealthResult } from '../../services/financialAdvisor';
+import { ChatMessage } from '../../types';
 import {
   Sparkles,
   Send,
@@ -11,22 +11,39 @@ import {
   AlertTriangle,
   Lightbulb,
   ShieldCheck,
-  RefreshCw
+  RefreshCw,
+  Cpu
 } from 'lucide-react';
 
 export const AIAdvisorView: React.FC = () => {
-  const { filteredTransactions, filteredWallets, totalBalance, totalIncome, totalExpense, healthScore, budgets } = useFinance();
+  const { filteredTransactions, filteredWallets, totalBalance, totalIncome, totalExpense, budgets, debts, financialGoals, investments } = useFinance();
+
+  // Financial Data Object for local engine
+  const financialData = {
+    wallets: filteredWallets,
+    transactions: filteredTransactions,
+    budgets,
+    debts,
+    goals: financialGoals,
+    investments,
+    totalBalance,
+    totalIncome,
+    totalExpense
+  };
+
+  // Initial Health Score from local engine
+  const initialHealth = FinancialAdvisorService.calculateFinancialHealth(financialData);
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'm-1',
       sender: 'assistant',
-      text: `Halo! Saya **ALN AI Financial OS Advisor** (powered by Gemini AI).
+      text: `Halo! Saya **ALN Financial Advisor** (ALN Local Financial Intelligence Engine).
 
 Saya telah menganalisis kondisi keuangan Anda:
 • **Total Likuiditas:** Rp ${totalBalance.toLocaleString('id-ID')}
 • **Net Arus Kas:** Rp ${(totalIncome - totalExpense).toLocaleString('id-ID')}
-• **Skor Kesehatan Keuangan:** **${healthScore}/100**
+• **Skor Kesehatan Keuangan:** **${initialHealth.healthScore}/100** (${initialHealth.healthGrade})
 
 Ada yang ingin Anda tanyakan atau butuh strategi penghematan taktis hari ini?`,
       timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
@@ -35,7 +52,7 @@ Ada yang ingin Anda tanyakan atau butuh strategi penghematan taktis hari ini?`,
 
   const [inputMessage, setInputMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const [analysis, setAnalysis] = useState<FinancialHealthAnalysis | null>(null);
+  const [analysis, setAnalysis] = useState<FinancialHealthResult | null>(null);
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -48,7 +65,7 @@ Ada yang ingin Anda tanyakan atau butuh strategi penghematan taktis hari ini?`,
     scrollToBottom();
   }, [messages, loading]);
 
-  const handleSendMessage = async (customText?: string) => {
+  const handleSendMessage = (customText?: string) => {
     const textToSend = customText || inputMessage;
     if (!textToSend.trim() || loading) return;
 
@@ -63,49 +80,36 @@ Ada yang ingin Anda tanyakan atau butuh strategi penghematan taktis hari ini?`,
     if (!customText) setInputMessage('');
     setLoading(true);
 
-    const contextData = {
-      totalBalance,
-      totalIncome,
-      totalExpense,
-      healthScore,
-      walletsCount: filteredWallets.length,
-      transactionsCount: filteredTransactions.length
-    };
+    // Instant Local Intelligence Processing (No Gemini API Call)
+    setTimeout(() => {
+      const replyText = FinancialAdvisorService.answerAdvisorQuery(textToSend, financialData);
 
-    const history = messages.map(m => ({
-      role: m.sender === 'assistant' ? 'model' : 'user',
-      text: m.text
-    }));
+      const botMsg: ChatMessage = {
+        id: `bot-${Date.now()}`,
+        sender: 'assistant',
+        text: replyText,
+        timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+      };
 
-    const res = await AIService.chatWithAdvisor(textToSend, history, contextData);
-
-    const botMsg: ChatMessage = {
-      id: `bot-${Date.now()}`,
-      sender: 'assistant',
-      text: res.reply || 'Maaf, terjadi kesalahan pada layanan AI.',
-      timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
-    };
-
-    setMessages(prev => [...prev, botMsg]);
-    setLoading(false);
+      setMessages(prev => [...prev, botMsg]);
+      setLoading(false);
+    }, 200);
   };
 
-  const handleRunHealthCheck = async () => {
+  const handleRunHealthCheck = () => {
     setLoadingAnalysis(true);
-    const result = await AIService.analyzeCashflow({
-      transactions: filteredTransactions,
-      wallets: filteredWallets,
-      budgets
-    });
-    setAnalysis(result);
-    setLoadingAnalysis(false);
+    setTimeout(() => {
+      const result = FinancialAdvisorService.calculateFinancialHealth(financialData);
+      setAnalysis(result);
+      setLoadingAnalysis(false);
+    }, 300);
   };
 
   const prompts = [
     'Analisis potensi pemborosan di kategori Makanan',
     'Berikan strategi penghematan 20% bulan depan',
-    'Rekomendasi alokasi investasi berdasarkan total saldo',
-    'Apakah arus kas saya aman untuk beli aset baru?'
+    'Bagaimana kesehatan keuangan saya?',
+    'Bagaimana kondisi cash flow saya?'
   ];
 
   return (
@@ -118,13 +122,14 @@ Ada yang ingin Anda tanyakan atau butuh strategi penghematan taktis hari ini?`,
           </div>
           <div>
             <h3 className="text-lg font-extrabold text-[var(--text-primary)] flex items-center gap-2 font-['Plus_Jakarta_Sans',sans-serif]">
-              AI Financial Advisor
-              <span className="text-[10px] bg-[var(--gold-badge-bg)] text-[var(--gold-primary)] px-2.5 py-0.5 rounded-full border border-[var(--gold-badge-border)] uppercase font-extrabold">
-                Gemini 3.6 Flash
+              ALN Financial Advisor
+              <span className="text-[10px] bg-[var(--gold-badge-bg)] text-[var(--gold-primary)] px-2.5 py-0.5 rounded-full border border-[var(--gold-badge-border)] uppercase font-extrabold flex items-center gap-1">
+                <Cpu className="w-3 h-3 text-[var(--gold-primary)]" />
+                ALN Intelligence Engine
               </span>
             </h3>
             <p className="text-xs text-[var(--text-secondary)]">
-              Personal Financial Intelligence: Penasihat keuangan pintar untuk analisis belanja & rasio arus kas.
+              Personal Financial Intelligence: Penasihat keuangan pintar lokal berbasis analisis belanja & rasio arus kas.
             </p>
           </div>
         </div>
@@ -149,7 +154,7 @@ Ada yang ingin Anda tanyakan atau butuh strategi penghematan taktis hari ini?`,
           <div className="flex items-center justify-between border-b border-[var(--border)] pb-3.5">
             <div className="flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-emerald-500" />
-              <h4 className="text-sm font-extrabold text-[var(--text-primary)] font-['Plus_Jakarta_Sans',sans-serif]">Hasil Audit Kesehatan Keuangan AI</h4>
+              <h4 className="text-sm font-extrabold text-[var(--text-primary)] font-['Plus_Jakarta_Sans',sans-serif]">Hasil Audit Kesehatan Keuangan ALN</h4>
             </div>
             <span className="text-xs font-bold text-[var(--gold-primary)] bg-[var(--gold-badge-bg)] px-3 py-1 rounded-full border border-[var(--gold-badge-border)] font-mono">
               Skor: {analysis.healthScore}/100 ({analysis.healthGrade})
@@ -208,7 +213,7 @@ Ada yang ingin Anda tanyakan atau butuh strategi penghematan taktis hari ini?`,
               </div>
 
               <div
-                className={`max-w-[80%] p-4 rounded-2xl text-xs leading-relaxed ${
+                className={`max-w-[85%] sm:max-w-[80%] p-4 rounded-2xl text-xs leading-relaxed ${
                   msg.sender === 'user'
                     ? 'bg-[var(--gold-badge-bg)] text-[var(--gold-primary)] border border-[var(--gold-badge-border)] rounded-tr-none font-medium'
                     : 'bg-[var(--input-bg)] text-[var(--text-primary)] border border-[var(--border)] rounded-tl-none whitespace-pre-line'
@@ -227,7 +232,7 @@ Ada yang ingin Anda tanyakan atau butuh strategi penghematan taktis hari ini?`,
               </div>
               <div className="bg-[var(--input-bg)] p-3.5 rounded-2xl border border-[var(--border)] text-xs text-[var(--gold-primary)] flex items-center gap-2">
                 <Sparkles className="w-4 h-4 animate-spin text-[var(--gold-primary)]" />
-                <span>ALN AI sedang menganalisis data keuangan Anda...</span>
+                <span>ALN Financial Intelligence sedang menganalisis data keuangan Anda...</span>
               </div>
             </div>
           )}
@@ -256,7 +261,7 @@ Ada yang ingin Anda tanyakan atau butuh strategi penghematan taktis hari ini?`,
             value={inputMessage}
             onChange={e => setInputMessage(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
-            className="flex-1 bg-[var(--card-bg)] text-xs px-4 py-3 rounded-2xl border border-[var(--input-border)] text-[var(--input-text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--gold-primary)]"
+            className="flex-1 bg-[var(--card-bg)] text-xs px-4 py-3 rounded-2xl border border-[var(--input-border)] text-[var(--input-text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--gold-primary)] font-['Plus_Jakarta_Sans',sans-serif]"
           />
 
           <button
