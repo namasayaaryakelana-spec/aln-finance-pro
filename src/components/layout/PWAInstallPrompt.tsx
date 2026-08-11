@@ -29,7 +29,7 @@ export const PWAInstallPrompt: React.FC<PWAInstallPromptProps> = ({ deferredProm
         <div className="fixed bottom-20 lg:bottom-6 right-4 left-4 lg:left-auto lg:w-96 z-40 bg-slate-900/95 backdrop-blur-xl border border-emerald-500/40 p-4 rounded-2xl shadow-2xl shadow-emerald-950/50 flex items-center justify-between gap-3 animate-slide-up">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center p-1.5 shrink-0">
-              <img src="/logo.svg" alt="ALN Logo" className="w-full h-full" />
+              <img src="/logo.png?v=3" alt="ALN Logo" className="w-full h-full object-contain" />
             </div>
             <div>
               <h4 className="text-xs font-bold text-white">Install ALN Finance Pro</h4>
@@ -52,7 +52,7 @@ export const PWAInstallPrompt: React.FC<PWAInstallPromptProps> = ({ deferredProm
         <div className="fixed bottom-20 lg:bottom-6 right-4 left-4 lg:left-auto lg:w-96 z-40 bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 p-3.5 rounded-2xl shadow-2xl flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-slate-800 flex items-center justify-center p-1 shrink-0">
-              <img src="/logo.svg" alt="ALN Logo" className="w-full h-full" />
+              <img src="/logo.png?v=3" alt="ALN Logo" className="w-full h-full object-contain" />
             </div>
             <div>
               <h4 className="text-xs font-bold text-white">Pasang di iPhone Anda</h4>
@@ -81,7 +81,7 @@ export const PWAInstallPrompt: React.FC<PWAInstallPromptProps> = ({ deferredProm
             </button>
 
             <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center mx-auto mb-4 p-2">
-              <img src="/logo.svg" alt="ALN Logo" className="w-full h-full" />
+              <img src="/logo.png?v=3" alt="ALN Logo" className="w-full h-full object-contain" />
             </div>
 
             <h3 className="text-base font-extrabold text-center text-white mb-1">
