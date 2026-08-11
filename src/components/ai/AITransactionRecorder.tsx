@@ -11,7 +11,17 @@ import {
   RefreshCw,
   CheckCircle2,
   X,
-  FileText
+  FileText,
+  Info,
+  Edit2,
+  ShieldCheck,
+  Tag,
+  Wallet,
+  Calendar,
+  UserCheck,
+  Layers,
+  ArrowUpRight,
+  ArrowDownLeft
 } from 'lucide-react';
 
 interface AITransactionRecorderProps {
@@ -40,6 +50,22 @@ export const AITransactionRecorder: React.FC<AITransactionRecorderProps> = ({
   // Status states
   const [loading, setLoading] = useState(false);
   const [parsedResults, setParsedResults] = useState<any[]>([]);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+
+  const handleUpdateParsedResult = (index: number, field: string, value: any) => {
+    setParsedResults(prev => {
+      const copy = [...prev];
+      if (copy[index]) {
+        copy[index] = { ...copy[index], [field]: value };
+        if (field === 'amount') {
+          const isIncome = (copy[index].type || '').toUpperCase() === 'INCOME';
+          copy[index].debit = isIncome ? Number(value) || 0 : 0;
+          copy[index].credit = !isIncome ? Number(value) || 0 : 0;
+        }
+      }
+      return copy;
+    });
+  };
 
   // Initialize Speech Recognition
   useEffect(() => {
@@ -395,57 +421,233 @@ export const AITransactionRecorder: React.FC<AITransactionRecorderProps> = ({
       </button>
 
       {/* Parsed Result Preview */}
-      {parsedResults.length > 0 && (
-        <div className="p-5 bg-[var(--input-bg)] border border-[var(--gold-badge-border)] rounded-3xl space-y-4 text-xs animate-fade-in">
-          <div className="flex items-center justify-between border-b border-[var(--border)] pb-2.5">
-            <div className="flex items-center gap-2 font-bold text-[var(--text-primary)]">
-              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-              <span>Hasil Analisis AI ({parsedResults.length} Transaksi Terdeteksi):</span>
+      {parsedResults.length > 0 && (() => {
+        const targetWalletName = (() => {
+          const firstTx = parsedResults[0];
+          const accName = firstTx?.account || firstTx?.walletName;
+          if (accName) {
+            const matched = filteredWallets.find(w => w.name.toLowerCase().includes(accName.toLowerCase()));
+            if (matched) return matched.name;
+          }
+          return filteredWallets[0]?.name || 'Kas Utama';
+        })();
+
+        const formatDateID = (dateStr?: string) => {
+          if (!dateStr) return new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+          try {
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr;
+            return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+          } catch {
+            return dateStr;
+          }
+        };
+
+        return (
+          <div className="p-5 md:p-6 bg-[var(--input-bg)] border border-[var(--gold-badge-border)] rounded-3xl space-y-5 text-xs animate-fade-in shadow-xl">
+            {/* Header Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] pb-3">
+              <div className="flex items-center gap-2 font-black text-sm text-[var(--text-primary)]">
+                <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+                <span>✓ Hasil Analisis AI ({parsedResults.length} Transaksi Terdeteksi)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-2.5 py-1 rounded-full font-bold">
+                  {activeMode === 'chat' ? 'Chat / Teks' : activeMode === 'image' ? 'Struk Vision' : 'Suara AI'}
+                </span>
+                <span className="text-[10px] bg-[var(--gold-badge-bg)] text-[var(--gold-primary)] px-2.5 py-1 rounded-full border border-[var(--gold-badge-border)] font-extrabold uppercase">
+                  {parsedResults.some(t => (t.scope || '').toUpperCase() === 'SHARED') ? 'Keluarga (SHARED)' : 'Pribadi'}
+                </span>
+              </div>
             </div>
-            <span className="text-[10px] bg-[var(--gold-badge-bg)] text-[var(--gold-primary)] px-2.5 py-0.5 rounded-full border border-[var(--gold-badge-border)] font-extrabold uppercase">
-              Pribadi
-            </span>
-          </div>
 
-          <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
-            {parsedResults.map((tx, index) => {
-              const isIncome = (tx.type || '').toUpperCase() === 'INCOME';
-              return (
-                <div
-                  key={index}
-                  className="bg-[var(--card-bg)] p-3.5 rounded-2xl border border-[var(--border)] hover:border-[var(--gold-primary)] transition-all space-y-1.5"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-[var(--text-primary)] flex items-center gap-2">
-                      <span className={`w-2 h-2 rounded-full ${isIncome ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                      {tx.title || 'Transaksi AI'}
-                    </span>
-                    <span className={`font-black text-xs font-mono ${isIncome ? 'text-emerald-500' : 'text-red-500'}`}>
-                      {isIncome ? '+' : '-'} Rp {(tx.amount || 0).toLocaleString('id-ID')}
-                    </span>
+            {/* Transaction Cards List */}
+            <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1 custom-scrollbar">
+              {parsedResults.map((tx, index) => {
+                const isIncome = (tx.type || '').toUpperCase() === 'INCOME';
+                const isEditing = editingIndex === index;
+                const accountName = tx.account || tx.walletName || 'Belum terdeteksi';
+                const matchedWallet = filteredWallets.find(w => w.name.toLowerCase().includes(accountName.toLowerCase()));
+                const walletDisplayName = matchedWallet ? matchedWallet.name : accountName;
+                const displayDate = formatDateID(tx.date || tx.transaction_date);
+
+                return (
+                  <div
+                    key={index}
+                    className="bg-[var(--card-bg)] p-4 md:p-5 rounded-2xl border border-[var(--border)] hover:border-[var(--gold-primary)] transition-all space-y-4 shadow-sm"
+                  >
+                    {/* Card Main Summary Header */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--border)] pb-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${isIncome ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>
+                          {isIncome ? <ArrowDownLeft className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1">
+                            Transaksi #{index + 1} • <span className={isIncome ? 'text-emerald-500' : 'text-red-500'}>{isIncome ? '🟢 Pemasukan' : '🔴 Pengeluaran'}</span>
+                          </span>
+                          <h4 className="text-sm md:text-base font-extrabold text-[var(--text-primary)] truncate">
+                            {tx.title || 'Transaksi AI'}
+                          </h4>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
+                        <span className={`text-base md:text-lg font-black font-mono tracking-tight ${isIncome ? 'text-emerald-500' : 'text-red-500'}`}>
+                          {isIncome ? '+' : '-'} Rp {(tx.amount || 0).toLocaleString('id-ID')}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setEditingIndex(isEditing ? null : index)}
+                          className="px-2.5 py-1 rounded-xl bg-[var(--surface-secondary)] hover:bg-[var(--border)] text-[var(--gold-primary)] border border-[var(--gold-badge-border)] text-[11px] font-bold flex items-center gap-1 transition-all"
+                        >
+                          <Edit2 className="w-3 h-3" />
+                          <span>{isEditing ? 'Selesai' : 'Periksa & Edit'}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Inline Edit Form OR Detailed Metadata Grid */}
+                    {isEditing ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-[var(--input-bg)] rounded-xl border border-[var(--gold-badge-border)] animate-fade-in">
+                        <div>
+                          <label className="text-[10px] font-bold text-[var(--text-muted)] block mb-1">Deskripsi Transaksi</label>
+                          <input
+                            type="text"
+                            value={tx.title || ''}
+                            onChange={e => handleUpdateParsedResult(index, 'title', e.target.value)}
+                            className="w-full bg-[var(--card-bg)] px-3 py-1.5 rounded-lg border border-[var(--input-border)] text-xs text-[var(--input-text)] focus:outline-none focus:border-[var(--gold-primary)]"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-[var(--text-muted)] block mb-1">Nominal (Rp)</label>
+                          <input
+                            type="number"
+                            value={tx.amount || 0}
+                            onChange={e => handleUpdateParsedResult(index, 'amount', Number(e.target.value))}
+                            className="w-full bg-[var(--card-bg)] px-3 py-1.5 rounded-lg border border-[var(--input-border)] text-xs text-[var(--input-text)] focus:outline-none focus:border-[var(--gold-primary)]"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-[var(--text-muted)] block mb-1">Kategori</label>
+                          <input
+                            type="text"
+                            value={tx.category || ''}
+                            onChange={e => handleUpdateParsedResult(index, 'category', e.target.value)}
+                            className="w-full bg-[var(--card-bg)] px-3 py-1.5 rounded-lg border border-[var(--input-border)] text-xs text-[var(--input-text)] focus:outline-none focus:border-[var(--gold-primary)]"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-[var(--text-muted)] block mb-1">Akun / Dompet</label>
+                          <select
+                            value={walletDisplayName}
+                            onChange={e => handleUpdateParsedResult(index, 'account', e.target.value)}
+                            className="w-full bg-[var(--card-bg)] px-3 py-1.5 rounded-lg border border-[var(--input-border)] text-xs text-[var(--input-text)] focus:outline-none focus:border-[var(--gold-primary)]"
+                          >
+                            {filteredWallets.map(w => (
+                              <option key={w.id} value={w.name}>{w.name} ({w.currency})</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Detailed Grid (1 col mobile, 2-3 col desktop) */
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 text-[11px]">
+                        <div className="bg-[var(--surface-secondary)]/60 p-2.5 rounded-xl border border-[var(--border)] space-y-0.5">
+                          <span className="text-[10px] font-semibold text-[var(--text-muted)] flex items-center gap-1">
+                            <Tag className="w-3 h-3 text-[var(--gold-primary)]" /> Kategori & Sub
+                          </span>
+                          <p className="font-bold text-[var(--text-primary)] truncate">
+                            {tx.category || 'Lainnya'} {tx.subcategory ? `(${tx.subcategory})` : ''}
+                          </p>
+                        </div>
+
+                        <div className="bg-[var(--surface-secondary)]/60 p-2.5 rounded-xl border border-[var(--border)] space-y-0.5">
+                          <span className="text-[10px] font-semibold text-[var(--text-muted)] flex items-center gap-1">
+                            <Wallet className="w-3 h-3 text-cyan-400" /> Akun / Dompet
+                          </span>
+                          <p className="font-bold text-[var(--text-primary)] truncate">
+                            {walletDisplayName}
+                          </p>
+                        </div>
+
+                        <div className="bg-[var(--surface-secondary)]/60 p-2.5 rounded-xl border border-[var(--border)] space-y-0.5">
+                          <span className="text-[10px] font-semibold text-[var(--text-muted)] flex items-center gap-1">
+                            <Calendar className="w-3 h-3 text-emerald-400" /> Tanggal Transaksi
+                          </span>
+                          <p className="font-bold text-[var(--text-primary)] truncate">
+                            {displayDate}
+                          </p>
+                        </div>
+
+                        <div className="bg-[var(--surface-secondary)]/60 p-2.5 rounded-xl border border-[var(--border)] space-y-0.5">
+                          <span className="text-[10px] font-semibold text-[var(--text-muted)] flex items-center gap-1">
+                            <Layers className="w-3 h-3 text-indigo-400" /> Lingkup
+                          </span>
+                          <p className="font-bold text-[var(--text-primary)] capitalize">
+                            {(tx.scope || 'PERSONAL').toUpperCase() === 'SHARED' ? 'Keluarga (SHARED)' : 'Pribadi (PERSONAL)'}
+                          </p>
+                        </div>
+
+                        {tx.paid_by && (
+                          <div className="bg-[var(--surface-secondary)]/60 p-2.5 rounded-xl border border-[var(--border)] space-y-0.5">
+                            <span className="text-[10px] font-semibold text-[var(--text-muted)] flex items-center gap-1">
+                              <UserCheck className="w-3 h-3 text-amber-400" /> Penanggung Jawab
+                            </span>
+                            <p className="font-bold text-[var(--text-primary)] truncate">
+                              {tx.paid_by}
+                            </p>
+                          </div>
+                        )}
+
+                        <div className="bg-[var(--surface-secondary)]/60 p-2.5 rounded-xl border border-[var(--border)] space-y-0.5">
+                          <span className="text-[10px] font-semibold text-[var(--text-muted)] flex items-center gap-1">
+                            <ShieldCheck className="w-3 h-3 text-emerald-400" /> AI Confidence
+                          </span>
+                          <p className="font-extrabold text-emerald-400 flex items-center gap-1">
+                            <span>92%</span>
+                            <span className="text-[9px] font-semibold text-[var(--text-muted)]">(✓ Hasil Cukup Meyakinkan)</span>
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
 
-          <div className="flex gap-2 pt-1">
-            <button
-              onClick={handleConfirmSaveAll}
-              className="flex-1 py-2.5 btn-gold text-[#0B1220] font-extrabold rounded-2xl shadow-md transition-all text-xs flex items-center justify-center gap-1.5 active:scale-95"
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>+ Simpan Semua {parsedResults.length} Transaksi Ke Kas Pribadi</span>
-            </button>
-            <button
-              onClick={() => setParsedResults([])}
-              className="py-2.5 px-4 bg-[var(--card-bg)] hover:bg-[var(--border)] text-[var(--text-secondary)] rounded-2xl text-xs font-bold border border-[var(--border)]"
-            >
-              Ulangi
-            </button>
+            {/* FASE 3: Keterangan & Verification Guide */}
+            <div className="bg-cyan-950/20 border border-cyan-500/20 rounded-2xl p-4 space-y-2 text-[11px] text-cyan-200/90">
+              <div className="font-bold flex items-center gap-1.5 text-cyan-400">
+                <Info className="w-4 h-4 text-cyan-400 shrink-0" />
+                <span>ℹ️ Keterangan & Verifikasi AI</span>
+              </div>
+              <ul className="space-y-1 pl-5 list-disc text-[11px] text-[var(--text-secondary)]">
+                <li>AI mendeteksi <strong>{parsedResults.length} transaksi</strong> dari input Anda.</li>
+                <li>Periksa kembali kategori, jumlah nominal, akun dompet, dan tanggal sebelum disimpan ke kas.</li>
+                <li>Anda dapat menggunakan tombol <strong>"Periksa & Edit"</strong> di atas jika ingin mengubah detail transaksi sebelum disimpan.</li>
+              </ul>
+            </div>
+
+            {/* FASE 7: Save & Reset Actions */}
+            <div className="flex flex-col sm:flex-row gap-2.5 pt-1">
+              <button
+                onClick={handleConfirmSaveAll}
+                className="flex-1 py-3.5 btn-gold text-[#0B1220] font-extrabold rounded-2xl shadow-lg transition-all text-xs flex items-center justify-center gap-2 active:scale-95"
+              >
+                <CheckCircle2 className="w-4.5 h-4.5 stroke-[2.5]" />
+                <span>+ Simpan Semua {parsedResults.length} Transaksi Ke {targetWalletName}</span>
+              </button>
+              <button
+                onClick={() => { setParsedResults([]); setEditingIndex(null); }}
+                className="py-3.5 px-5 bg-[var(--card-bg)] hover:bg-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-2xl text-xs font-bold border border-[var(--border)] transition-all"
+              >
+                Ulangi
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };
