@@ -33,7 +33,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
   openFastAITxModal,
   openCategoryModal
 }) => {
-  const { filteredTransactions, deleteTransaction, categories, totalIncome, totalExpense, netFlow } = useFinance();
+  const { filteredTransactions, deleteTransaction, categories, wallets, totalIncome, totalExpense, netFlow } = useFinance();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense' | 'transfer'>('all');
@@ -208,60 +208,105 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
             </thead>
             <tbody className="divide-y divide-[var(--border)] text-xs font-medium">
               {transactions.length > 0 ? (
-                transactions.map(tx => (
-                  <tr key={tx.id} className="hover:bg-[var(--surface-secondary)]/50 transition-colors">
-                    <td className="p-4 text-[var(--text-secondary)] whitespace-nowrap font-mono font-semibold">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-                        {tx.date}
-                      </div>
-                    </td>
+                transactions.map(tx => {
+                  const sourceWallet = wallets.find(w => w.id === tx.walletId || w.name.toLowerCase() === tx.walletId.toLowerCase());
+                  const sourceWalletName = sourceWallet ? sourceWallet.name : (tx.walletId && tx.walletId !== 'w-1' ? tx.walletId : 'Kas Utama');
+                  const targetWallet = tx.targetWalletId ? wallets.find(w => w.id === tx.targetWalletId || w.name.toLowerCase() === tx.targetWalletId.toLowerCase()) : null;
+                  const targetWalletName = targetWallet ? targetWallet.name : (tx.targetWalletId || 'Kas Tujuan');
 
-                    <td className="p-4">
-                      <div className="font-bold text-[var(--text-primary)]">{tx.title}</div>
-                      {tx.note && <div className="text-[10px] text-[var(--text-muted)] mt-0.5">{tx.note}</div>}
-                    </td>
+                  const displaySubcategory = tx.subcategory || (() => {
+                    if (tx.note && /sub-kategori:/i.test(tx.note)) {
+                      const match = tx.note.match(/sub-kategori:\s*([^|]+)/i);
+                      return match ? match[1].trim() : undefined;
+                    }
+                    return undefined;
+                  })();
 
-                    <td className="p-4 whitespace-nowrap">
-                      <div className="flex flex-col gap-1 items-start">
-                        <span className="px-2.5 py-1 rounded-xl bg-[var(--surface-secondary)] text-[var(--text-primary)] font-bold text-[10px] border border-[var(--border)]">
-                          {tx.category}
-                        </span>
-                        {tx.subcategory && (
-                          <span className="px-2 py-0.5 rounded-lg bg-[var(--gold-badge-bg)] text-[var(--gold-primary)] border border-[var(--gold-badge-border)] font-semibold text-[9px]">
-                            {tx.subcategory}
+                  return (
+                    <tr key={tx.id} className="hover:bg-[var(--surface-secondary)]/50 transition-colors">
+                      <td className="p-4 text-[var(--text-secondary)] whitespace-nowrap font-mono font-semibold">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+                          {tx.date}
+                        </div>
+                      </td>
+
+                      <td className="p-4">
+                        {/* Baris 1: Title (Paling Menonjol) */}
+                        <div className="font-extrabold text-sm text-[var(--text-primary)] tracking-tight">
+                          {tx.title}
+                        </div>
+
+                        {/* Baris 2: Category • Subcategory */}
+                        <div className="text-[11px] font-semibold text-[var(--text-secondary)] mt-0.5 flex items-center gap-1.5">
+                          <span>{tx.category || 'Lainnya'}</span>
+                          {displaySubcategory && (
+                            <>
+                              <span className="text-[var(--text-muted)]">•</span>
+                              <span className="text-[var(--gold-primary)] font-bold">{displaySubcategory}</span>
+                            </>
+                          )}
+                        </div>
+
+                        {/* Baris 3: Wallet Flow */}
+                        <div className="text-[11px] font-medium text-[var(--text-muted)] mt-0.5">
+                          {tx.type === 'expense' && (
+                            <span>Dari: <strong className="text-[var(--text-primary)] font-bold">{sourceWalletName}</strong></span>
+                          )}
+                          {tx.type === 'income' && (
+                            <span>Ke: <strong className="text-[var(--text-primary)] font-bold">{sourceWalletName}</strong></span>
+                          )}
+                          {tx.type === 'transfer' && (
+                            <span>
+                              <strong className="text-[var(--text-primary)] font-bold">{sourceWalletName}</strong>
+                              {' → '}
+                              <strong className="text-[var(--text-primary)] font-bold">{targetWalletName}</strong>
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      <td className="p-4 whitespace-nowrap">
+                        <div className="flex flex-col gap-1 items-start">
+                          <span className="px-2.5 py-1 rounded-xl bg-[var(--surface-secondary)] text-[var(--text-primary)] font-bold text-[10px] border border-[var(--border)]">
+                            {tx.category}
                           </span>
-                        )}
-                      </div>
-                    </td>
+                          {displaySubcategory && (
+                            <span className="px-2 py-0.5 rounded-lg bg-[var(--gold-badge-bg)] text-[var(--gold-primary)] border border-[var(--gold-badge-border)] font-semibold text-[9px]">
+                              {displaySubcategory}
+                            </span>
+                          )}
+                        </div>
+                      </td>
 
-                    <td className="p-4 text-right font-black whitespace-nowrap font-mono">
-                      <span
-                        className={
-                          tx.type === 'income'
-                            ? 'text-emerald-500'
-                            : tx.type === 'expense'
-                            ? 'text-red-500'
-                            : 'text-[var(--gold-primary)]'
-                        }
-                      >
-                        {tx.type === 'income' ? '+' : tx.type === 'expense' ? '-' : ''} Rp{' '}
-                        {tx.amount.toLocaleString('id-ID')}
-                      </span>
-                    </td>
+                      <td className="p-4 text-right font-black whitespace-nowrap font-mono">
+                        <span
+                          className={
+                            tx.type === 'income'
+                              ? 'text-emerald-500'
+                              : tx.type === 'expense'
+                              ? 'text-red-500'
+                              : 'text-[var(--gold-primary)]'
+                          }
+                        >
+                          {tx.type === 'income' ? '+' : tx.type === 'expense' ? '-' : ''} Rp{' '}
+                          {tx.amount.toLocaleString('id-ID')}
+                        </span>
+                      </td>
 
-                    <td className="p-4 text-center whitespace-nowrap">
-                      <button
-                        onClick={() => deleteTransaction(tx.id)}
-                        className="p-2 rounded-xl text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center mx-auto"
-                        title="Hapus Transaksi"
-                        aria-label="Hapus Transaksi"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                      <td className="p-4 text-center whitespace-nowrap">
+                        <button
+                          onClick={() => deleteTransaction(tx.id)}
+                          className="p-2 rounded-xl text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center mx-auto"
+                          title="Hapus Transaksi"
+                          aria-label="Hapus Transaksi"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
                   <td colSpan={5} className="p-10 text-center text-[var(--text-muted)] text-xs font-semibold">
@@ -276,56 +321,97 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
         {/* MOBILE CARD VIEW (Touch Targets >= 44px) */}
         <div className="md:hidden p-4 space-y-3">
           {transactions.length > 0 ? (
-            transactions.map(tx => (
-              <div
-                key={tx.id}
-                className="p-4 rounded-2xl bg-[var(--surface-secondary)] border border-[var(--border)] flex items-center justify-between gap-3"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
-                      tx.type === 'income'
-                        ? 'bg-emerald-500/15 text-emerald-500'
-                        : tx.type === 'expense'
-                        ? 'bg-red-500/15 text-red-500'
-                        : 'bg-[var(--gold-badge-bg)] text-[var(--gold-primary)]'
-                    }`}
-                  >
-                    {tx.type === 'income' ? '+' : tx.type === 'expense' ? '-' : '⇄'}
-                  </div>
-                  <div className="min-w-0">
-                    <h4 className="text-xs font-extrabold text-[var(--text-primary)] truncate">{tx.title}</h4>
-                    <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-[var(--text-muted)] mt-0.5">
-                      <span className="font-bold">{tx.category}</span>
-                      <span>•</span>
-                      <span>{tx.date}</span>
+            transactions.map(tx => {
+              const sourceWallet = wallets.find(w => w.id === tx.walletId || w.name.toLowerCase() === tx.walletId.toLowerCase());
+              const sourceWalletName = sourceWallet ? sourceWallet.name : (tx.walletId && tx.walletId !== 'w-1' ? tx.walletId : 'Kas Utama');
+              const targetWallet = tx.targetWalletId ? wallets.find(w => w.id === tx.targetWalletId || w.name.toLowerCase() === tx.targetWalletId.toLowerCase()) : null;
+              const targetWalletName = targetWallet ? targetWallet.name : (tx.targetWalletId || 'Kas Tujuan');
+
+              const displaySubcategory = tx.subcategory || (() => {
+                if (tx.note && /sub-kategori:/i.test(tx.note)) {
+                  const match = tx.note.match(/sub-kategori:\s*([^|]+)/i);
+                  return match ? match[1].trim() : undefined;
+                }
+                return undefined;
+              })();
+
+              return (
+                <div
+                  key={tx.id}
+                  className="p-4 rounded-2xl bg-[var(--surface-secondary)] border border-[var(--border)] flex items-center justify-between gap-3"
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
+                        tx.type === 'income'
+                          ? 'bg-emerald-500/15 text-emerald-500'
+                          : tx.type === 'expense'
+                          ? 'bg-red-500/15 text-red-500'
+                          : 'bg-[var(--gold-badge-bg)] text-[var(--gold-primary)]'
+                      }`}
+                    >
+                      {tx.type === 'income' ? '+' : tx.type === 'expense' ? '-' : '⇄'}
+                    </div>
+                    <div className="min-w-0 flex-1 space-y-0.5">
+                      {/* Baris 1: Title */}
+                      <h4 className="text-xs font-extrabold text-[var(--text-primary)] truncate">{tx.title}</h4>
+
+                      {/* Baris 2: Category • Subcategory */}
+                      <div className="text-[10px] font-semibold text-[var(--text-secondary)] flex items-center gap-1 flex-wrap">
+                        <span>{tx.category || 'Lainnya'}</span>
+                        {displaySubcategory && (
+                          <>
+                            <span className="text-[var(--text-muted)]">•</span>
+                            <span className="text-[var(--gold-primary)] font-bold">{displaySubcategory}</span>
+                          </>
+                        )}
+                        <span className="text-[var(--text-muted)]">•</span>
+                        <span className="text-[var(--text-muted)]">{tx.date}</span>
+                      </div>
+
+                      {/* Baris 3: Wallet Flow */}
+                      <div className="text-[10px] font-medium text-[var(--text-muted)]">
+                        {tx.type === 'expense' && (
+                          <span>Dari: <strong className="text-[var(--text-primary)] font-bold">{sourceWalletName}</strong></span>
+                        )}
+                        {tx.type === 'income' && (
+                          <span>Ke: <strong className="text-[var(--text-primary)] font-bold">{sourceWalletName}</strong></span>
+                        )}
+                        {tx.type === 'transfer' && (
+                          <span>
+                            <strong className="text-[var(--text-primary)] font-bold">{sourceWalletName}</strong>
+                            {' → '}
+                            <strong className="text-[var(--text-primary)] font-bold">{targetWalletName}</strong>
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex items-center gap-2 shrink-0">
-                  <span
-                    className={`text-xs font-black font-mono ${
-                      tx.type === 'income'
-                        ? 'text-emerald-500'
-                        : tx.type === 'expense'
-                        ? 'text-red-500'
-                        : 'text-[var(--gold-primary)]'
-                    }`}
-                  >
-                    {tx.type === 'income' ? '+' : tx.type === 'expense' ? '-' : ''} Rp {tx.amount.toLocaleString('id-ID')}
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span
+                      className={`text-xs font-black font-mono ${
+                        tx.type === 'income'
+                          ? 'text-emerald-500'
+                          : tx.type === 'expense'
+                          ? 'text-red-500'
+                          : 'text-[var(--gold-primary)]'
+                      }`}
+                    >
+                      {tx.type === 'income' ? '+' : tx.type === 'expense' ? '-' : ''} Rp {tx.amount.toLocaleString('id-ID')}
+                    </span>
 
-                  <button
-                    onClick={() => deleteTransaction(tx.id)}
-                    className="p-2 rounded-xl text-[var(--text-muted)] hover:text-red-500 min-h-[44px] min-w-[44px] flex items-center justify-center"
-                    aria-label="Hapus Transaksi"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                    <button
+                      onClick={() => deleteTransaction(tx.id)}
+                      className="p-2 rounded-xl text-[var(--text-muted)] hover:text-red-500 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                      aria-label="Hapus Transaksi"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div className="p-8 text-center bg-[var(--surface-secondary)] rounded-2xl border border-[var(--border)] space-y-3">
               <FileSpreadsheet className="w-8 h-8 text-[var(--gold-primary)] mx-auto opacity-70" />

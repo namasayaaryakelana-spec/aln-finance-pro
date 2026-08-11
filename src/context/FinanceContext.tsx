@@ -428,9 +428,9 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   // Filtered by active scope
-  const filteredWallets = wallets.filter(w => currentScope === 'all' || w.scope === 'all' || w.scope === currentScope);
-  const filteredTransactions = transactions.filter(t => currentScope === 'all' || t.scope === 'all' || t.scope === currentScope);
-  const filteredBudgets = budgets.filter(b => currentScope === 'all' || b.scope === 'all' || b.scope === currentScope);
+  const filteredWallets = wallets.filter(w => currentScope === 'all' || !w.scope || w.scope === 'all' || w.scope === currentScope);
+  const filteredTransactions = transactions.filter(t => currentScope === 'all' || !t.scope || t.scope === 'all' || t.scope === currentScope);
+  const filteredBudgets = budgets.filter(b => currentScope === 'all' || !b.scope || b.scope === 'all' || b.scope === currentScope);
   const filteredInvestments = investments.filter(i => currentScope === 'all' || !i.scope || i.scope === 'all' || i.scope === currentScope);
   const filteredDebts = debts.filter(d => currentScope === 'all' || d.status === 'pending' || d.status === 'overdue');
 
@@ -479,13 +479,15 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
   const addTransaction = (txData: Omit<Transaction, 'id' | 'createdAt'>) => {
     const newTx: Transaction = {
       ...txData,
-      id: `tx-${Date.now()}`,
+      id: `tx-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       createdAt: new Date().toISOString()
     };
 
-    const updatedTxs = [newTx, ...transactions];
-    setTransactions(updatedTxs);
-    StorageService.saveTransactions(updatedTxs);
+    setTransactions(prev => {
+      const updatedTxs = [newTx, ...prev];
+      StorageService.saveTransactions(updatedTxs);
+      return updatedTxs;
+    });
 
     // Update wallet balance
     setWallets(prev => {

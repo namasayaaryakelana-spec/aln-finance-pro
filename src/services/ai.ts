@@ -76,6 +76,108 @@ export const AIService = {
       let runningAccount: string | null = null;
       const parsedTxList: any[] = [];
 
+      const classifyCategoryAndSubcategory = (clauseText: string, incomeFlag: boolean) => {
+        const lower = clauseText.toLowerCase();
+
+        if (incomeFlag) {
+          if (/gaji|suami|istri|bulanan/i.test(lower)) {
+            return { category: 'Penghasilan Utama', subcategory: 'Gaji' };
+          }
+          if (/bonus|omzet|dijual|refund|honor|sampingan/i.test(lower)) {
+            return { category: 'Penghasilan Sampingan', subcategory: 'Honorarium' };
+          }
+          return { category: 'Penghasilan Utama', subcategory: null };
+        }
+
+        // OBJECT-BASED EXPENSE CLASSIFICATION (NOT VERB-BASED)
+
+        // Fashion
+        if (/sepatu/i.test(lower)) {
+          return { category: 'Fashion', subcategory: 'Sepatu' };
+        }
+        if (/baju|celana|pakaian|kemeja|kaos|jaket|gaun|rok/i.test(lower)) {
+          return { category: 'Fashion', subcategory: 'Pakaian' };
+        }
+        if (/tas|dompet|ransel|koper/i.test(lower)) {
+          return { category: 'Fashion', subcategory: 'Tas' };
+        }
+
+        // Hiburan & Media
+        if (/netflix|spotify|youtube|disney|game|steam|bioskop|nonton|konser|rekreasi/i.test(lower)) {
+          return { category: 'Hiburan', subcategory: /netflix|spotify|youtube|disney/i.test(lower) ? 'Langganan' : 'Rekreasi' };
+        }
+
+        // Pendidikan
+        if (/sekolah|spp|kuliah|kursus|les|buku|kampus|seragam/i.test(lower)) {
+          return { category: 'Pendidikan', subcategory: /sekolah|spp|kuliah/i.test(lower) ? 'Sekolah' : 'Pendidikan' };
+        }
+
+        // Elektronik & Gadget
+        if (/laptop|komputer|pc|hp|phone|handphone|ipad|tablet|headphone|charger|monitor/i.test(lower)) {
+          return { category: 'Elektronik & Gadget', subcategory: /laptop|komputer|pc/i.test(lower) ? 'Laptop' : 'Gadget' };
+        }
+
+        // Transportasi
+        if (/bensin|pertamax|pertalite|solar|bbm/i.test(lower)) {
+          return { category: 'Transportasi', subcategory: 'Bensin' };
+        }
+        if (/servis|bengkel|oli|ban|motor|mobil/i.test(lower)) {
+          return { category: 'Transportasi', subcategory: 'Servis Kendaraan' };
+        }
+        if (/tiket|pesawat|kereta|bus|travel/i.test(lower)) {
+          return { category: 'Transportasi', subcategory: 'Tiket' };
+        }
+        if (/parkir|tol|ojek|grab|gojek|gocar|grabcar/i.test(lower)) {
+          return { category: 'Transportasi', subcategory: 'Transportasi Umum / Ojek' };
+        }
+
+        // Kebutuhan Rumah
+        if (/gas|lpg|elpiji/i.test(lower)) {
+          return { category: 'Kebutuhan Rumah', subcategory: 'Gas LPG' };
+        }
+        if (/perabot|kasur|meja|kursi|lemari|lampu|sapu|pel/i.test(lower)) {
+          return { category: 'Kebutuhan Rumah', subcategory: 'Peralatan Rumah' };
+        }
+
+        // Kebutuhan Keluarga & Anak
+        if (/pampers|popok|diapers/i.test(lower)) {
+          return { category: 'Kebutuhan Keluarga & Anak', subcategory: 'Pampers' };
+        }
+        if (/susu/i.test(lower)) {
+          return { category: 'Kebutuhan Keluarga & Anak', subcategory: 'Susu' };
+        }
+
+        // Tagihan & Utilitas
+        if (/listrik|pln/i.test(lower)) {
+          return { category: 'Tagihan & Utilitas', subcategory: 'Listrik' };
+        }
+        if (/internet|wifi|indihome|biznet|fastnet/i.test(lower)) {
+          return { category: 'Tagihan & Utilitas', subcategory: 'Internet' };
+        }
+        if (/pulsa|kuota|paket data/i.test(lower)) {
+          return { category: 'Tagihan & Utilitas', subcategory: 'Pulsa' };
+        }
+
+        // Kesehatan
+        if (/obat|apotek|resep|vitamin/i.test(lower)) {
+          return { category: 'Kesehatan', subcategory: 'Obat' };
+        }
+        if (/dokter|klinik|rumah sakit|rs/i.test(lower)) {
+          return { category: 'Kesehatan', subcategory: 'Dokter' };
+        }
+
+        // Makanan & Kuliner
+        if (/makan|nasi|soto|bakso|ayam|mie|gulai|rendang|resto|restoran|kfc|mcd|burger|pizza/i.test(lower)) {
+          return { category: 'Makanan & Kuliner', subcategory: 'Makanan' };
+        }
+        if (/kopi|minum|boba|tea|teh|cafe|jus/i.test(lower)) {
+          return { category: 'Makanan & Kuliner', subcategory: 'Minuman' };
+        }
+
+        // Dynamic fallback for any unlisted new transaction (NEVER default to Makanan!)
+        return { category: 'Lainnya', subcategory: null };
+      };
+
       for (const clause of clauses) {
         const matchesAmount = clause.match(/(\d+(?:[\.,]\d+)?)\s*(rb|ribu|jt|juta|k|m)?/i);
         let amount = 0;
@@ -111,6 +213,8 @@ export const AIService = {
           title = title.charAt(0).toUpperCase() + title.slice(1);
         }
 
+        const { category, subcategory } = classifyCategoryAndSubcategory(clause, isIncome);
+
         parsedTxList.push({
           title,
           type: isIncome ? 'INCOME' : 'EXPENSE',
@@ -121,8 +225,8 @@ export const AIService = {
           scope: /bersama|rumah|keluarga|dapur|anak|pampers|listrik|wifi/i.test(clause) ? 'SHARED' : 'PERSONAL',
           account: runningAccount,
           walletName: runningAccount,
-          category: isIncome ? 'Penghasilan Utama' : 'Makan',
-          subcategory: null,
+          category,
+          subcategory,
           transaction_date: new Date().toISOString().split('T')[0],
           is_high_impact: amount > 200000,
           date: new Date().toISOString().split('T')[0]

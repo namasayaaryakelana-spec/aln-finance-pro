@@ -206,14 +206,21 @@ Aturan Ekstraksi Sangat Ketat:
 5. Rekening / Dompet (account):
    - Set sesuai nama dompet/bank jika disebutkan (contoh: "BCA", "Mandiri", "GoPay", "Cash").
 6. Kategori & Sub-Kategori (category & subcategory):
-   - Pilihlah kategori yang paling tepat dari taksonomi berikut:
-     * "Transportasi" (Sub: "Bensin", "Parkir", "Servis & Perawatan", "Tol / Ojek Online")
-     * "Makan" (Sub: "Belanja Dapur", "Makan Diluar", "Jajan / Kopi")
-     * "Bill & Utilitas" (Sub: "Listrik", "Gas LPG", "Wifi / Internet", "Pulsa")
-     * "Kebutuhan Keluarga & Anak" (Sub: "Pampers / Popok", "Susu & Perlengkapan", "Sekolah / Daycare")
-     * "Kesehatan" (Sub: "Obat & Vitamin", "Dokter / Klinik")
+   - ATURAN UTAMA: JANGAN menentukan kategori dari kata kerja (seperti "beli", "bayar", "pesan", "kirim", "ambil"). Tentukan kategori berdasarkan SEMANTIK OBJEK, TUJUAN, dan KONTEKS LENGKAP transaksi!
+   - Contoh di bawah ini HANYA CONTOH ILUSTRASI, BUKAN BATASAN KAKU. Anda HARUS secara cerdas dan fleksibel memahami serta mengklasifikasikan transaksi baru yang belum pernah dicontohkan:
+     * "Fashion" (Sub: "Sepatu", "Pakaian", "Tas", dll) -> Contoh: "beli sepatu" -> Fashion • Sepatu
+     * "Transportasi" (Sub: "Bensin", "Servis Kendaraan", "Tiket", "Tol", dll) -> Contoh: "bayar servis motor" -> Transportasi • Servis Kendaraan
+     * "Hiburan" (Sub: "Langganan", "Bioskop", "Hobi", dll) -> Contoh: "langganan Netflix" -> Hiburan • Langganan
+     * "Pendidikan" (Sub: "Sekolah", "Kursus", "Buku", dll) -> Contoh: "bayar uang sekolah anak" -> Pendidikan • Sekolah
+     * "Elektronik & Gadget" (Sub: "Laptop", "HP / Aksesoris", dll) -> Contoh: "beli laptop untuk kerja" -> Elektronik & Gadget • Laptop
+     * "Makanan & Kuliner" (Sub: "Makanan", "Minuman", "Restoran", "Belanja Dapur", dll)
+     * "Kebutuhan Rumah" (Sub: "Gas LPG", "Peralatan Rumah", "Kebersihan", dll)
+     * "Kebutuhan Keluarga & Anak" (Sub: "Pampers", "Susu", "Sekolah", dll)
+     * "Tagihan & Utilitas" (Sub: "Listrik", "Internet", "Pulsa", "Air", dll)
+     * "Kesehatan" (Sub: "Obat", "Dokter / Klinik", dll)
      * "Penghasilan Utama" (Sub: "Gaji Suami", "Gaji Istri")
-     * "Penghasilan Sampingan" (Sub: "Honorarium Kegiatan", "Transport Rapat / Bonus", "Usaha Sampingan")
+     * "Penghasilan Sampingan" (Sub: "Honorarium Kegiatan", "Usaha Sampingan")
+   - PENTING: Jika transaksi mengenai objek/keperluan baru yang belum dicantumkan di atas, pilihlah Kategori & Subkategori yang paling relevan dan presisi sesuai konteks objek tersebut. JANGAN pernah memilih "Makanan" hanya karena kata "beli" atau "bayar" muncul!
 7. Penanganan Multi-Transaksi dalam 1 Input (SANGAT PENTING):
    - Jika pengguna menyebutkan beberapa transaksi terpisah sekaligus (contoh: "bensin bca 50rb terus makan siang 35rb dan bayar wifi 250rb"), Anda WAJIB mengembalikan array "transactions" dengan 3 objek transaksi terpisah!
    - KONTINUITAS SUBJEK & DOMPET: Jika transaksi ke-2 atau ke-3 tidak menyebutkan nama pembayar/dompet secara eksplisit, warisi subjek (paid_by) dan dompet (account) dari transaksi pertama!`;
