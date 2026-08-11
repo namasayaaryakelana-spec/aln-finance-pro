@@ -62,6 +62,7 @@ export const SupabaseSyncService = {
         currency: w.currency || 'IDR',
         balance: Number(w.balance || 0),
         accountNumber: w.account_number || '',
+        icon: w.icon || 'Wallet',
         scope: w.scope || 'personal',
         color: w.color || '#D4AF37',
         isDefault: Boolean(w.is_default)
@@ -94,30 +95,34 @@ export const SupabaseSyncService = {
 
       const budgets: Budget[] = (rawBudgets || []).map((b: any) => ({
         id: b.id,
-        category: b.category,
-        amount: Number(b.amount || 0),
+        categoryId: b.category_id || b.categoryId || b.id || 'cat-general',
+        categoryName: b.category || b.categoryName || 'Umum',
+        monthlyLimit: Number(b.amount || b.monthlyLimit || 0),
         spent: Number(b.spent || 0),
+        scope: b.scope || 'all',
         period: b.period || 'monthly'
       }));
 
       const goals: FinancialGoal[] = (rawGoals || []).map((g: any) => ({
         id: g.id,
         title: g.title,
-        targetAmount: Number(g.target_amount || 0),
-        currentAmount: Number(g.current_amount || 0),
+        targetAmount: Number(g.target_amount || g.targetAmount || 0),
+        currentAmount: Number(g.current_amount || g.currentAmount || 0),
         deadline: g.deadline || '',
-        color: g.color || '#D4AF37'
+        category: g.category || 'Umum',
+        color: g.color || '#D4AF37',
+        icon: g.icon || 'Target'
       }));
 
       const debts: BillAndDebt[] = (rawDebts || []).map((d: any) => ({
         id: d.id,
-        type: d.type,
-        person: d.person,
+        type: d.type || 'bill',
+        party: d.person || d.party || '',
         title: d.title,
         amount: Number(d.amount || 0),
-        dueDate: d.due_date || '',
+        dueDate: d.due_date || d.dueDate || '',
         status: d.status || 'pending',
-        notes: d.notes || undefined
+        note: d.notes || d.note || undefined
       }));
 
       const invoices: Invoice[] = (rawInvoices || []).map((i: any) => ({
@@ -310,8 +315,8 @@ export const SupabaseSyncService = {
       const budgetsPayload = bundle.budgets.map(b => ({
         id: b.id,
         user_id: userId,
-        category: b.category,
-        amount: b.amount,
+        category: b.categoryName,
+        amount: b.monthlyLimit,
         spent: b.spent,
         period: b.period,
         updated_at: new Date().toISOString()
@@ -332,12 +337,12 @@ export const SupabaseSyncService = {
         id: d.id,
         user_id: userId,
         type: d.type,
-        person: d.person,
+        person: d.party || '',
         title: d.title,
         amount: d.amount,
         due_date: d.dueDate,
         status: d.status,
-        notes: d.notes,
+        notes: d.note || '',
         updated_at: new Date().toISOString()
       }));
 

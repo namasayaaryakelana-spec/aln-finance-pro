@@ -752,14 +752,14 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (currentUser) {
       SupabaseSyncService.upsertRow('budgets', {
         id: newBudget.id,
-        category: newBudget.category,
-        amount: newBudget.amount,
+        category: newBudget.categoryName,
+        amount: newBudget.monthlyLimit,
         spent: newBudget.spent,
         period: newBudget.period
       }, currentUser.id);
     }
 
-    addToast('success', 'Anggaran Dibuat', `Target anggaran ${newBudget.category} diset Rp ${newBudget.amount.toLocaleString('id-ID')}`);
+    addToast('success', 'Anggaran Dibuat', `Target anggaran ${newBudget.categoryName} diset Rp ${newBudget.monthlyLimit.toLocaleString('id-ID')}`);
   };
 
   const updateBudget = (updatedBudget: Budget) => {
@@ -772,14 +772,14 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (currentUser) {
       SupabaseSyncService.upsertRow('budgets', {
         id: updatedBudget.id,
-        category: updatedBudget.category,
-        amount: updatedBudget.amount,
+        category: updatedBudget.categoryName,
+        amount: updatedBudget.monthlyLimit,
         spent: updatedBudget.spent,
         period: updatedBudget.period
       }, currentUser.id);
     }
 
-    addToast('info', 'Anggaran Diperbarui', `Batas anggaran ${updatedBudget.category} telah diperbarui.`);
+    addToast('info', 'Anggaran Diperbarui', `Batas anggaran ${updatedBudget.categoryName} telah diperbarui.`);
   };
 
   const deleteBudget = (id: string) => {
@@ -949,12 +949,12 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
       SupabaseSyncService.upsertRow('debts', {
         id: newDebt.id,
         type: newDebt.type,
-        person: newDebt.person,
+        person: newDebt.party || '',
         title: newDebt.title,
         amount: newDebt.amount,
         due_date: newDebt.dueDate,
         status: newDebt.status,
-        notes: newDebt.notes
+        notes: newDebt.note || ''
       }, currentUser.id);
     }
 
@@ -972,12 +972,12 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
       SupabaseSyncService.upsertRow('debts', {
         id: updatedDebt.id,
         type: updatedDebt.type,
-        person: updatedDebt.person,
+        person: updatedDebt.party || '',
         title: updatedDebt.title,
         amount: updatedDebt.amount,
         due_date: updatedDebt.dueDate,
         status: updatedDebt.status,
-        notes: updatedDebt.notes
+        notes: updatedDebt.note || ''
       }, currentUser.id);
     }
 

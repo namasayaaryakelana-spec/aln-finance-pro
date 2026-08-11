@@ -4,9 +4,7 @@ const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/logo.svg',
-  '/src/main.tsx',
-  '/src/index.css'
+  '/logo.svg'
 ];
 
 // Install Event: Pre-cache core shell
