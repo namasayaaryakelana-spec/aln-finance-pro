@@ -1,5 +1,5 @@
 // ALN Finance Pro — Production Service Worker
-const CACHE_NAME = 'aln-finance-pro-v1';
+const CACHE_NAME = 'aln-finance-pro-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
