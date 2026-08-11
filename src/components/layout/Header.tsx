@@ -86,7 +86,7 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="flex items-center gap-3 min-w-0">
         {/* Mobile Brand Emblem */}
         <div className="lg:hidden w-9 h-9 rounded-2xl bg-[var(--surface-secondary)] border border-[var(--gold-badge-border)] flex items-center justify-center p-1.5 shrink-0 shadow-md">
-          <img src="/logo.png?v=3" alt="ALN Logo" className="w-6 h-6 object-contain" />
+          <img src="/logo.svg" alt="ALN Logo" className="w-7 h-7 object-contain" />
         </div>
 
         <div className="min-w-0">

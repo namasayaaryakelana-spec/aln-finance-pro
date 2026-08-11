@@ -56,7 +56,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
         {/* Animated Logo Icon */}
         <div className="w-24 h-24 mb-6 rounded-3xl bg-gradient-to-br from-slate-900 to-slate-950 p-4 border border-slate-800/80 shadow-2xl shadow-emerald-950/40 relative flex items-center justify-center group animate-scale-up">
           <div className="absolute inset-0 rounded-3xl bg-emerald-500/10 animate-pulse" />
-          <img src="/logo.png?v=3" alt="ALN Finance Pro Logo" className="w-16 h-16 relative z-10 drop-shadow-md object-contain" />
+          <img src="/logo.svg" alt="ALN Finance Pro Logo" className="w-16 h-16 relative z-10 drop-shadow-md object-contain" />
         </div>
 
         {/* Title & Slogan */}

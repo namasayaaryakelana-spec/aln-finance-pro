@@ -93,7 +93,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="p-4 border-b border-[var(--border)] flex items-center justify-between min-h-[73px]">
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-10 h-10 rounded-2xl bg-[var(--surface-secondary)] p-2 border border-[var(--gold-badge-border)] shadow-md flex items-center justify-center shrink-0">
-            <img src="/logo.png?v=3" alt="ALN Finance Logo" className="w-6 h-6 object-contain" />
+            <img src="/logo.svg" alt="ALN Finance Logo" className="w-7 h-7 object-contain" />
           </div>
           {!isCollapsed && (
             <div className="min-w-0 animate-fade-in">
