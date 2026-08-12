@@ -63,7 +63,7 @@ export const SupabaseSyncService = {
         balance: Number(w.balance || 0),
         accountNumber: w.account_number || '',
         icon: w.icon || 'Wallet',
-        scope: w.scope || 'personal',
+        scope: w.scope || 'all',
         color: w.color || '#D4AF37',
         isDefault: Boolean(w.is_default)
       }));
@@ -77,7 +77,7 @@ export const SupabaseSyncService = {
         title: t.title,
         category: t.category,
         subcategory: t.subcategory || undefined,
-        scope: t.scope || 'personal',
+        scope: t.scope || 'all',
         date: t.date,
         note: t.note || undefined,
         createdAt: t.created_at
@@ -90,7 +90,7 @@ export const SupabaseSyncService = {
         color: c.color || '#D4AF37',
         icon: c.icon || 'Tag',
         subcategories: Array.isArray(c.subcategories) ? c.subcategories : [],
-        scope: c.scope || 'personal'
+        scope: c.scope || 'all'
       }));
 
       const budgets: Budget[] = (rawBudgets || []).map((b: any) => ({

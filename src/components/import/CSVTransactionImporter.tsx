@@ -17,6 +17,7 @@ import {
   ArrowRightLeft
 } from 'lucide-react';
 import { Transaction, Wallet } from '../../types';
+import { normalizeCategoryAndSubcategory } from '../../utils/masterCategoryHelper';
 
 export interface ParsedCSVRow {
   index: number;
@@ -172,39 +173,14 @@ export const CSVTransactionImporter: React.FC = () => {
     return new Date().toISOString().split('T')[0];
   };
 
-  const findBestCategoryMatch = (catStr: string): { catName: string; subName: string } => {
-    if (!catStr) return { catName: '', subName: '' };
-    const query = String(catStr).toLowerCase().trim();
-
-    // 1. Exact Category Name or Subcategory Name
-    for (const cat of categories) {
-      if (cat.name.toLowerCase() === query) {
-        return { catName: cat.name, subName: '' };
-      }
-      if (Array.isArray(cat.subcategories)) {
-        for (const sub of cat.subcategories) {
-          if (sub.toLowerCase() === query) {
-            return { catName: cat.name, subName: sub };
-          }
-        }
-      }
-    }
-
-    // 2. Partial Search Category Name or Subcategory Name
-    for (const cat of categories) {
-      if (cat.name.toLowerCase().includes(query) || query.includes(cat.name.toLowerCase())) {
-        return { catName: cat.name, subName: '' };
-      }
-      if (Array.isArray(cat.subcategories)) {
-        for (const sub of cat.subcategories) {
-          if (sub.toLowerCase().includes(query) || query.includes(sub.toLowerCase())) {
-            return { catName: cat.name, subName: sub };
-          }
-        }
-      }
-    }
-
-    return { catName: '', subName: '' };
+  const findBestCategoryMatch = (catStr: string, subStr: string = ''): { catName: string; subName: string } => {
+    if (!catStr && !subStr) return { catName: '', subName: '' };
+    const { category, subcategory } = normalizeCategoryAndSubcategory(catStr, subStr);
+    const matchedCatObj = categories.find(c => c.name.toLowerCase() === category.toLowerCase()) || categories[0];
+    return {
+      catName: matchedCatObj ? matchedCatObj.name : category,
+      subName: subcategory
+    };
   };
 
   const findBestWalletMatch = (wStr: string): Wallet | null => {

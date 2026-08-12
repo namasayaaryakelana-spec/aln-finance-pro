@@ -15,7 +15,8 @@ import {
   Investment,
   AuditLog
 } from '../types';
-import { StorageService } from '../services/storage';
+import { StorageService, safeMergeEntityArray, purgeDemoData } from '../services/storage';
+import { normalizeTransactions, upgradeMasterCategories, FINAL_MASTER_CATEGORIES } from '../utils/masterCategoryHelper';
 
 interface Toast {
   id: string;
@@ -128,7 +129,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   const [wallets, setWallets] = useState<Wallet[]>(() => StorageService.getWallets());
-  const [transactions, setTransactions] = useState<Transaction[]>(() => StorageService.getTransactions());
+  const [transactions, setTransactions] = useState<Transaction[]>(() => normalizeTransactions(StorageService.getTransactions()));
   const [categories, setCategories] = useState<Category[]>(() => StorageService.getCategories());
   const [budgets, setBudgets] = useState<Budget[]>(() => StorageService.getBudgets());
   const [goals, setGoals] = useState<FinancialGoal[]>(() => StorageService.getGoals());
@@ -209,23 +210,105 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
       const remote = await SupabaseSyncService.fetchUserData(currentUser.id);
       if (remote) {
         isRemoteUpdateRef.current = true;
-        setWallets(remote.wallets);
-        setTransactions(remote.transactions);
-        setCategories(remote.categories.length ? remote.categories : categories);
-        setBudgets(remote.budgets);
-        setGoals(remote.goals);
-        setDebts(remote.debts);
-        setInvoices(remote.invoices);
-        setInvestments(remote.investments);
-        if (remote.auditLogs.length) setAuditLogs(remote.auditLogs);
 
-        // Save full 9-entity cache to localStorage & update last sync timestamp
-        StorageService.saveAllEntities(remote);
+        // For authenticated users, execute centralized purgeDemoData to clean up legacy demo items from localStorage
+        if (currentUser) {
+          purgeDemoData();
+        }
+
+        // Retrieve FRESH local state from StorageService
+        const localWallets = StorageService.getWallets();
+        const localTransactions = StorageService.getTransactions();
+        const localCategories = StorageService.getCategories();
+        const localBudgets = StorageService.getBudgets();
+        const localGoals = StorageService.getGoals();
+        const localDebts = StorageService.getDebts();
+        const localInvoices = StorageService.getInvoices();
+        const localInvestments = StorageService.getInvestments();
+        const localAuditLogs = StorageService.getAuditLogs();
+
+        // Perform Safe Merge for all 9 entities: Local-First + Cloud Sync
+        const mergedWallets = safeMergeEntityArray('wallets', localWallets, remote.wallets || []);
+        const rawMergedTransactions = safeMergeEntityArray('transactions', localTransactions, remote.transactions || []);
+        const mergedTransactions = normalizeTransactions(rawMergedTransactions);
+        
+        const upgradedCloudCategories = upgradeMasterCategories(remote.categories || []);
+        const rawMergedCategories = safeMergeEntityArray('categories', localCategories, upgradedCloudCategories);
+        const mergedCategories = upgradeMasterCategories(rawMergedCategories);
+
+        const mergedBudgets = safeMergeEntityArray('budgets', localBudgets, remote.budgets || []);
+        const mergedGoals = safeMergeEntityArray('goals', localGoals, remote.goals || []);
+        const mergedDebts = safeMergeEntityArray('debts', localDebts, remote.debts || []);
+        const mergedInvoices = safeMergeEntityArray('invoices', localInvoices, remote.invoices || []);
+        const mergedInvestments = safeMergeEntityArray('investments', localInvestments, remote.investments || []);
+        const mergedAuditLogs = safeMergeEntityArray('auditLogs', localAuditLogs, remote.auditLogs || []);
+
+        console.log('[STARTUP DEBUG]', {
+          currentUser: currentUser?.email || currentUser?.id || null,
+          authLoading: false,
+          localWalletCount: localWallets.length,
+          cloudWalletCount: remote.wallets?.length || 0,
+          mergedWalletCount: mergedWallets.length,
+          demoDataInjected: false
+        });
+
+        console.log(`[SYNC DEBUG] wallets -> Local: ${localWallets.length}, Cloud: ${remote.wallets?.length || 0}, Merged: ${mergedWallets.length}`);
+        console.log(`[SYNC DEBUG] transactions -> Local: ${localTransactions.length}, Cloud: ${remote.transactions?.length || 0}, Merged: ${mergedTransactions.length}`);
+
+        setWallets(mergedWallets);
+        setTransactions(mergedTransactions);
+        setCategories(mergedCategories);
+        setBudgets(mergedBudgets);
+        setGoals(mergedGoals);
+        setDebts(mergedDebts);
+        setInvoices(mergedInvoices);
+        setInvestments(mergedInvestments);
+        setAuditLogs(mergedAuditLogs);
+
+        // Save merged 9-entity cache to localStorage & update last sync timestamp
+        const mergedBundle = {
+          wallets: mergedWallets,
+          transactions: mergedTransactions,
+          categories: mergedCategories,
+          budgets: mergedBudgets,
+          goals: mergedGoals,
+          debts: mergedDebts,
+          invoices: mergedInvoices,
+          investments: mergedInvestments,
+          auditLogs: mergedAuditLogs
+        };
+        StorageService.saveAllEntities(mergedBundle);
         StorageService.saveLastSyncTimestamp(Date.now());
+
+        // Incrementally sync upgraded 18 Master Categories to Supabase
+        if (currentUser) {
+          mergedCategories.forEach(cat => {
+            SupabaseSyncService.upsertRow('categories', {
+              id: cat.id,
+              name: cat.name,
+              type: cat.type,
+              color: cat.color,
+              icon: cat.icon,
+              subcategories: cat.subcategories,
+              scope: cat.scope || 'all'
+            }, currentUser.id);
+          });
+        }
+
+        // Auto-enqueue preserved local transactions to pending queue for auto-upload
+        if (remote.transactions) {
+          const remoteTxIds = new Set((remote.transactions || []).map(t => t.id));
+          mergedTransactions.forEach(tx => {
+            if (!remoteTxIds.has(tx.id)) {
+              enqueuePendingTx(tx);
+            }
+          });
+          flushPendingQueue();
+        }
 
         setSyncStatus('synced');
         if (force) {
-          addToast('success', 'Data Diperbarui', 'Data terbaru berhasil diambil dari Cloud.');
+          addToast('success', 'Data Diperbarui', 'Data terbaru berhasil disinkronkan dari Cloud (Safe Merge Aktif).');
         }
         setTimeout(() => { isRemoteUpdateRef.current = false; }, 1500);
         return true;

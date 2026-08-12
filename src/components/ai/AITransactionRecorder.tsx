@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useFinance } from '../../context/FinanceContext';
 import { AIService } from '../../services/ai';
+import { normalizeCategoryAndSubcategory } from '../../utils/masterCategoryHelper';
 import {
   Sparkles,
   MessageSquare,
@@ -482,16 +483,15 @@ export const AITransactionRecorder: React.FC<AITransactionRecorderProps> = ({
                 const targetType = isIncome ? 'income' : 'expense';
                 const availableCategoryList = categories;
 
-                const aiCategory = (tx.category || '').trim();
-                const matchedCatObj = availableCategoryList.find(c => c.name.toLowerCase() === aiCategory.toLowerCase());
+                const { category: normCat, subcategory: normSub } = normalizeCategoryAndSubcategory(tx.category, tx.subcategory);
 
-                const selectedCategoryName = matchedCatObj ? matchedCatObj.name : (aiCategory || (availableCategoryList[0]?.name || 'Lainnya'));
+                const matchedCatObj = availableCategoryList.find(c => c.name.toLowerCase() === normCat.toLowerCase());
+                const selectedCategoryName = matchedCatObj ? matchedCatObj.name : (normCat || (availableCategoryList[0]?.name || 'Lain-Lain'));
                 const currentCategoryObj = categories.find(c => c.name === selectedCategoryName);
                 const availableSubcategories = currentCategoryObj?.subcategories || [];
 
-                const aiSubcategory = (tx.subcategory || '').trim();
-                const matchedSub = availableSubcategories.find(s => s.toLowerCase() === aiSubcategory.toLowerCase());
-                const selectedSubcategoryName = matchedSub || (availableSubcategories.length > 0 ? availableSubcategories[0] : aiSubcategory || '');
+                const matchedSub = availableSubcategories.find(s => s.toLowerCase() === normSub.toLowerCase());
+                const selectedSubcategoryName = matchedSub || (availableSubcategories.length > 0 ? availableSubcategories[0] : normSub || '');
 
                 return (
                   <div

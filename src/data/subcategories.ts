@@ -1,15 +1,27 @@
 export const masterCategories = {
   INCOME: {
-    "Penghasilan Utama": ["Gaji Suami", "Gaji Istri", "Transport Bulanan", "Insentif / Tunjangan"],
-    "Penghasilan Sampingan": ["Honorarium Kegiatan", "Transport Rapat / Bonus", "Usaha Sampingan"],
-    "Pemasukan Lainnya": ["Refunds / Reimbursements", "Pemberian / Hadiah", "Hasil Investasi"]
+    "Penghasilan Utama": ["Gaji Lana", "Gaji Lina", "Insentif Lina", "Transport Bulanan Lana", "Honorarium Kegiatan"],
+    "Pemasukan Lainnya": ["Pemasukan Lain", "Pemberian / Hadiah", "Refunds / Reimbursements"]
   },
   EXPENSE: {
-    "Transportasi": ["Bensin", "Biaya Perjalanan", "Parkir", "Servis & Perawatan"],
-    "Makan": ["Belanja Dapur", "Makan Diluar", "Jajan"],
-    "Bill & Utilitas": ["Listrik", "Gas LPG", "Wifi", "Netflix / Langganan", "Paket Data", "Kontrakan / KPR", "Air PAM"],
-    "Kebutuhan Keluarga & Anak": ["Pampers / Popok", "Susu & Perlengkapan", "Sekolah / Daycare", "Pakaian"],
-    "Kesehatan": ["Obat & Vitamin", "Dokter / Rumah Sakit"]
+    "Makanan": ["Makan di Luar", "Belanja Makanan", "Jajan", "Oleh-oleh"],
+    "Transportasi": ["Bensin", "Parkir", "Ojek", "Ongkos Kirim", "Transport Rapat/Bonus"],
+    "Rumah Tangga": ["Keperluan Rumah Tangga", "Gas", "Sampah", "Kontrakan"],
+    "Keperluan Bayi": ["Keperluan Bayi"],
+    "Tagihan & Utilitas": ["Listrik", "WiFi", "Paket Data", "Aplikasi & Software", "Netflix"],
+    "Kesehatan": ["Kesehatan", "Obat-obatan", "Dokter Kandungan"],
+    "Perawatan": ["Skincare", "Makeup & Kosmetik", "Potong Rambut", "Perawatan"],
+    "Belanja Pribadi": ["Pakaian", "Accessories", "Emas", "Kado & Hadiah", "Dekorasi & Pesta", "Elektronik HP/TV"],
+    "Sosial": ["Iuran RT & Sampah", "Nyumbang"],
+    "Biaya Keuangan": ["Admin Bank", "Pembayaran Shopee PayLater"],
+    "Utang & Cicilan": ["Pembayaran Utang", "Cicilan"],
+    "Service & Perbaikan": ["Service Motor", "Service", "Cuci Motor"],
+    "Perjalanan": ["Tiket", "Biaya Perjalanan", "Staycation"],
+    "Olahraga": ["Olahraga", "Futsal"],
+    "Lain-Lain": ["Lain-Lain"]
+  },
+  TRANSFER: {
+    "Transfer": ["Transfer Antar Wallet"]
   }
 };
 
@@ -20,15 +32,20 @@ export interface SubcategoryMap {
 export const defaultCategorySubcategories: SubcategoryMap = {
   ...masterCategories.INCOME,
   ...masterCategories.EXPENSE,
+  ...masterCategories.TRANSFER,
 
   // Aliases for legacy data support
-  'Gaji Utama': ['Gaji Suami', 'Gaji Istri', 'Insentif / Tunjangan'],
-  'Bonus & Dividen': ['Transport Rapat / Bonus', 'Hasil Investasi'],
-  'Freelance & Side Job': ['Honorarium Kegiatan', 'Usaha Sampingan'],
-  'Makanan & Kuliner': ['Belanja Dapur', 'Makan Diluar', 'Jajan'],
-  'Tagihan Rumah & Listrik': ['Listrik', 'Gas LPG', 'Wifi', 'Netflix / Langganan', 'Paket Data', 'Kontrakan / KPR', 'Air PAM'],
-  'Pendidikan & Anak': ['Pampers / Popok', 'Susu & Perlengkapan', 'Sekolah / Daycare', 'Pakaian'],
-  'Kesehatan & Asuransi': ['Obat & Vitamin', 'Dokter / Rumah Sakit']
+  'Gaji Utama': ['Gaji Lana', 'Gaji Lina', 'Insentif Lina', 'Transport Bulanan Lana', 'Honorarium Kegiatan'],
+  'Penghasilan Sampingan': ['Honorarium Kegiatan', 'Pemasukan Lain'],
+  'Bonus & Dividen': ['Pemasukan Lain', 'Pemberian / Hadiah'],
+  'Freelance & Side Job': ['Honorarium Kegiatan'],
+  'Makan': ['Makan di Luar', 'Belanja Makanan', 'Jajan', 'Oleh-oleh'],
+  'Makanan & Kuliner': ['Makan di Luar', 'Belanja Makanan', 'Jajan', 'Oleh-oleh'],
+  'Tagihan Rumah & Listrik': ['Listrik', 'WiFi', 'Paket Data', 'Aplikasi & Software', 'Netflix'],
+  'Bill & Utilitas': ['Listrik', 'WiFi', 'Paket Data', 'Aplikasi & Software', 'Netflix'],
+  'Kebutuhan Keluarga & Anak': ['Keperluan Bayi', 'Pakaian', 'Keperluan Rumah Tangga'],
+  'Belanja & Lifestyle': ['Pakaian', 'Accessories', 'Emas', 'Kado & Hadiah'],
+  'Kesehatan & Asuransi': ['Kesehatan', 'Obat-obatan', 'Dokter Kandungan']
 };
 
 export const getSubcategoriesForCategory = (categoryName: string, customCategories?: { name: string; subcategories?: string[] }[]): string[] => {

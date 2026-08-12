@@ -20,11 +20,13 @@ import {
   initialInvestments,
   initialAuditLogs
 } from '../data/initialData';
+import { upgradeMasterCategories, normalizeTransactions } from '../utils/masterCategoryHelper';
 
 const KEYS = {
   WALLETS: 'aln_wallets_v1',
   TRANSACTIONS: 'aln_transactions_v1',
   CATEGORIES: 'aln_categories_v1',
+  CATEGORY_VERSION: 'aln_category_version_v2',
   BUDGETS: 'aln_budgets_v1',
   GOALS: 'aln_goals_v1',
   DEBTS: 'aln_debts_v1',
@@ -52,32 +54,118 @@ const setStorageItem = <T>(key: string, value: T): void => {
   }
 };
 
+export const DEMO_IDS = {
+  WALLETS: new Set(['w-1', 'w-2', 'w-3', 'w-4', 'w-5']),
+  TRANSACTIONS: new Set(['tx-1', 'tx-2', 'tx-3', 'tx-4', 'tx-5', 'tx-6', 'tx-7', 'tx-8', 'tx-9', 'tx-10']),
+  BUDGETS: new Set(['b-1', 'b-2', 'b-3', 'b-4']),
+  GOALS: new Set(['g-1', 'g-2', 'g-3']),
+  DEBTS: new Set(['bd-1', 'bd-2', 'bd-3']),
+  INVOICES: new Set(['inv-1', 'inv-2']),
+  INVESTMENTS: new Set(['invst-1', 'invst-2', 'invst-3', 'invst-4']),
+  AUDIT_LOGS: new Set(['log-1', 'log-2', 'log-3'])
+};
+
+export function purgeDemoWallets(wallets: Wallet[]): Wallet[] {
+  return wallets.filter(w => !DEMO_IDS.WALLETS.has(w.id));
+}
+
+export function purgeDemoData(): {
+  wallets: { removed: number; remaining: number };
+  transactions: { removed: number; remaining: number };
+  budgets: { removed: number; remaining: number };
+  goals: { removed: number; remaining: number };
+  debts: { removed: number; remaining: number };
+  invoices: { removed: number; remaining: number };
+  investments: { removed: number; remaining: number };
+  auditLogs: { removed: number; remaining: number };
+} {
+  const currentWallets = StorageService.getWallets();
+  const currentTx = StorageService.getTransactions();
+  const currentBudgets = StorageService.getBudgets();
+  const currentGoals = StorageService.getGoals();
+  const currentDebts = StorageService.getDebts();
+  const currentInvoices = StorageService.getInvoices();
+  const currentInvestments = StorageService.getInvestments();
+  const currentLogs = StorageService.getAuditLogs();
+
+  const cleanWallets = currentWallets.filter(w => !DEMO_IDS.WALLETS.has(w.id));
+  const cleanTx = currentTx.filter(t => !DEMO_IDS.TRANSACTIONS.has(t.id) && !DEMO_IDS.WALLETS.has(t.walletId));
+  const cleanBudgets = currentBudgets.filter(b => !DEMO_IDS.BUDGETS.has(b.id));
+  const cleanGoals = currentGoals.filter(g => !DEMO_IDS.GOALS.has(g.id));
+  const cleanDebts = currentDebts.filter(d => !DEMO_IDS.DEBTS.has(d.id));
+  const cleanInvoices = currentInvoices.filter(i => !DEMO_IDS.INVOICES.has(i.id));
+  const cleanInvestments = currentInvestments.filter(inv => !DEMO_IDS.INVESTMENTS.has(inv.id));
+  const cleanLogs = currentLogs.filter(l => !DEMO_IDS.AUDIT_LOGS.has(l.id));
+
+  StorageService.saveWallets(cleanWallets);
+  StorageService.saveTransactions(cleanTx);
+  StorageService.saveBudgets(cleanBudgets);
+  StorageService.saveGoals(cleanGoals);
+  StorageService.saveDebts(cleanDebts);
+  StorageService.saveInvoices(cleanInvoices);
+  StorageService.saveInvestments(cleanInvestments);
+  StorageService.saveAuditLogs(cleanLogs);
+
+  const stats = {
+    wallets: { removed: currentWallets.length - cleanWallets.length, remaining: cleanWallets.length },
+    transactions: { removed: currentTx.length - cleanTx.length, remaining: cleanTx.length },
+    budgets: { removed: currentBudgets.length - cleanBudgets.length, remaining: cleanBudgets.length },
+    goals: { removed: currentGoals.length - cleanGoals.length, remaining: cleanGoals.length },
+    debts: { removed: currentDebts.length - cleanDebts.length, remaining: cleanDebts.length },
+    invoices: { removed: currentInvoices.length - cleanInvoices.length, remaining: cleanInvoices.length },
+    investments: { removed: currentInvestments.length - cleanInvestments.length, remaining: cleanInvestments.length },
+    auditLogs: { removed: currentLogs.length - cleanLogs.length, remaining: cleanLogs.length }
+  };
+
+  console.log('[DEMO CLEANUP]', stats);
+  return stats;
+}
+
 export const StorageService = {
-  getWallets: (): Wallet[] => getStorageItem(KEYS.WALLETS, initialWallets),
+  getWallets: (): Wallet[] => getStorageItem(KEYS.WALLETS, []),
   saveWallets: (wallets: Wallet[]) => setStorageItem(KEYS.WALLETS, wallets),
 
-  getTransactions: (): Transaction[] => getStorageItem(KEYS.TRANSACTIONS, initialTransactions),
-  saveTransactions: (transactions: Transaction[]) => setStorageItem(KEYS.TRANSACTIONS, transactions),
+  getTransactions: (): Transaction[] => {
+    const rawTxs = getStorageItem<Transaction[]>(KEYS.TRANSACTIONS, []);
+    return normalizeTransactions(rawTxs);
+  },
+  saveTransactions: (transactions: Transaction[]) => setStorageItem(KEYS.TRANSACTIONS, normalizeTransactions(transactions)),
 
-  getCategories: (): Category[] => getStorageItem(KEYS.CATEGORIES, initialCategories),
-  saveCategories: (categories: Category[]) => setStorageItem(KEYS.CATEGORIES, categories),
+  getCategories: (): Category[] => {
+    const rawCategories = getStorageItem<Category[]>(KEYS.CATEGORIES, initialCategories);
+    const version = getStorageItem<number>(KEYS.CATEGORY_VERSION, 0);
 
-  getBudgets: (): Budget[] => getStorageItem(KEYS.BUDGETS, initialBudgets),
+    // Auto-migrate to 18 Master Data categories if version < 2 or if categories contains legacy definitions
+    if (version < 2 || !rawCategories || rawCategories.length < 18 || rawCategories.some(c => c.name === 'Makanan & Kuliner' || c.name === 'Bill & Utilitas' || c.name === 'Kebutuhan Keluarga & Anak')) {
+      const upgraded = upgradeMasterCategories(rawCategories);
+      setStorageItem(KEYS.CATEGORIES, upgraded);
+      setStorageItem(KEYS.CATEGORY_VERSION, 2);
+      return upgraded;
+    }
+
+    return rawCategories;
+  },
+  saveCategories: (categories: Category[]) => {
+    setStorageItem(KEYS.CATEGORIES, categories);
+    setStorageItem(KEYS.CATEGORY_VERSION, 2);
+  },
+
+  getBudgets: (): Budget[] => getStorageItem(KEYS.BUDGETS, []),
   saveBudgets: (budgets: Budget[]) => setStorageItem(KEYS.BUDGETS, budgets),
 
-  getGoals: (): FinancialGoal[] => getStorageItem(KEYS.GOALS, initialGoals),
+  getGoals: (): FinancialGoal[] => getStorageItem(KEYS.GOALS, []),
   saveGoals: (goals: FinancialGoal[]) => setStorageItem(KEYS.GOALS, goals),
 
-  getDebts: (): BillAndDebt[] => getStorageItem(KEYS.DEBTS, initialBillsAndDebts),
+  getDebts: (): BillAndDebt[] => getStorageItem(KEYS.DEBTS, []),
   saveDebts: (debts: BillAndDebt[]) => setStorageItem(KEYS.DEBTS, debts),
 
-  getInvoices: (): Invoice[] => getStorageItem(KEYS.INVOICES, initialInvoices),
+  getInvoices: (): Invoice[] => getStorageItem(KEYS.INVOICES, []),
   saveInvoices: (invoices: Invoice[]) => setStorageItem(KEYS.INVOICES, invoices),
 
-  getInvestments: (): Investment[] => getStorageItem(KEYS.INVESTMENTS, initialInvestments),
+  getInvestments: (): Investment[] => getStorageItem(KEYS.INVESTMENTS, []),
   saveInvestments: (investments: Investment[]) => setStorageItem(KEYS.INVESTMENTS, investments),
 
-  getAuditLogs: (): AuditLog[] => getStorageItem(KEYS.AUDIT_LOGS, initialAuditLogs),
+  getAuditLogs: (): AuditLog[] => getStorageItem(KEYS.AUDIT_LOGS, []),
   saveAuditLogs: (logs: AuditLog[]) => setStorageItem(KEYS.AUDIT_LOGS, logs),
 
   addAuditLog: (action: string, module: string, details: string, role = 'Pemilik Bisnis') => {
@@ -174,3 +262,75 @@ export const StorageService = {
     localStorage.removeItem(KEYS.OFFLINE_QUEUE);
   }
 };
+
+export function safeMergeEntityArray<T extends { id: string; updatedAt?: string; createdAt?: string; date?: string; timestamp?: string }>(
+  entityName: string,
+  localItems: T[],
+  remoteItems: T[]
+): T[] {
+  // Rule A: Empty Cloud Protection
+  if (localItems && localItems.length > 0 && (!remoteItems || remoteItems.length === 0)) {
+    console.log(`[SmartSync] Cloud empty for ${entityName} -> preserving local (${localItems.length} items)`);
+    return localItems;
+  }
+
+  if (!remoteItems || remoteItems.length === 0) {
+    return localItems || [];
+  }
+
+  if (!localItems || localItems.length === 0) {
+    return remoteItems;
+  }
+
+  const remoteMap = new Map<string, T>();
+  remoteItems.forEach(item => {
+    if (item && item.id) {
+      remoteMap.set(String(item.id), item);
+    }
+  });
+
+  const mergedMap = new Map<string, T>();
+
+  const getTs = (item: T): number => {
+    const timeStr = item.updatedAt || item.createdAt || item.timestamp || item.date;
+    if (!timeStr) return 0;
+    const ms = new Date(timeStr).getTime();
+    return isNaN(ms) ? 0 : ms;
+  };
+
+  localItems.forEach(local => {
+    if (!local || !local.id) return;
+    const key = String(local.id);
+    const remote = remoteMap.get(key);
+
+    if (!remote) {
+      // Local exists, remote doesn't -> Keep Local item!
+      console.log(`[SmartSync] Preserving local ${entityName} item "${key}" (not in remote)`);
+      mergedMap.set(key, local);
+    } else {
+      // Exists in both -> Compare timestamps
+      const localTs = getTs(local);
+      const remoteTs = getTs(remote);
+
+      if (localTs > remoteTs) {
+        console.log(`[SmartSync] Local ${entityName} "${key}" newer (${localTs} > ${remoteTs}) -> keeping local`);
+        mergedMap.set(key, local);
+      } else if (remoteTs > localTs) {
+        console.log(`[SmartSync] Cloud ${entityName} "${key}" newer (${remoteTs} > ${localTs}) -> applying cloud`);
+        mergedMap.set(key, remote);
+      } else {
+        // Equal or missing timestamps -> Prefer Local (Local-First bias) with safe merge of properties
+        mergedMap.set(key, { ...remote, ...local });
+      }
+      remoteMap.delete(key);
+    }
+  });
+
+  // Process remaining remote items (created on another device)
+  remoteMap.forEach((remote, key) => {
+    console.log(`[SmartSync] New ${entityName} item "${key}" from Cloud applied`);
+    mergedMap.set(key, remote);
+  });
+
+  return Array.from(mergedMap.values());
+}

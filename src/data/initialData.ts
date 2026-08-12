@@ -69,35 +69,186 @@ export const initialWallets: Wallet[] = [
 ];
 
 export const initialCategories: Category[] = [
-  // MASTER PEMASUKAN (INCOME)
-  { id: 'c-master-inc-1', name: 'Penghasilan Utama', type: 'income', icon: 'Briefcase', color: '#10B981', scope: 'personal', subcategories: ['Gaji Suami', 'Gaji Istri', 'Transport Bulanan', 'Insentif / Tunjangan'] },
-  { id: 'c-master-inc-2', name: 'Penghasilan Sampingan', type: 'income', icon: 'Laptop', color: '#60A5FA', scope: 'personal', subcategories: ['Honorarium Kegiatan', 'Transport Rapat / Bonus', 'Usaha Sampingan'] },
-  { id: 'c-master-inc-3', name: 'Pemasukan Lainnya', type: 'income', icon: 'TrendingUp', color: '#34D399', scope: 'personal', subcategories: ['Refunds / Reimbursements', 'Pemberian / Hadiah', 'Hasil Investasi'] },
-
-  // MASTER PENGELUARAN (EXPENSE)
-  { id: 'c-master-exp-1', name: 'Transportasi', type: 'expense', icon: 'Car', color: '#FBBF24', scope: 'personal', subcategories: ['Bensin', 'Biaya Perjalanan', 'Parkir', 'Servis & Perawatan'] },
-  { id: 'c-master-exp-2', name: 'Makan', type: 'expense', icon: 'Utensils', color: '#F87171', scope: 'personal', subcategories: ['Belanja Dapur', 'Makan Diluar', 'Jajan'] },
-  { id: 'c-master-exp-3', name: 'Bill & Utilitas', type: 'expense', icon: 'Home', color: '#A78BFA', scope: 'personal', subcategories: ['Listrik', 'Gas LPG', 'Wifi', 'Netflix / Langganan', 'Paket Data', 'Kontrakan / KPR', 'Air PAM'] },
-  { id: 'c-master-exp-4', name: 'Kebutuhan Keluarga & Anak', type: 'expense', icon: 'ShoppingBag', color: '#FB923C', scope: 'personal', subcategories: ['Pampers / Popok', 'Susu & Perlengkapan', 'Sekolah / Daycare', 'Pakaian'] },
-  { id: 'c-master-exp-5', name: 'Kesehatan', type: 'expense', icon: 'HeartPulse', color: '#F472B6', scope: 'personal', subcategories: ['Obat & Vitamin', 'Dokter / Rumah Sakit'] },
-
-  // Legacy & Business Categories
-  { id: 'c-inc-1', name: 'Gaji Utama', type: 'income', icon: 'Briefcase', color: '#10B981', scope: 'personal', subcategories: ['Gaji Suami', 'Gaji Istri', 'Insentif / Tunjangan'] },
-  { id: 'c-inc-2', name: 'Bonus & Dividen', type: 'income', icon: 'TrendingUp', color: '#34D399', scope: 'personal', subcategories: ['Transport Rapat / Bonus', 'Hasil Investasi'] },
-  { id: 'c-inc-3', name: 'Freelance & Side Job', type: 'income', icon: 'Laptop', color: '#60A5FA', scope: 'personal', subcategories: ['Honorarium Kegiatan', 'Usaha Sampingan'] },
-  { id: 'c-inc-4', name: 'Penjualan Produk', type: 'income', icon: 'ShoppingBag', color: '#059669', scope: 'business', subcategories: ['Retail', 'Grosir', 'Online'] },
-  { id: 'c-inc-5', name: 'Layanan Jasa Pro', type: 'income', icon: 'Layers', color: '#3B82F6', scope: 'business', subcategories: ['Konsultasi', 'Proyek Client'] },
-  { id: 'c-inc-6', name: 'Investasi Bisnis', type: 'income', icon: 'DollarSign', color: '#8B5CF6', scope: 'business', subcategories: ['Deviden', 'Bunga'] },
-  { id: 'c-exp-1', name: 'Makanan & Kuliner', type: 'expense', icon: 'Utensils', color: '#F87171', scope: 'personal', subcategories: ['Belanja Dapur', 'Makan Diluar', 'Jajan'] },
-  { id: 'c-exp-2', name: 'Belanja & Lifestyle', type: 'expense', icon: 'ShoppingBag', color: '#FB923C', scope: 'personal', subcategories: ['Pakaian', 'Hobi', 'Aksesoris'] },
-  { id: 'c-exp-3', name: 'Transportasi & Bensin', type: 'expense', icon: 'Car', color: '#FBBF24', scope: 'personal', subcategories: ['Bensin', 'Parkir', 'Servis'] },
-  { id: 'c-exp-4', name: 'Tagihan Rumah & Listrik', type: 'expense', icon: 'Home', color: '#A78BFA', scope: 'personal', subcategories: ['Listrik', 'Wifi', 'Air PAM'] },
-  { id: 'c-exp-5', name: 'Kesehatan & Asuransi', type: 'expense', icon: 'HeartPulse', color: '#F472B6', scope: 'personal', subcategories: ['Obat & Vitamin', 'Asuransi'] },
-  { id: 'c-exp-6', name: 'Gaji Karyawan & Tim', type: 'expense', icon: 'Users', color: '#EF4444', scope: 'business', subcategories: ['Gaji Pokok', 'Bonus Tim'] },
-  { id: 'c-exp-7', name: 'Operasional & Sewa Kantor', type: 'expense', icon: 'Building', color: '#F97316', scope: 'business', subcategories: ['Sewa Tempat', 'Utilitas Kantor'] },
-  { id: 'c-exp-8', name: 'Server, SaaS & Software', type: 'expense', icon: 'Server', color: '#0EA5E9', scope: 'business', subcategories: ['Hosting', 'Domain', 'Langganan AI'] },
-  { id: 'c-exp-9', name: 'Pemasaran & Iklan Ads', type: 'expense', icon: 'Megaphone', color: '#8B5CF6', scope: 'business', subcategories: ['Meta Ads', 'Google Ads', 'Influencer'] },
-  { id: 'c-exp-10', name: 'Pajak & Legalitas', type: 'expense', icon: 'FileText', color: '#64748B', scope: 'business', subcategories: ['Pajak PPh', 'Pajak PPn', 'Biaya Notaris'] }
+  // 1. Penghasilan Utama (income)
+  {
+    id: 'c-main-income',
+    name: 'Penghasilan Utama',
+    type: 'income',
+    icon: 'Briefcase',
+    color: '#10B981',
+    scope: 'all',
+    subcategories: ['Gaji Lana', 'Gaji Lina', 'Insentif Lina', 'Transport Bulanan Lana', 'Honorarium Kegiatan']
+  },
+  // 2. Pemasukan Lainnya (income)
+  {
+    id: 'c-other-income',
+    name: 'Pemasukan Lainnya',
+    type: 'income',
+    icon: 'TrendingUp',
+    color: '#34D399',
+    scope: 'all',
+    subcategories: ['Pemasukan Lain', 'Pemberian / Hadiah', 'Refunds / Reimbursements']
+  },
+  // 3. Makanan (expense)
+  {
+    id: 'c-food',
+    name: 'Makanan',
+    type: 'expense',
+    icon: 'Utensils',
+    color: '#F87171',
+    scope: 'all',
+    subcategories: ['Makan di Luar', 'Belanja Makanan', 'Jajan', 'Oleh-oleh']
+  },
+  // 4. Transportasi (expense)
+  {
+    id: 'c-transport',
+    name: 'Transportasi',
+    type: 'expense',
+    icon: 'Car',
+    color: '#FBBF24',
+    scope: 'all',
+    subcategories: ['Bensin', 'Parkir', 'Ojek', 'Ongkos Kirim', 'Transport Rapat/Bonus']
+  },
+  // 5. Rumah Tangga (expense)
+  {
+    id: 'c-household',
+    name: 'Rumah Tangga',
+    type: 'expense',
+    icon: 'Home',
+    color: '#A78BFA',
+    scope: 'all',
+    subcategories: ['Keperluan Rumah Tangga', 'Gas', 'Sampah', 'Kontrakan']
+  },
+  // 6. Keperluan Bayi (expense)
+  {
+    id: 'c-baby',
+    name: 'Keperluan Bayi',
+    type: 'expense',
+    icon: 'Baby',
+    color: '#FB923C',
+    scope: 'all',
+    subcategories: ['Keperluan Bayi']
+  },
+  // 7. Tagihan & Utilitas (expense)
+  {
+    id: 'c-bills',
+    name: 'Tagihan & Utilitas',
+    type: 'expense',
+    icon: 'FileText',
+    color: '#60A5FA',
+    scope: 'all',
+    subcategories: ['Listrik', 'WiFi', 'Paket Data', 'Aplikasi & Software', 'Netflix']
+  },
+  // 8. Kesehatan (expense)
+  {
+    id: 'c-health',
+    name: 'Kesehatan',
+    type: 'expense',
+    icon: 'HeartPulse',
+    color: '#F472B6',
+    scope: 'all',
+    subcategories: ['Kesehatan', 'Obat-obatan', 'Dokter Kandungan']
+  },
+  // 9. Perawatan (expense)
+  {
+    id: 'c-care',
+    name: 'Perawatan',
+    type: 'expense',
+    icon: 'Sparkles',
+    color: '#EC4899',
+    scope: 'all',
+    subcategories: ['Skincare', 'Makeup & Kosmetik', 'Potong Rambut', 'Perawatan']
+  },
+  // 10. Belanja Pribadi (expense)
+  {
+    id: 'c-personal-shopping',
+    name: 'Belanja Pribadi',
+    type: 'expense',
+    icon: 'ShoppingBag',
+    color: '#E11D48',
+    scope: 'all',
+    subcategories: ['Pakaian', 'Accessories', 'Emas', 'Kado & Hadiah', 'Dekorasi & Pesta', 'Elektronik HP/TV']
+  },
+  // 11. Sosial (expense)
+  {
+    id: 'c-social',
+    name: 'Sosial',
+    type: 'expense',
+    icon: 'Users',
+    color: '#8B5CF6',
+    scope: 'all',
+    subcategories: ['Iuran RT & Sampah', 'Nyumbang']
+  },
+  // 12. Biaya Keuangan (expense)
+  {
+    id: 'c-financial-fees',
+    name: 'Biaya Keuangan',
+    type: 'expense',
+    icon: 'CreditCard',
+    color: '#64748B',
+    scope: 'all',
+    subcategories: ['Admin Bank', 'Pembayaran Shopee PayLater']
+  },
+  // 13. Utang & Cicilan (expense)
+  {
+    id: 'c-debt-installments',
+    name: 'Utang & Cicilan',
+    type: 'expense',
+    icon: 'Landmark',
+    color: '#EF4444',
+    scope: 'all',
+    subcategories: ['Pembayaran Utang', 'Cicilan']
+  },
+  // 14. Service & Perbaikan (expense)
+  {
+    id: 'c-service-repair',
+    name: 'Service & Perbaikan',
+    type: 'expense',
+    icon: 'Wrench',
+    color: '#D97706',
+    scope: 'all',
+    subcategories: ['Service Motor', 'Service', 'Cuci Motor']
+  },
+  // 15. Perjalanan (expense)
+  {
+    id: 'c-travel',
+    name: 'Perjalanan',
+    type: 'expense',
+    icon: 'Plane',
+    color: '#0284C7',
+    scope: 'all',
+    subcategories: ['Tiket', 'Biaya Perjalanan', 'Staycation']
+  },
+  // 16. Olahraga (expense)
+  {
+    id: 'c-sports',
+    name: 'Olahraga',
+    type: 'expense',
+    icon: 'Activity',
+    color: '#059669',
+    scope: 'all',
+    subcategories: ['Olahraga', 'Futsal']
+  },
+  // 17. Lain-Lain (expense)
+  {
+    id: 'c-miscellaneous',
+    name: 'Lain-Lain',
+    type: 'expense',
+    icon: 'MoreHorizontal',
+    color: '#94A3B8',
+    scope: 'all',
+    subcategories: ['Lain-Lain']
+  },
+  // 18. Transfer (transfer)
+  {
+    id: 'c-transfer',
+    name: 'Transfer',
+    type: 'transfer',
+    icon: 'ArrowRightLeft',
+    color: '#3B82F6',
+    scope: 'all',
+    subcategories: ['Transfer Antar Wallet']
+  }
 ];
 
 const today = new Date();
