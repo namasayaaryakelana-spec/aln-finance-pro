@@ -19,6 +19,7 @@ import {
 import { ExportService } from '../../services/export';
 import { StorageService } from '../../services/storage';
 import { ThemeToggle } from '../layout/ThemeToggle';
+import { CSVTransactionImporter } from '../import/CSVTransactionImporter';
 
 export const SettingsView: React.FC = () => {
   const { auditLogs, resetAllData, restoreData, addToast, isOnline, pullCloudData, pushCloudData } = useFinance();
@@ -347,6 +348,11 @@ export const SettingsView: React.FC = () => {
                 Unggah Data ke Cloud
               </button>
             </div>
+          </div>
+
+          {/* CSV IMPORTER SECTION */}
+          <div className="pt-2">
+            <CSVTransactionImporter />
           </div>
         </div>
       )}
