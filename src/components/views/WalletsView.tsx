@@ -12,6 +12,7 @@ import {
   Plus,
   ArrowRightLeft,
   Trash2,
+  Edit2,
   FileText,
   Search,
   Filter,
@@ -23,7 +24,9 @@ import {
 } from 'lucide-react';
 import { Wallet, WalletType } from '../../types';
 import { WalletMutationModal } from '../modals/WalletMutationModal';
+import { AddWalletModal } from '../modals/AddWalletModal';
 import { calculateWalletMutations } from '../../utils/mutationHelper';
+import { calculateWalletBalance, getWalletAccountNumber } from '../../utils/balanceHelper';
 
 interface WalletsViewProps {
   openTransferModal: () => void;
@@ -37,6 +40,26 @@ export const WalletsView: React.FC<WalletsViewProps> = ({
   const { filteredWallets, deleteWallet, totalBalance, totalInvestment, transactions } = useFinance();
   const { isDark } = useTheme();
   const [selectedWalletIdModal, setSelectedWalletIdModal] = useState<string | null>(null);
+  const [editingWallet, setEditingWallet] = useState<Wallet | null>(null);
+
+  // DEBUG MODE: Audit database transactions vs rendered balances for all wallets
+  useMemo(() => {
+    console.log("==================================================");
+    console.log("=== [WALLETS VIEW DEBUG MODE] AUDIT DATABASE VS RENDERED BALANCE ===");
+    console.log("==================================================");
+    filteredWallets.forEach(w => {
+      const calcBal = calculateWalletBalance(w, transactions);
+      console.log(`Wallet: ${w.name}`);
+      console.log(`Database transactions count: ${transactions.length}`);
+      console.log(`Calculated balance: ${calcBal}`);
+      console.log(`Rendered balance: ${w.balance}`);
+      if (calcBal !== w.balance) {
+        console.warn(`⚠️ MISMATCH DETECTED for ${w.name}! Calc: ${calcBal}, Rendered: ${w.balance}`);
+      }
+    });
+    console.log(`Total Rendered Balance: ${totalBalance} (Expected: 5444614)`);
+    console.log("==================================================");
+  }, [filteredWallets, transactions, totalBalance]);
 
   // Embedded Mutasi Section state
   const [activeWalletId, setActiveWalletId] = useState<string>(filteredWallets[0]?.id || '');
@@ -215,7 +238,7 @@ export const WalletsView: React.FC<WalletsViewProps> = ({
                     <Cpu className="w-5 h-5 text-[#0B1220]/75" />
                   </div>
                   <div className="text-[11px] font-mono tracking-widest font-bold text-[var(--text-secondary)]">
-                    •••• {w.accountNumber ? w.accountNumber.slice(-4) : '8842'}
+                    {getWalletAccountNumber(w) ? `•••• ${getWalletAccountNumber(w).slice(-4)}` : '—'}
                   </div>
                 </div>
 
@@ -245,6 +268,16 @@ export const WalletsView: React.FC<WalletsViewProps> = ({
                 </button>
 
                 <div className="flex items-center gap-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingWallet(w);
+                    }}
+                    className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--gold-primary)] hover:bg-[var(--gold-badge-bg)] transition-colors"
+                    title="Edit Dompet / Nomor Rekening"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -452,6 +485,15 @@ export const WalletsView: React.FC<WalletsViewProps> = ({
           isOpen={!!selectedWalletIdModal}
           initialWalletId={selectedWalletIdModal}
           onClose={() => setSelectedWalletIdModal(null)}
+        />
+      )}
+
+      {/* Edit Wallet Modal */}
+      {editingWallet && (
+        <AddWalletModal
+          isOpen={!!editingWallet}
+          onClose={() => setEditingWallet(null)}
+          walletToEdit={editingWallet}
         />
       )}
     </div>

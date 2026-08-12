@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useRef, ReactNode } from 'react';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { initSupabaseClient } from '../lib/supabase';
 import { SupabaseSyncService, SupabaseUserBundle } from '../services/supabaseSync';
@@ -17,6 +17,7 @@ import {
 } from '../types';
 import { StorageService, safeMergeEntityArray, purgeDemoData } from '../services/storage';
 import { normalizeTransactions, upgradeMasterCategories, FINAL_MASTER_CATEGORIES } from '../utils/masterCategoryHelper';
+import { calculateWalletBalance, recalculateAllWalletBalances, repairAndMigrateTransactions } from '../utils/balanceHelper';
 
 interface Toast {
   id: string;
@@ -128,8 +129,16 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [currentCurrency, setCurrency] = useState<Currency>('IDR');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-  const [wallets, setWallets] = useState<Wallet[]>(() => StorageService.getWallets());
-  const [transactions, setTransactions] = useState<Transaction[]>(() => normalizeTransactions(StorageService.getTransactions()));
+  const [transactions, setTransactions] = useState<Transaction[]>(() => {
+    const rawT = StorageService.getTransactions();
+    return normalizeTransactions(rawT);
+  });
+  const [wallets, setWallets] = useState<Wallet[]>(() => {
+    const rawW = StorageService.getWallets();
+    const rawT = StorageService.getTransactions();
+    const repairedT = repairAndMigrateTransactions(rawT, rawW);
+    return recalculateAllWalletBalances(rawW, repairedT);
+  });
   const [categories, setCategories] = useState<Category[]>(() => StorageService.getCategories());
   const [budgets, setBudgets] = useState<Budget[]>(() => StorageService.getBudgets());
   const [goals, setGoals] = useState<FinancialGoal[]>(() => StorageService.getGoals());
@@ -230,7 +239,8 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         // Perform Safe Merge for all 9 entities: Local-First + Cloud Sync
         const mergedWallets = safeMergeEntityArray('wallets', localWallets, remote.wallets || []);
         const rawMergedTransactions = safeMergeEntityArray('transactions', localTransactions, remote.transactions || []);
-        const mergedTransactions = normalizeTransactions(rawMergedTransactions);
+        const normMergedTransactions = normalizeTransactions(rawMergedTransactions);
+        const mergedTransactions = repairAndMigrateTransactions(normMergedTransactions, mergedWallets);
         
         const upgradedCloudCategories = upgradeMasterCategories(remote.categories || []);
         const rawMergedCategories = safeMergeEntityArray('categories', localCategories, upgradedCloudCategories);
@@ -255,7 +265,9 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         console.log(`[SYNC DEBUG] wallets -> Local: ${localWallets.length}, Cloud: ${remote.wallets?.length || 0}, Merged: ${mergedWallets.length}`);
         console.log(`[SYNC DEBUG] transactions -> Local: ${localTransactions.length}, Cloud: ${remote.transactions?.length || 0}, Merged: ${mergedTransactions.length}`);
 
-        setWallets(mergedWallets);
+        const recalculatedWallets = recalculateAllWalletBalances(mergedWallets, mergedTransactions);
+
+        setWallets(recalculatedWallets);
         setTransactions(mergedTransactions);
         setCategories(mergedCategories);
         setBudgets(mergedBudgets);
@@ -267,7 +279,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
 
         // Save merged 9-entity cache to localStorage & update last sync timestamp
         const mergedBundle = {
-          wallets: mergedWallets,
+          wallets: recalculatedWallets,
           transactions: mergedTransactions,
           categories: mergedCategories,
           budgets: mergedBudgets,
@@ -654,14 +666,24 @@ isSyncingRef.current = false;
     setToasts(prev => prev.filter(t => t.id !== id));
   };
 
+  // Single Source of Truth: Compute live recalculated wallet balances dynamically from current transaction history
+  const liveWallets = useMemo(() => {
+    return recalculateAllWalletBalances(wallets, transactions);
+  }, [wallets, transactions]);
+
   // Filtered by active scope
-  const filteredWallets = wallets.filter(w => currentScope === 'all' || !w.scope || w.scope === 'all' || w.scope === currentScope);
+  const filteredWallets = useMemo(() => {
+    return liveWallets.filter(w => currentScope === 'all' || !w.scope || w.scope === 'all' || w.scope === currentScope);
+  }, [liveWallets, currentScope]);
+
   const filteredTransactions = transactions.filter(t => currentScope === 'all' || !t.scope || t.scope === 'all' || t.scope === currentScope);
   const filteredBudgets = budgets.filter(b => currentScope === 'all' || !b.scope || b.scope === 'all' || b.scope === currentScope);
   const filteredInvestments = investments.filter(i => currentScope === 'all' || !i.scope || i.scope === 'all' || i.scope === currentScope);
   const filteredDebts = debts.filter(d => currentScope === 'all' || d.status === 'pending' || d.status === 'overdue');
 
-  const totalBalance = filteredWallets.reduce((sum, w) => sum + w.balance, 0);
+  const totalBalance = useMemo(() => {
+    return filteredWallets.reduce((sum, w) => sum + w.balance, 0);
+  }, [filteredWallets]);
   const totalInvestment = filteredInvestments.reduce((sum, inv) => sum + inv.currentAmount, 0);
   const totalInvestmentInitial = filteredInvestments.reduce((sum, inv) => sum + inv.initialAmount, 0);
   const totalInvestmentReturn = totalInvestment - totalInvestmentInitial;
@@ -717,18 +739,19 @@ isSyncingRef.current = false;
       return updatedTxs;
     });
 
-    // 2. Update wallet balance locally FIRST
+    // 2. Update wallet balance using central recalculation engine
     let updatedBal = 0;
     setWallets(prev => {
-      const nextWallets = prev.map(w => {
-        if (w.id === txData.walletId) {
-          const delta = txData.type === 'income' ? txData.amount : -txData.amount;
-          const newBal = w.balance + delta;
-          updatedBal = newBal;
-          return { ...w, balance: newBal };
-        }
-        return w;
-      });
+      const allTxs = [newTx, ...transactions];
+      const nextWallets = recalculateAllWalletBalances(prev, allTxs);
+      const primaryW = nextWallets.find(w => w.id === txData.walletId);
+      if (primaryW) updatedBal = primaryW.balance;
+
+      if (currentUser) {
+        nextWallets.forEach(w => {
+          SupabaseSyncService.upsertRow('wallets', { id: w.id, balance: w.balance }, currentUser.id);
+        });
+      }
       StorageService.saveWallets(nextWallets);
       return nextWallets;
     });
@@ -757,19 +780,14 @@ isSyncingRef.current = false;
       SupabaseSyncService.deleteRow('transactions', id, currentUser.id);
     }
 
-    // Revert wallet balance
+    // Recalculate wallet balances using central balance engine
     setWallets(prev => {
-      const nextWallets = prev.map(w => {
-        if (w.id === tx.walletId) {
-          const delta = tx.type === 'income' ? -tx.amount : tx.amount;
-          const newBal = w.balance + delta;
-          if (currentUser) {
-            SupabaseSyncService.upsertRow('wallets', { id: w.id, balance: newBal }, currentUser.id);
-          }
-          return { ...w, balance: newBal };
-        }
-        return w;
-      });
+      const nextWallets = recalculateAllWalletBalances(prev, updated);
+      if (currentUser) {
+        nextWallets.forEach(w => {
+          SupabaseSyncService.upsertRow('wallets', { id: w.id, balance: w.balance }, currentUser.id);
+        });
+      }
       StorageService.saveWallets(nextWallets);
       return nextWallets;
     });
@@ -845,29 +863,13 @@ isSyncingRef.current = false;
       return;
     }
 
-    const nextWallets = wallets.map(w => {
-      if (w.id === fromWalletId) {
-        const newBal = w.balance - amount;
-        if (currentUser) SupabaseSyncService.upsertRow('wallets', { id: w.id, balance: newBal }, currentUser.id);
-        return { ...w, balance: newBal };
-      }
-      if (w.id === toWalletId) {
-        const newBal = w.balance + amount;
-        if (currentUser) SupabaseSyncService.upsertRow('wallets', { id: w.id, balance: newBal }, currentUser.id);
-        return { ...w, balance: newBal };
-      }
-      return w;
-    });
-    setWallets(nextWallets);
-    StorageService.saveWallets(nextWallets);
-
     const newTx: Transaction = {
       id: `tx-tr-${Date.now()}`,
       type: 'transfer',
       amount,
       currency: source.currency,
       title: `Transfer ${source.name} ➔ ${target.name}`,
-      category: 'Transfer Antar Akun',
+      category: 'Transfer Antar Wallet',
       walletId: fromWalletId,
       targetWalletId: toWalletId,
       scope: currentScope,
@@ -880,7 +882,14 @@ isSyncingRef.current = false;
     setTransactions(nextTxs);
     StorageService.saveTransactions(nextTxs);
 
+    const nextWallets = recalculateAllWalletBalances(wallets, nextTxs);
+    setWallets(nextWallets);
+    StorageService.saveWallets(nextWallets);
+
     if (currentUser) {
+      nextWallets.forEach(w => {
+        SupabaseSyncService.upsertRow('wallets', { id: w.id, balance: w.balance }, currentUser.id);
+      });
       SupabaseSyncService.upsertRow('transactions', {
         id: newTx.id,
         wallet_id: newTx.walletId,

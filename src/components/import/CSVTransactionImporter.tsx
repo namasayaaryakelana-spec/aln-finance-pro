@@ -531,9 +531,10 @@ export const CSVTransactionImporter: React.FC = () => {
         amount: r.parsedAmount,
         currency: 'IDR',
         title: r.parsedTitle || 'Transaksi CSV',
-        category: r.matchedCategoryName || 'Lainnya',
+        category: r.matchedCategoryName || 'Lain-Lain',
         subcategory: r.matchedSubcategory || undefined,
         walletId: r.matchedWalletId || (wallets[0]?.id || 'w-cash'),
+        targetWalletId: r.parsedType === 'transfer' ? r.matchedTargetWalletId : undefined,
         scope: 'personal',
         date: r.parsedDate,
         note: `Diimpor dari CSV (${csvFileName})`

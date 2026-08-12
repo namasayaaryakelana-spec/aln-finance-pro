@@ -1,5 +1,6 @@
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { initSupabaseClient } from '../lib/supabase';
+import { getCanonicalAccountNumber } from '../utils/balanceHelper';
 import {
   Wallet,
   Transaction,
@@ -61,7 +62,7 @@ export const SupabaseSyncService = {
         type: w.type,
         currency: w.currency || 'IDR',
         balance: Number(w.balance || 0),
-        accountNumber: w.account_number || '',
+        accountNumber: w.account_number || getCanonicalAccountNumber(w.id, w.name) || '',
         icon: w.icon || 'Wallet',
         scope: w.scope || 'all',
         color: w.color || '#D4AF37',

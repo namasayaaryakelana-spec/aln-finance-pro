@@ -10,6 +10,7 @@ export interface Wallet {
   type: WalletType;
   accountNumber?: string;
   balance: number;
+  initialBalance?: number;
   currency: Currency;
   icon: string;
   color: string;

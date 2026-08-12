@@ -1,4 +1,5 @@
 import { Wallet, Transaction } from '../types';
+import { isWalletMatch, calculateWalletBalance } from './balanceHelper';
 
 export interface WalletMutation {
   id: string;
@@ -35,10 +36,9 @@ export function calculateWalletMutations(
 ): WalletMutationSummary {
   // Find all transactions relevant to this wallet
   const relevantTxs = allTransactions.filter(tx => {
-    const isPrimaryWallet = tx.walletId === wallet.id;
-    const isTargetWallet = tx.type === 'transfer' && tx.targetWalletId === wallet.id;
-    const matchesAccountName = (tx as any).account === wallet.name || (tx as any).walletName === wallet.name;
-    return isPrimaryWallet || isTargetWallet || matchesAccountName;
+    const isSource = isWalletMatch(tx.walletId, wallet) || isWalletMatch((tx as any).dari, wallet) || isWalletMatch((tx as any).account, wallet);
+    const isTarget = isWalletMatch(tx.targetWalletId, wallet) || isWalletMatch((tx as any).ke, wallet);
+    return isSource || isTarget;
   });
 
   // Sort chronologically ascending (oldest first)

@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useFinance } from '../../context/FinanceContext';
 import { X, Wallet as WalletIcon, ShieldCheck } from 'lucide-react';
-import { WalletType, Scope, Currency } from '../../types';
+import { Wallet, WalletType, Scope, Currency } from '../../types';
 
 interface AddWalletModalProps {
   isOpen: boolean;
   onClose: () => void;
+  walletToEdit?: Wallet | null;
 }
 
-export const AddWalletModal: React.FC<AddWalletModalProps> = ({ isOpen, onClose }) => {
-  const { addWallet, currentScope } = useFinance();
+export const AddWalletModal: React.FC<AddWalletModalProps> = ({ isOpen, onClose, walletToEdit }) => {
+  const { addWallet, updateWallet, currentScope } = useFinance();
 
   const [name, setName] = useState('');
   const [type, setType] = useState<WalletType>('bank');
@@ -19,6 +20,26 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({ isOpen, onClose 
   const [scope, setScopeState] = useState<Scope>(currentScope === 'all' ? 'personal' : currentScope);
   const [color, setColor] = useState('#D4AF37');
 
+  useEffect(() => {
+    if (walletToEdit) {
+      setName(walletToEdit.name || '');
+      setType(walletToEdit.type || 'bank');
+      setBalance(String(walletToEdit.initialBalance ?? walletToEdit.balance ?? 0));
+      setCurrency(walletToEdit.currency || 'IDR');
+      setAccountNumber(walletToEdit.accountNumber || '');
+      setScopeState(walletToEdit.scope || 'personal');
+      setColor(walletToEdit.color || '#D4AF37');
+    } else {
+      setName('');
+      setType('bank');
+      setBalance('');
+      setCurrency('IDR');
+      setAccountNumber('');
+      setScopeState(currentScope === 'all' ? 'personal' : currentScope);
+      setColor('#D4AF37');
+    }
+  }, [walletToEdit, isOpen, currentScope]);
+
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -26,16 +47,28 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({ isOpen, onClose 
     const initialBal = parseFloat(balance) || 0;
     if (!name) return;
 
-    addWallet({
-      name,
-      type,
-      balance: initialBal,
-      currency,
-      accountNumber,
-      scope,
-      color,
-      isDefault: false
-    });
+    if (walletToEdit) {
+      updateWallet({
+        ...walletToEdit,
+        name,
+        type,
+        currency,
+        accountNumber,
+        scope,
+        color
+      });
+    } else {
+      addWallet({
+        name,
+        type,
+        balance: initialBal,
+        currency,
+        accountNumber,
+        scope,
+        color,
+        isDefault: false
+      });
+    }
 
     onClose();
     setName('');

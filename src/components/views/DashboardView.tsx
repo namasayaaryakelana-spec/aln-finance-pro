@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useFinance } from '../../context/FinanceContext';
 import { useTheme } from '../../context/ThemeContext';
+import { getWalletAccountNumber } from '../../utils/balanceHelper';
 import {
   Wallet,
   Coins,
@@ -626,7 +627,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       <div>
                         <h4 className="text-xs font-extrabold text-[var(--text-primary)]">{w.name}</h4>
                         <span className="text-[10px] text-[var(--text-muted)] font-mono font-bold">
-                          •••• {w.accountNumber ? w.accountNumber.slice(-4) : '8842'}
+                          {getWalletAccountNumber(w) ? `•••• ${getWalletAccountNumber(w).slice(-4)}` : '—'}
                         </span>
                       </div>
                     </div>

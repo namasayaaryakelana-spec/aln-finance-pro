@@ -21,6 +21,7 @@ import {
   initialAuditLogs
 } from '../data/initialData';
 import { upgradeMasterCategories, normalizeTransactions } from '../utils/masterCategoryHelper';
+import { repairAndMigrateTransactions, mergeWalletPreservingAccountNumber, getCanonicalAccountNumber } from '../utils/balanceHelper';
 
 const KEYS = {
   WALLETS: 'aln_wallets_v1',
@@ -127,9 +128,15 @@ export const StorageService = {
 
   getTransactions: (): Transaction[] => {
     const rawTxs = getStorageItem<Transaction[]>(KEYS.TRANSACTIONS, []);
-    return normalizeTransactions(rawTxs);
+    const normalized = normalizeTransactions(rawTxs);
+    const repaired = repairAndMigrateTransactions(normalized, StorageService.getWallets());
+    return repaired;
   },
-  saveTransactions: (transactions: Transaction[]) => setStorageItem(KEYS.TRANSACTIONS, normalizeTransactions(transactions)),
+  saveTransactions: (transactions: Transaction[]) => {
+    const normalized = normalizeTransactions(transactions);
+    const repaired = repairAndMigrateTransactions(normalized, StorageService.getWallets());
+    setStorageItem(KEYS.TRANSACTIONS, repaired);
+  },
 
   getCategories: (): Category[] => {
     const rawCategories = getStorageItem<Category[]>(KEYS.CATEGORIES, initialCategories);
@@ -268,18 +275,27 @@ export function safeMergeEntityArray<T extends { id: string; updatedAt?: string;
   localItems: T[],
   remoteItems: T[]
 ): T[] {
+  const ensureWalletAccountNumber = (items: T[]): T[] => {
+    if (entityName !== 'wallets') return items;
+    return (items || []).map(item => {
+      const w = item as unknown as Wallet;
+      const acc = w.accountNumber || getCanonicalAccountNumber(w.id, w.name) || '';
+      return { ...w, accountNumber: acc } as unknown as T;
+    });
+  };
+
   // Rule A: Empty Cloud Protection
   if (localItems && localItems.length > 0 && (!remoteItems || remoteItems.length === 0)) {
     console.log(`[SmartSync] Cloud empty for ${entityName} -> preserving local (${localItems.length} items)`);
-    return localItems;
+    return ensureWalletAccountNumber(localItems);
   }
 
   if (!remoteItems || remoteItems.length === 0) {
-    return localItems || [];
+    return ensureWalletAccountNumber(localItems || []);
   }
 
   if (!localItems || localItems.length === 0) {
-    return remoteItems;
+    return ensureWalletAccountNumber(remoteItems);
   }
 
   const remoteMap = new Map<string, T>();
@@ -306,21 +322,32 @@ export function safeMergeEntityArray<T extends { id: string; updatedAt?: string;
     if (!remote) {
       // Local exists, remote doesn't -> Keep Local item!
       console.log(`[SmartSync] Preserving local ${entityName} item "${key}" (not in remote)`);
-      mergedMap.set(key, local);
+      if (entityName === 'wallets') {
+        const w = local as unknown as Wallet;
+        const acc = w.accountNumber || getCanonicalAccountNumber(w.id, w.name) || '';
+        mergedMap.set(key, { ...w, accountNumber: acc } as unknown as T);
+      } else {
+        mergedMap.set(key, local);
+      }
     } else {
       // Exists in both -> Compare timestamps
       const localTs = getTs(local);
       const remoteTs = getTs(remote);
 
-      if (localTs > remoteTs) {
-        console.log(`[SmartSync] Local ${entityName} "${key}" newer (${localTs} > ${remoteTs}) -> keeping local`);
-        mergedMap.set(key, local);
-      } else if (remoteTs > localTs) {
-        console.log(`[SmartSync] Cloud ${entityName} "${key}" newer (${remoteTs} > ${localTs}) -> applying cloud`);
-        mergedMap.set(key, remote);
+      if (entityName === 'wallets') {
+        const mergedW = mergeWalletPreservingAccountNumber(local as unknown as Wallet, remote as unknown as Wallet);
+        mergedMap.set(key, mergedW as unknown as T);
       } else {
-        // Equal or missing timestamps -> Prefer Local (Local-First bias) with safe merge of properties
-        mergedMap.set(key, { ...remote, ...local });
+        if (localTs > remoteTs) {
+          console.log(`[SmartSync] Local ${entityName} "${key}" newer (${localTs} > ${remoteTs}) -> keeping local`);
+          mergedMap.set(key, local);
+        } else if (remoteTs > localTs) {
+          console.log(`[SmartSync] Cloud ${entityName} "${key}" newer (${remoteTs} > ${localTs}) -> applying cloud`);
+          mergedMap.set(key, remote);
+        } else {
+          // Equal or missing timestamps -> Prefer Local (Local-First bias) with safe merge of properties
+          mergedMap.set(key, { ...remote, ...local });
+        }
       }
       remoteMap.delete(key);
     }
@@ -329,7 +356,13 @@ export function safeMergeEntityArray<T extends { id: string; updatedAt?: string;
   // Process remaining remote items (created on another device)
   remoteMap.forEach((remote, key) => {
     console.log(`[SmartSync] New ${entityName} item "${key}" from Cloud applied`);
-    mergedMap.set(key, remote);
+    if (entityName === 'wallets') {
+      const w = remote as unknown as Wallet;
+      const acc = w.accountNumber || getCanonicalAccountNumber(w.id, w.name) || '';
+      mergedMap.set(key, { ...w, accountNumber: acc } as unknown as T);
+    } else {
+      mergedMap.set(key, remote);
+    }
   });
 
   return Array.from(mergedMap.values());
