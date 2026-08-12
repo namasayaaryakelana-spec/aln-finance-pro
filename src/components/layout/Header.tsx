@@ -192,23 +192,18 @@ export const Header: React.FC<HeaderProps> = ({
                 <button
                   onClick={async () => {
                     setShowProfileMenu(false);
-                    await pullCloudData();
+                    await pullCloudData(true);
                   }}
-                  className="w-full text-left px-3 py-2 rounded-2xl text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--gold-badge-bg)] hover:text-[var(--gold-primary)] flex items-center gap-2.5 transition-colors mb-1"
+                  className="w-full text-left px-3 py-2.5 rounded-2xl text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--gold-badge-bg)] hover:text-[var(--gold-primary)] flex items-center justify-between transition-colors mb-1 group"
+                  title="Ambil data terbaru dari Cloud"
                 >
-                  <CloudDownload className="w-4 h-4 text-[var(--gold-primary)]" />
-                  <span>Tarik Data Cloud DB</span>
-                </button>
-
-                <button
-                  onClick={async () => {
-                    setShowProfileMenu(false);
-                    await pushCloudData();
-                  }}
-                  className="w-full text-left px-3 py-2 rounded-2xl text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--gold-badge-bg)] hover:text-[var(--gold-primary)] flex items-center gap-2.5 transition-colors mb-1"
-                >
-                  <CloudUpload className="w-4 h-4 text-[var(--gold-primary)]" />
-                  <span>Unggah Data Cloud DB</span>
+                  <div className="flex items-center gap-2.5">
+                    <CloudDownload className="w-4 h-4 text-[var(--gold-primary)] shrink-0" />
+                    <div className="flex flex-col">
+                      <span className="font-extrabold text-[var(--text-primary)] group-hover:text-[var(--gold-primary)]">Perbarui Data</span>
+                      <span className="text-[9px] text-[var(--text-muted)] font-medium">Ambil data terbaru dari Cloud</span>
+                    </div>
+                  </div>
                 </button>
 
                 {setActiveTab && (

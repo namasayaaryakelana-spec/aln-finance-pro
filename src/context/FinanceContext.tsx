@@ -143,6 +143,8 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('local_only');
   const [isCloudSyncing, setIsCloudSyncing] = useState<boolean>(false);
   const isRemoteUpdateRef = useRef<boolean>(false);
+  const isSyncingRef = useRef<boolean>(false);
+  const realtimeDebounceTimerRef = useRef<any>(null);
 
   const openAuthModal = () => setIsAuthModalOpen(true);
   const closeAuthModal = () => setIsAuthModalOpen(false);
@@ -176,24 +178,36 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     };
   }, []);
 
-  // Fetch & Subscribe to Supabase PostgreSQL Realtime Sync when user is authenticated
-  useEffect(() => {
+  // SMART AUTO-SYNC (Cloud -> Device): Pulls latest data from Supabase Cloud
+  const pullCloudData = async (force = false): Promise<boolean> => {
     if (!currentUser) {
-      setSyncStatus('local_only');
-      return;
+      if (force) openAuthModal();
+      return false;
     }
 
-    const client = initSupabaseClient();
-    if (!client) return;
+    // Duplicate sync protection guard
+    if (isSyncingRef.current) {
+      console.log('[AutoSync] Sync request already in progress, skipping duplicate.');
+      return false;
+    }
 
-    let isSubscribed = true;
+    // 5-Minute Cooldown Check for automatic triggers
+    const COOLDOWN_MS = 5 * 60 * 1000;
+    const lastSync = StorageService.getLastSyncTimestamp();
+    const elapsed = Date.now() - lastSync;
+
+    if (!force && lastSync > 0 && elapsed < COOLDOWN_MS) {
+      console.log(`[AutoSync] Cooldown active (${Math.round((COOLDOWN_MS - elapsed) / 1000)}s remaining), skipping auto-pull.`);
+      return false;
+    }
+
+    isSyncingRef.current = true;
+    setIsCloudSyncing(true);
     setSyncStatus('syncing');
 
-    const loadData = async () => {
+    try {
       const remote = await SupabaseSyncService.fetchUserData(currentUser.id);
-      if (!isSubscribed) return;
-
-      if (remote && (remote.wallets.length > 0 || remote.transactions.length > 0)) {
+      if (remote) {
         isRemoteUpdateRef.current = true;
         setWallets(remote.wallets);
         setTransactions(remote.transactions);
@@ -205,39 +219,210 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         setInvestments(remote.investments);
         if (remote.auditLogs.length) setAuditLogs(remote.auditLogs);
 
-        // Save light cache
-        StorageService.saveWallets(remote.wallets);
-        StorageService.saveTransactions(remote.transactions);
-        setSyncStatus('synced');
+        // Save full 9-entity cache to localStorage & update last sync timestamp
+        StorageService.saveAllEntities(remote);
+        StorageService.saveLastSyncTimestamp(Date.now());
 
+        setSyncStatus('synced');
+        if (force) {
+          addToast('success', 'Data Diperbarui', 'Data terbaru berhasil diambil dari Cloud.');
+        }
         setTimeout(() => { isRemoteUpdateRef.current = false; }, 1500);
+        return true;
       } else {
-        // First time user or empty database -> seed initial bundle to Supabase PostgreSQL
-        const initialBundle: SupabaseUserBundle = {
-          wallets,
-          transactions,
-          categories,
-          budgets,
-          goals,
-          debts,
-          invoices,
-          investments,
-          auditLogs
-        };
-        await SupabaseSyncService.saveFullUserBundle(currentUser.id, initialBundle);
-        setSyncStatus('synced');
+        // Sync failed: keep local data, don't erase cache or update timestamp
+        setSyncStatus('error');
+        if (force) {
+          addToast('error', 'Gagal Memperbarui', 'Gagal mengambil data dari Cloud. Data lokal tetap aman.');
+        }
+        return false;
       }
-    };
+    } catch (err) {
+      console.error('[AutoSync] Exception in pullCloudData:', err);
+      setSyncStatus('error');
+      return false;
+    } finally {
+isSyncingRef.current = false;
+      setIsCloudSyncing(false);
+    }
+  };
 
-    loadData();
+  // --- PENDING QUEUE & LIGHTWEIGHT AUTO-UPLOAD FOR NEW TRANSACTIONS ---
+  const enqueuePendingTx = (tx: Transaction) => {
+    const queue: Transaction[] = StorageService.getOfflineQueue();
+    if (!queue.some(q => q.id === tx.id)) {
+      const updatedQueue = [...queue, tx];
+      StorageService.saveOfflineQueue(updatedQueue);
+    }
+  };
 
-    // Subscribe to Realtime Postgres changes across devices
+  const flushPendingQueue = async (): Promise<void> => {
+    if (!currentUser || !navigator.onLine) return;
+    const queue: Transaction[] = StorageService.getOfflineQueue();
+    if (!queue || queue.length === 0) return;
+
+    console.log(`[AutoUpload] Flushing ${queue.length} pending offline transaction(s)...`);
+    const remainingQueue: Transaction[] = [];
+    let successCount = 0;
+
+    for (const tx of queue) {
+      try {
+        const txPayload = {
+          id: tx.id,
+          wallet_id: tx.walletId,
+          type: tx.type,
+          amount: tx.amount,
+          currency: tx.currency,
+          title: tx.title,
+          category: tx.category,
+          subcategory: tx.subcategory,
+          scope: tx.scope,
+          date: tx.date,
+          note: tx.note
+        };
+        const ok = await SupabaseSyncService.upsertRow('transactions', txPayload, currentUser.id);
+        if (ok) {
+          successCount++;
+        } else {
+          remainingQueue.push(tx);
+        }
+      } catch (err) {
+        console.warn(`[AutoUpload] Failed flushing tx ${tx.id}:`, err);
+        remainingQueue.push(tx);
+      }
+    }
+
+    StorageService.saveOfflineQueue(remainingQueue);
+
+    if (successCount > 0) {
+      StorageService.saveLastSyncTimestamp(Date.now());
+      addToast('success', 'Transaksi Pending Tersinkron', `${successCount} transaksi lokal berhasil diunggah ke Cloud.`);
+    }
+  };
+
+  const tryAutoUploadNewTx = async (tx: Transaction, targetWalletId: string, newWalletBalance: number) => {
+    if (!currentUser || !navigator.onLine) {
+      enqueuePendingTx(tx);
+      addToast('info', 'Transaksi Disimpan Lokal', `Disimpan di perangkat. Akan disinkronkan saat koneksi tersedia.`);
+      return;
+    }
+
+    try {
+      const txPayload = {
+        id: tx.id,
+        wallet_id: tx.walletId,
+        type: tx.type,
+        amount: tx.amount,
+        currency: tx.currency,
+        title: tx.title,
+        category: tx.category,
+        subcategory: tx.subcategory,
+        scope: tx.scope,
+        date: tx.date,
+        note: tx.note
+      };
+
+      const [txOk] = await Promise.all([
+        SupabaseSyncService.upsertRow('transactions', txPayload, currentUser.id),
+        SupabaseSyncService.upsertRow('wallets', { id: targetWalletId, balance: newWalletBalance }, currentUser.id)
+      ]);
+
+      if (txOk) {
+        StorageService.saveLastSyncTimestamp(Date.now());
+        addToast('success', 'Transaksi Berhasil', `Berhasil mencatat ${tx.title} (Tersimpan & Tersinkron ke Cloud)`);
+      } else {
+        enqueuePendingTx(tx);
+        addToast('info', 'Transaksi Disimpan Lokal', `Disimpan di perangkat. Akan disinkronkan saat koneksi tersedia.`);
+      }
+    } catch (err) {
+      console.warn('[AutoUpload] Error during transaction auto-upload:', err);
+      enqueuePendingTx(tx);
+      addToast('info', 'Transaksi Disimpan Lokal', `Disimpan di perangkat. Akan disinkronkan saat koneksi tersedia.`);
+    }
+  };
+
+  // UPLOAD DATA (Device -> Cloud): Pushes local data to Supabase (Manual with Confirmation)
+  const pushCloudData = async (): Promise<boolean> => {
+    if (!currentUser) {
+      openAuthModal();
+      return false;
+    }
+    if (isSyncingRef.current) {
+      addToast('warning', 'Proses Berjalan', 'Harap tunggu hingga proses sinkronisasi sebelumnya selesai.');
+      return false;
+    }
+    isSyncingRef.current = true;
+    setIsCloudSyncing(true);
+    setSyncStatus('syncing');
+    try {
+      // Flush pending queue first
+      await flushPendingQueue();
+
+      const success = await SupabaseSyncService.saveFullUserBundle(currentUser.id, {
+        wallets,
+        transactions,
+        categories,
+        budgets,
+        goals,
+        debts,
+        invoices,
+        investments,
+        auditLogs
+      });
+      if (success) {
+        StorageService.saveLastSyncTimestamp(Date.now());
+        setSyncStatus('synced');
+        addToast('success', 'Unggah Data Berhasil', 'Data lokal berhasil dikirim dan tersimpan di Supabase Cloud.');
+      } else {
+        setSyncStatus('error');
+        addToast('error', 'Unggah Data Gagal', 'Gagal mengirim data ke Supabase Cloud. Data lokal Anda tetap aman.');
+      }
+      return success;
+    } catch (err) {
+      console.error('[AutoSync] Exception in pushCloudData:', err);
+      setSyncStatus('error');
+      addToast('error', 'Unggah Data Gagal', 'Terjadi kesalahan saat mengirim data ke Cloud.');
+      return false;
+    } finally {
+      isSyncingRef.current = false;
+      setIsCloudSyncing(false);
+    }
+  };
+
+  // Fetch & Subscribe to Supabase PostgreSQL Realtime Sync when user is authenticated
+  useEffect(() => {
+    if (!currentUser) {
+      setSyncStatus('local_only');
+      return;
+    }
+
+    const client = initSupabaseClient();
+    if (!client) return;
+
+    let isSubscribed = true;
+
+    // Trigger initial smart pull when session is ready
+    pullCloudData(false);
+    flushPendingQueue();
+
+    // Subscribe to Realtime Postgres changes with 2-second debounce
     const realtimeChannel = SupabaseSyncService.subscribeToUserRealtime(currentUser.id, () => {
-      loadData();
+      console.log('[AutoSync] Realtime change event received, debouncing 2s...');
+      if (realtimeDebounceTimerRef.current) {
+        clearTimeout(realtimeDebounceTimerRef.current);
+      }
+      realtimeDebounceTimerRef.current = setTimeout(() => {
+        if (isSubscribed) {
+          pullCloudData(true); // Force update on debounced realtime change
+        }
+      }, 2000);
     });
 
     return () => {
       isSubscribed = false;
+      if (realtimeDebounceTimerRef.current) {
+        clearTimeout(realtimeDebounceTimerRef.current);
+      }
       if (realtimeChannel) {
         client.removeChannel(realtimeChannel);
       }
@@ -334,81 +519,40 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     addToast('info', 'Logged Out', 'Berhasil keluar dari akun Supabase.');
   };
 
-  const pushCloudData = async (): Promise<boolean> => {
-    if (!currentUser) {
-      openAuthModal();
-      return false;
-    }
-    setIsCloudSyncing(true);
-    setSyncStatus('syncing');
-    const success = await SupabaseSyncService.saveFullUserBundle(currentUser.id, {
-      wallets,
-      transactions,
-      categories,
-      budgets,
-      goals,
-      debts,
-      invoices,
-      investments,
-      auditLogs
-    });
-    setIsCloudSyncing(false);
-    if (success) {
-      setSyncStatus('synced');
-      addToast('success', 'Sync PostgreSQL Berhasil', 'Seluruh data berhasil diunggah ke Supabase PostgreSQL.');
-    } else {
-      setSyncStatus('error');
-      addToast('error', 'Sync Gagal', 'Gagal mengunggah data ke Supabase.');
-    }
-    return success;
-  };
-
-  const pullCloudData = async (): Promise<boolean> => {
-    if (!currentUser) {
-      openAuthModal();
-      return false;
-    }
-    setIsCloudSyncing(true);
-    setSyncStatus('syncing');
-    const remote = await SupabaseSyncService.fetchUserData(currentUser.id);
-    setIsCloudSyncing(false);
-    if (remote) {
-      setWallets(remote.wallets);
-      setTransactions(remote.transactions);
-      setCategories(remote.categories.length ? remote.categories : categories);
-      setBudgets(remote.budgets);
-      setGoals(remote.goals);
-      setDebts(remote.debts);
-      setInvoices(remote.invoices);
-      setInvestments(remote.investments);
-      if (remote.auditLogs.length) setAuditLogs(remote.auditLogs);
-
-      setSyncStatus('synced');
-      addToast('success', 'Download Berhasil', 'Data diperbarui langsung dari Supabase PostgreSQL.');
-      return true;
-    }
-    return false;
-  };
-
-  // Online / Offline listener
+  // Foreground Resume (visibilitychange) & Online Event Listeners
   useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && currentUser) {
+        console.log('[AutoSync] App brought to foreground. Checking 5-minute cooldown...');
+        pullCloudData(false);
+      }
+    };
+
     const handleOnline = () => {
       setIsOffline(false);
-      addToast('success', 'Koneksi Pulih', 'Anda kembali online. Data otomatis tersinkronkan.');
+      addToast('success', 'Koneksi Pulih', 'Anda kembali online.');
+      if (currentUser) {
+        console.log('[AutoSync] Network online. Checking 5-minute cooldown...');
+        pullCloudData(false);
+        flushPendingQueue();
+      }
     };
+
     const handleOffline = () => {
       setIsOffline(true);
       addToast('warning', 'Mode Offline', 'Perangkat tidak terhubung ke internet. Perubahan akan disimpan sementara.');
     };
 
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
     return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []);
+  }, [currentUser]);
 
   const setScope = (scope: Scope) => {
     setScopeState(scope);
@@ -483,21 +627,21 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
       createdAt: new Date().toISOString()
     };
 
+    // 1. Save transaction locally FIRST
     setTransactions(prev => {
       const updatedTxs = [newTx, ...prev];
       StorageService.saveTransactions(updatedTxs);
       return updatedTxs;
     });
 
-    // Update wallet balance
+    // 2. Update wallet balance locally FIRST
+    let updatedBal = 0;
     setWallets(prev => {
       const nextWallets = prev.map(w => {
         if (w.id === txData.walletId) {
           const delta = txData.type === 'income' ? txData.amount : -txData.amount;
           const newBal = w.balance + delta;
-          if (currentUser) {
-            SupabaseSyncService.upsertRow('wallets', { id: w.id, balance: newBal }, currentUser.id);
-          }
+          updatedBal = newBal;
           return { ...w, balance: newBal };
         }
         return w;
@@ -506,23 +650,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
       return nextWallets;
     });
 
-    if (currentUser) {
-      SupabaseSyncService.upsertRow('transactions', {
-        id: newTx.id,
-        wallet_id: newTx.walletId,
-        type: newTx.type,
-        amount: newTx.amount,
-        currency: newTx.currency,
-        title: newTx.title,
-        category: newTx.category,
-        subcategory: newTx.subcategory,
-        scope: newTx.scope,
-        date: newTx.date,
-        note: newTx.note
-      }, currentUser.id);
-    }
-
-    // Update budget spent if expense
+    // 3. Update budget spent if expense
     if (txData.type === 'expense') {
       const category = categories.find(c => c.name === txData.category);
       if (category) {
@@ -530,7 +658,8 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
       }
     }
 
-    addToast('success', 'Transaksi Berhasil', `Berhasil mencatat ${txData.title}`);
+    // 4. Lightweight transaction auto-upload to Cloud (non-blocking)
+    tryAutoUploadNewTx(newTx, txData.walletId, updatedBal);
   };
 
   const deleteTransaction = (id: string) => {

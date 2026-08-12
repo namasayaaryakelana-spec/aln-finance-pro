@@ -10,16 +10,21 @@ import {
   Table,
   Sun,
   ShieldCheck,
-  CloudCheck
+  CloudCheck,
+  CloudDownload,
+  CloudUpload,
+  RefreshCw,
+  RefreshCcw
 } from 'lucide-react';
 import { ExportService } from '../../services/export';
 import { StorageService } from '../../services/storage';
 import { ThemeToggle } from '../layout/ThemeToggle';
 
 export const SettingsView: React.FC = () => {
-  const { auditLogs, resetAllData, restoreData, addToast, isOnline } = useFinance();
-  const [activeTab, setActiveTab] = useState<'general' | 'erd' | 'backup' | 'audit'>('general');
+  const { auditLogs, resetAllData, restoreData, addToast, isOnline, pullCloudData, pushCloudData } = useFinance();
+  const [activeTab, setActiveTab] = useState<'general' | 'sync' | 'erd' | 'backup' | 'audit'>('general');
   const [selectedRole, setSelectedRole] = useState<'owner' | 'manager' | 'user'>('owner');
+  const [showUploadConfirmModal, setShowUploadConfirmModal] = useState(false);
 
   const handleBackup = () => {
     const backupObj = StorageService.exportFullBackup();
@@ -53,7 +58,7 @@ export const SettingsView: React.FC = () => {
           </div>
           <div>
             <h3 className="text-base font-black text-[var(--text-primary)] font-['Plus_Jakarta_Sans',sans-serif]">System Settings & Config DB</h3>
-            <p className="text-xs text-[var(--text-secondary)]">ERD Diagram, Theme System, Role Management, Audit Logs & Backup/Restore</p>
+            <p className="text-xs text-[var(--text-secondary)]">Sinkronisasi Cloud, ERD Diagram, Theme System, Role Management, Audit Logs & Backup</p>
           </div>
         </div>
 
@@ -67,9 +72,10 @@ export const SettingsView: React.FC = () => {
       </div>
 
       {/* Subtabs Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-[var(--input-bg)] p-2 rounded-3xl border border-[var(--border)]">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 bg-[var(--input-bg)] p-2 rounded-3xl border border-[var(--border)]">
         {[
           { id: 'general', label: 'Umum & Theme OS', icon: UserCheck },
+          { id: 'sync', label: 'Sinkronisasi & Data', icon: CloudCheck },
           { id: 'erd', label: 'ERD Database Canvas', icon: Table },
           { id: 'backup', label: 'Backup & Restore', icon: Database },
           { id: 'audit', label: 'Audit Log Activity', icon: Activity }
@@ -80,13 +86,13 @@ export const SettingsView: React.FC = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`py-2.5 px-3.5 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+              className={`py-2.5 px-3 rounded-2xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
                 isActive
                   ? 'bg-[var(--gold-badge-bg)] text-[var(--gold-primary)] border border-[var(--gold-badge-border)] shadow-md font-extrabold'
                   : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
-              <Icon className="w-4 h-4" />
+              <Icon className="w-3.5 h-3.5" />
               <span>{tab.label}</span>
             </button>
           );
@@ -281,6 +287,70 @@ export const SettingsView: React.FC = () => {
         </div>
       )}
 
+      {/* SUBTAB 2: SINKRONISASI & DATA */}
+      {activeTab === 'sync' && (
+        <div className="bg-[var(--card-bg)] p-6 rounded-3xl border border-[var(--card-border)] shadow-2xl space-y-6 transition-colors">
+          <div className="flex items-center justify-between border-b border-[var(--border)] pb-3.5">
+            <div>
+              <h4 className="text-sm font-extrabold text-[var(--text-primary)] font-['Plus_Jakarta_Sans',sans-serif]">Pengaturan Sinkronisasi & Data Cloud</h4>
+              <p className="text-xs text-[var(--text-secondary)]">Manajemen integrasi data antara Perangkat Lokal & Supabase Cloud</p>
+            </div>
+            <span className="text-[10px] font-mono text-emerald-500 font-extrabold bg-emerald-500/15 px-3 py-1 rounded-full border border-emerald-500/30 flex items-center gap-1">
+              <CloudCheck className="w-3.5 h-3.5" />
+              Smart Auto-Sync Active
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {/* Action 1: Perbarui Data (Cloud -> Perangkat) */}
+            <div className="bg-[var(--input-bg)] p-5 rounded-2xl border border-[var(--border)] space-y-3 flex flex-col justify-between">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-[var(--gold-primary)] font-bold text-xs">
+                  <CloudDownload className="w-4.5 h-4.5 text-[var(--gold-primary)]" />
+                  <span>🔄 PERBARUI DATA</span>
+                </div>
+                <p className="text-[11px] text-[var(--text-primary)] font-bold">Cloud ➔ Perangkat</p>
+                <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
+                  Ambil data terbaru dari Cloud ke perangkat ini. Data lokal Anda akan diperbarui dengan data Supabase terbaru.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={async () => {
+                  await pullCloudData(true);
+                }}
+                className="w-full py-2.5 btn-gold text-[#0B1220] font-extrabold text-xs rounded-2xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer mt-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Perbarui Data Sekarang
+              </button>
+            </div>
+
+            {/* Action 2: Unggah Data ke Cloud (Perangkat -> Cloud) */}
+            <div className="bg-[var(--input-bg)] p-5 rounded-2xl border border-amber-500/30 space-y-3 flex flex-col justify-between">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-amber-500 font-bold text-xs">
+                  <CloudUpload className="w-4.5 h-4.5 text-amber-500" />
+                  <span>☁️ UNGGAH DATA KE CLOUD</span>
+                </div>
+                <p className="text-[11px] text-[var(--text-primary)] font-bold">Perangkat ➔ Cloud</p>
+                <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
+                  Kirim data dari perangkat ini ke Cloud. Memperbarui data yang tersimpan di Supabase PostgreSQL dengan data lokal saat ini.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowUploadConfirmModal(true)}
+                className="w-full py-2.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-500 border border-amber-500/30 font-extrabold text-xs rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer mt-2"
+              >
+                <CloudUpload className="w-4 h-4" />
+                Unggah Data ke Cloud
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* SUBTAB 4: AUDIT LOGS */}
       {activeTab === 'audit' && (
         <div className="bg-[var(--card-bg)] p-6 rounded-3xl border border-[var(--card-border)] shadow-2xl space-y-4 transition-colors">
@@ -301,6 +371,41 @@ export const SettingsView: React.FC = () => {
                 </span>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* CONFIRMATION MODAL FOR MANUAL UPLOAD */}
+      {showUploadConfirmModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xl flex items-center justify-center p-4">
+          <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-fade-in text-[var(--text-primary)]">
+            <div className="flex items-center gap-3 text-amber-500 font-extrabold text-base border-b border-[var(--border)] pb-3">
+              <CloudUpload className="w-6 h-6 text-amber-500" />
+              <h3>Unggah Data ke Cloud?</h3>
+            </div>
+            <p className="text-xs text-[var(--text-secondary)] leading-relaxed font-medium">
+              Data lokal pada perangkat ini akan dikirim ke Cloud dan dapat memperbarui data yang tersimpan di Supabase. Pastikan data lokal sudah benar sebelum melanjutkan.
+            </p>
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--border)]">
+              <button
+                type="button"
+                onClick={() => setShowUploadConfirmModal(false)}
+                className="px-4 py-2 bg-[var(--surface-secondary)] text-[var(--text-secondary)] font-bold text-xs rounded-2xl cursor-pointer hover:bg-[var(--border)] transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  setShowUploadConfirmModal(false);
+                  await pushCloudData();
+                }}
+                className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs rounded-2xl cursor-pointer transition-all shadow-md active:scale-95 flex items-center gap-1.5"
+              >
+                <CloudUpload className="w-4 h-4" />
+                Ya, Unggah Data
+              </button>
+            </div>
           </div>
         </div>
       )}

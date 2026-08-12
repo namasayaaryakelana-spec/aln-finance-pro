@@ -99,6 +99,31 @@ export const StorageService = {
   getOfflineQueue: (): any[] => getStorageItem(KEYS.OFFLINE_QUEUE, []),
   saveOfflineQueue: (queue: any[]) => setStorageItem(KEYS.OFFLINE_QUEUE, queue),
 
+  getLastSyncTimestamp: (): number => getStorageItem('aln_last_sync_timestamp_v1', 0),
+  saveLastSyncTimestamp: (ts: number): void => setStorageItem('aln_last_sync_timestamp_v1', ts),
+
+  saveAllEntities: (bundle: {
+    wallets?: Wallet[];
+    transactions?: Transaction[];
+    categories?: Category[];
+    budgets?: Budget[];
+    goals?: FinancialGoal[];
+    debts?: BillAndDebt[];
+    invoices?: Invoice[];
+    investments?: Investment[];
+    auditLogs?: AuditLog[];
+  }): void => {
+    if (bundle.wallets) StorageService.saveWallets(bundle.wallets);
+    if (bundle.transactions) StorageService.saveTransactions(bundle.transactions);
+    if (bundle.categories && bundle.categories.length > 0) StorageService.saveCategories(bundle.categories);
+    if (bundle.budgets) StorageService.saveBudgets(bundle.budgets);
+    if (bundle.goals) StorageService.saveGoals(bundle.goals);
+    if (bundle.debts) StorageService.saveDebts(bundle.debts);
+    if (bundle.invoices) StorageService.saveInvoices(bundle.invoices);
+    if (bundle.investments) StorageService.saveInvestments(bundle.investments);
+    if (bundle.auditLogs && bundle.auditLogs.length > 0) StorageService.saveAuditLogs(bundle.auditLogs);
+  },
+
   exportFullBackup: () => {
     return {
       version: '1.0.0',
