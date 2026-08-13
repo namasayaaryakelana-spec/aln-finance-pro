@@ -32,8 +32,14 @@ export function getSupabaseCredentials(): SupabaseCredsInfo {
       : '') ||
     '';
 
-  const storedUrl = localStorage.getItem(STORAGE_KEYS.SUPABASE_URL) || '';
-  const storedKey = localStorage.getItem(STORAGE_KEYS.SUPABASE_ANON_KEY) || '';
+  let storedUrl = '';
+  let storedKey = '';
+  try {
+    storedUrl = localStorage.getItem(STORAGE_KEYS.SUPABASE_URL) || '';
+    storedKey = localStorage.getItem(STORAGE_KEYS.SUPABASE_ANON_KEY) || '';
+  } catch (e) {
+    // Safely handle Incognito / Restricted Storage Access
+  }
 
   const isEnvConfigured = Boolean(envUrl && envKey && envUrl.startsWith('http'));
   let url = '';
@@ -54,8 +60,12 @@ export function getSupabaseCredentials(): SupabaseCredsInfo {
 }
 
 export function setSupabaseCredentials(url: string, anonKey: string) {
-  if (url) localStorage.setItem(STORAGE_KEYS.SUPABASE_URL, url.trim());
-  if (anonKey) localStorage.setItem(STORAGE_KEYS.SUPABASE_ANON_KEY, anonKey.trim());
+  try {
+    if (url) localStorage.setItem(STORAGE_KEYS.SUPABASE_URL, url.trim());
+    if (anonKey) localStorage.setItem(STORAGE_KEYS.SUPABASE_ANON_KEY, anonKey.trim());
+  } catch (e) {
+    // Safely handle Incognito storage write restrictions
+  }
 
   supabaseInstance = null;
   initSupabaseClient();
