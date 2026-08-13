@@ -156,6 +156,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
   const isRemoteUpdateRef = useRef<boolean>(false);
   const isSyncingRef = useRef<boolean>(false);
   const realtimeDebounceTimerRef = useRef<any>(null);
+  const pollingTimerRef = useRef<any>(null);
 
   const openAuthModal = () => setIsAuthModalOpen(true);
   const closeAuthModal = () => setIsAuthModalOpen(false);
@@ -513,10 +514,15 @@ isSyncingRef.current = false;
     }
   };
 
-  // Fetch & Subscribe to Supabase PostgreSQL Realtime Sync when user is authenticated
+  // Fetch, REST Polling Fallback (10s), & Optional Realtime Sync when user is authenticated
   useEffect(() => {
-    if (!currentUser) {
+    const userId = currentUser?.id;
+    if (!userId) {
       setSyncStatus('local_only');
+      if (pollingTimerRef.current) {
+        clearInterval(pollingTimerRef.current);
+        pollingTimerRef.current = null;
+      }
       return;
     }
 
@@ -525,12 +531,12 @@ isSyncingRef.current = false;
 
     let isSubscribed = true;
 
-    // Trigger initial forced smart pull when session is ready (bypasses cooldown)
+    // 1. Trigger initial forced smart pull when session is ready (bypasses cooldown)
     pullCloudData(true);
     flushPendingQueue();
 
-    // Subscribe to Realtime Postgres changes with 2-second debounce
-    const realtimeChannel = SupabaseSyncService.subscribeToUserRealtime(currentUser.id, () => {
+    // 2. Optional Realtime Postgres changes accelerator (with 2-second debounce)
+    const realtimeChannel = SupabaseSyncService.subscribeToUserRealtime(userId, () => {
       console.log('[AutoSync] Realtime change event received, debouncing 2s...');
       if (realtimeDebounceTimerRef.current) {
         clearTimeout(realtimeDebounceTimerRef.current);
@@ -542,16 +548,38 @@ isSyncingRef.current = false;
       }, 2000);
     });
 
+    // 3. REST Polling Fallback (10-Second Interval over HTTPS PostgREST API)
+    // Ensures HP ↔ Supabase ↔ Computer stay 100% in sync even if Realtime WebSocket is closed/quota exceeded!
+    if (pollingTimerRef.current) {
+      clearInterval(pollingTimerRef.current);
+    }
+
+    console.log(`[REST Polling] Starting 10s HTTPS REST Polling Fallback for user ${userId}...`);
+    pollingTimerRef.current = setInterval(() => {
+      if (isSubscribed && document.visibilityState === 'visible' && !isOffline) {
+        console.log('[REST Polling] Executing 10s REST polling tick over HTTPS...');
+        pullCloudData(true);
+      }
+    }, 10000);
+
     return () => {
       isSubscribed = false;
       if (realtimeDebounceTimerRef.current) {
         clearTimeout(realtimeDebounceTimerRef.current);
       }
+      if (pollingTimerRef.current) {
+        clearInterval(pollingTimerRef.current);
+        pollingTimerRef.current = null;
+      }
       if (realtimeChannel) {
-        client.removeChannel(realtimeChannel);
+        try {
+          client.removeChannel(realtimeChannel);
+        } catch (e) {
+          // Safe channel cleanup
+        }
       }
     };
-  }, [currentUser]);
+  }, [currentUser?.id]);
 
   // SUPABASE AUTH ACTIONS
   const loginWithSupabaseEmail = async (email: string, pass: string): Promise<boolean> => {
