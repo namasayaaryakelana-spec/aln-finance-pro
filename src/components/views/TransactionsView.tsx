@@ -39,6 +39,8 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense' | 'transfer'>('all');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [showAIRecorder, setShowAIRecorder] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 30;
 
   const transactions = useMemo(() => {
     return filteredTransactions.filter(tx => {
@@ -53,6 +55,14 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
       return matchesSearch && matchesType && matchesCategory;
     });
   }, [filteredTransactions, searchTerm, filterType, filterCategory]);
+
+  const totalPages = Math.ceil(transactions.length / itemsPerPage) || 1;
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+
+  const paginatedTransactions = useMemo(() => {
+    const start = (safeCurrentPage - 1) * itemsPerPage;
+    return transactions.slice(start, start + itemsPerPage);
+  }, [transactions, safeCurrentPage, itemsPerPage]);
 
   return (
     <div className="space-y-6 pb-20 select-none">
@@ -207,8 +217,8 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border)] text-xs font-medium">
-              {transactions.length > 0 ? (
-                transactions.map(tx => {
+              {paginatedTransactions.length > 0 ? (
+                paginatedTransactions.map(tx => {
                   const sourceWallet = wallets.find(w => w.id === tx.walletId || w.name.toLowerCase() === tx.walletId.toLowerCase());
                   const sourceWalletName = sourceWallet ? sourceWallet.name : (tx.walletId && tx.walletId !== 'w-1' ? tx.walletId : 'Kas Utama');
                   const targetWallet = tx.targetWalletId ? wallets.find(w => w.id === tx.targetWalletId || w.name.toLowerCase() === tx.targetWalletId.toLowerCase()) : null;
@@ -320,8 +330,8 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
 
         {/* MOBILE CARD VIEW (Touch Targets >= 44px) */}
         <div className="md:hidden p-4 space-y-3">
-          {transactions.length > 0 ? (
-            transactions.map(tx => {
+          {paginatedTransactions.length > 0 ? (
+            paginatedTransactions.map(tx => {
               const sourceWallet = wallets.find(w => w.id === tx.walletId || w.name.toLowerCase() === tx.walletId.toLowerCase());
               const sourceWalletName = sourceWallet ? sourceWallet.name : (tx.walletId && tx.walletId !== 'w-1' ? tx.walletId : 'Kas Utama');
               const targetWallet = tx.targetWalletId ? wallets.find(w => w.id === tx.targetWalletId || w.name.toLowerCase() === tx.targetWalletId.toLowerCase()) : null;
@@ -426,6 +436,35 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
             </div>
           )}
         </div>
+
+        {/* PAGINATION BAR */}
+        {transactions.length > 0 && (
+          <div className="p-4 border-t border-[var(--border)] bg-[var(--surface-secondary)]/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div className="text-[var(--text-secondary)] font-medium">
+              Menampilkan <span className="font-bold text-[var(--text-primary)]">{(safeCurrentPage - 1) * itemsPerPage + 1}</span> - <span className="font-bold text-[var(--text-primary)]">{Math.min(safeCurrentPage * itemsPerPage, transactions.length)}</span> dari <span className="font-bold text-[var(--text-primary)]">{transactions.length}</span> transaksi
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                disabled={safeCurrentPage <= 1}
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                className="px-3 py-1.5 rounded-xl border border-[var(--border)] bg-[var(--card-bg)] text-[var(--text-primary)] font-bold disabled:opacity-40 transition-all hover:bg-[var(--border)]"
+              >
+                ← Sebelumnya
+              </button>
+              <span className="px-3 py-1.5 rounded-xl font-mono font-bold bg-[var(--gold-badge-bg)] text-[var(--gold-primary)] border border-[var(--gold-badge-border)]">
+                Halaman {safeCurrentPage} / {totalPages}
+              </span>
+              <button
+                disabled={safeCurrentPage >= totalPages}
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                className="px-3 py-1.5 rounded-xl border border-[var(--border)] bg-[var(--card-bg)] text-[var(--text-primary)] font-bold disabled:opacity-40 transition-all hover:bg-[var(--border)]"
+              >
+                Berikutnya →
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

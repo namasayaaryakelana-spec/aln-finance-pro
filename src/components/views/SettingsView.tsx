@@ -22,10 +22,12 @@ import { ThemeToggle } from '../layout/ThemeToggle';
 import { CSVTransactionImporter } from '../import/CSVTransactionImporter';
 
 export const SettingsView: React.FC = () => {
-  const { auditLogs, resetAllData, restoreData, addToast, isOnline, pullCloudData, pushCloudData } = useFinance();
+  const { auditLogs, resetAllData, clearAllTransactions, restoreData, addToast, isOnline, pullCloudData, pushCloudData } = useFinance();
   const [activeTab, setActiveTab] = useState<'general' | 'sync' | 'erd' | 'backup' | 'audit'>('general');
   const [selectedRole, setSelectedRole] = useState<'owner' | 'manager' | 'user'>('owner');
   const [showUploadConfirmModal, setShowUploadConfirmModal] = useState(false);
+  const [showClearTxConfirm, setShowClearTxConfirm] = useState(false);
+  const [isClearingTx, setIsClearingTx] = useState(false);
 
   const handleBackup = () => {
     const backupObj = StorageService.exportFullBackup();
@@ -277,7 +279,56 @@ export const SettingsView: React.FC = () => {
             </div>
           </div>
 
-          <div className="pt-4 border-t border-[var(--border)]">
+          <div className="pt-4 border-t border-[var(--border)] space-y-3">
+            {/* Hapus Semua Transaksi (Surgical) */}
+            <div className="bg-orange-500/5 border border-orange-500/25 rounded-2xl p-4 space-y-3">
+              <div className="text-xs font-extrabold text-orange-400 flex items-center gap-2">
+                <span>⚠️</span> Hapus Semua Transaksi (Pertahankan Wallet)
+              </div>
+              <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
+                Menghapus <strong>SELURUH transaksi</strong> dari LocalStorage, React State, dan Supabase Cloud.
+                Wallet, kategori, budget, goals, dan semua data lain <strong>tidak tersentuh</strong>.
+              </p>
+              {!showClearTxConfirm ? (
+                <button
+                  type="button"
+                  id="btn-clear-all-transactions"
+                  onClick={() => setShowClearTxConfirm(true)}
+                  className="py-2.5 px-4 bg-orange-500/15 hover:bg-orange-500/25 text-orange-400 border border-orange-500/30 text-xs font-bold rounded-2xl transition-colors"
+                >
+                  🗑️ Hapus Semua Transaksi
+                </button>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-xs text-orange-300 font-bold">Yakin hapus SEMUA transaksi? Tindakan ini tidak bisa dibatalkan.</p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      id="btn-clear-tx-confirm"
+                      disabled={isClearingTx}
+                      onClick={async () => {
+                        setIsClearingTx(true);
+                        await clearAllTransactions();
+                        setShowClearTxConfirm(false);
+                        setIsClearingTx(false);
+                      }}
+                      className="py-2 px-4 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl transition-colors disabled:opacity-50"
+                    >
+                      {isClearingTx ? 'Menghapus...' : 'Ya, Hapus Sekarang'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowClearTxConfirm(false)}
+                      className="py-2 px-4 bg-[var(--surface-secondary)] text-[var(--text-primary)] text-xs font-bold rounded-xl transition-colors border border-[var(--border)]"
+                    >
+                      Batal
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Reset Seluruh Data */}
             <button
               onClick={resetAllData}
               className="py-2.5 px-4 bg-red-500/15 hover:bg-red-500/25 text-red-500 border border-red-500/30 text-xs font-bold rounded-2xl transition-colors"

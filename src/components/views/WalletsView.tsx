@@ -42,24 +42,7 @@ export const WalletsView: React.FC<WalletsViewProps> = ({
   const [selectedWalletIdModal, setSelectedWalletIdModal] = useState<string | null>(null);
   const [editingWallet, setEditingWallet] = useState<Wallet | null>(null);
 
-  // DEBUG MODE: Audit database transactions vs rendered balances for all wallets
-  useMemo(() => {
-    console.log("==================================================");
-    console.log("=== [WALLETS VIEW DEBUG MODE] AUDIT DATABASE VS RENDERED BALANCE ===");
-    console.log("==================================================");
-    filteredWallets.forEach(w => {
-      const calcBal = calculateWalletBalance(w, transactions);
-      console.log(`Wallet: ${w.name}`);
-      console.log(`Database transactions count: ${transactions.length}`);
-      console.log(`Calculated balance: ${calcBal}`);
-      console.log(`Rendered balance: ${w.balance}`);
-      if (calcBal !== w.balance) {
-        console.warn(`⚠️ MISMATCH DETECTED for ${w.name}! Calc: ${calcBal}, Rendered: ${w.balance}`);
-      }
-    });
-    console.log(`Total Rendered Balance: ${totalBalance} (Expected: 5444614)`);
-    console.log("==================================================");
-  }, [filteredWallets, transactions, totalBalance]);
+
 
   // Embedded Mutasi Section state
   const [activeWalletId, setActiveWalletId] = useState<string>(filteredWallets[0]?.id || '');

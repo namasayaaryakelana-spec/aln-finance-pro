@@ -6,22 +6,24 @@ import { getSupabaseCredentials, setSupabaseCredentials } from '../../lib/supaba
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
+  isFullscreenGate?: boolean;
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
+export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, isFullscreenGate = false }) => {
   const { loginWithSupabaseEmail, signUpWithSupabaseEmail, loginWithSupabaseGoogle, addToast } = useFinance();
 
   const [mode, setMode] = useState<'login' | 'signup' | 'config'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [authSuccess, setAuthSuccess] = useState(false);
 
   // Config fields
   const currentCreds = getSupabaseCredentials();
   const [supabaseUrl, setSupabaseUrl] = useState(currentCreds.url);
   const [supabaseAnonKey, setSupabaseAnonKey] = useState(currentCreds.anonKey);
 
-  if (!isOpen) return null;
+  if (!isOpen || authSuccess) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,11 +49,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       if (mode === 'login') {
         const ok = await loginWithSupabaseEmail(email.trim(), password);
         if (ok) {
+          setAuthSuccess(true);
           onClose();
         }
       } else {
         const ok = await signUpWithSupabaseEmail(email.trim(), password);
         if (ok) {
+          setAuthSuccess(true);
           onClose();
         }
       }
@@ -70,12 +74,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xl flex items-center justify-center p-4">
       <div className="bg-[var(--card-bg)] border border-[var(--card-border)] w-full max-w-md rounded-3xl p-6 relative text-[var(--text-primary)] shadow-2xl space-y-5 animate-fade-in transition-colors">
-        <button
-          onClick={onClose}
-          className="absolute top-5 right-5 p-2 rounded-2xl bg-[var(--surface-secondary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-[var(--border)] transition-all"
-        >
-          <X className="w-4 h-4" />
-        </button>
+        {!isFullscreenGate && (
+          <button
+            onClick={onClose}
+            className="absolute top-5 right-5 p-2 rounded-2xl bg-[var(--surface-secondary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-[var(--border)] transition-all"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
 
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-2xl bg-[rgba(212,175,55,0.15)] text-[#F6D365] border border-[rgba(212,175,55,0.3)]">

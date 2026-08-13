@@ -287,75 +287,35 @@ export function safeMergeEntityArray<T extends { id: string; updatedAt?: string;
   localItems: T[],
   remoteItems: T[]
 ): T[] {
-  const ensureWalletAccountNumber = (items: T[]): T[] => {
-    if (entityName !== 'wallets') return items;
-    return (items || []).map(item => {
-      const w = item as unknown as Wallet;
-      const acc = w.accountNumber || getCanonicalAccountNumber(w.id, w.name) || '';
-      return { ...w, accountNumber: acc } as unknown as T;
-    });
-  };
-
   const safeLocal = localItems || [];
   const safeRemote = remoteItems || [];
 
-  // Wallets special handling: preserve canonical wallets and account numbers
+  // 1. Wallets Cloud-First: Cloud data is the Single Source of Truth for wallet balance & properties.
+  // We only fallback to local if remote is completely empty or unavailable.
   if (entityName === 'wallets') {
-    if (safeLocal.length > 0 && safeRemote.length === 0) {
-      return ensureWalletAccountNumber(safeLocal);
+    if (safeRemote.length > 0) {
+      return safeRemote.map(remoteItem => {
+        const rW = remoteItem as unknown as Wallet;
+        const acc = rW.accountNumber || getCanonicalAccountNumber(rW.id, rW.name) || '';
+        return { ...rW, accountNumber: acc } as unknown as T;
+      });
     }
-    if (safeLocal.length === 0 && safeRemote.length > 0) {
-      return ensureWalletAccountNumber(safeRemote);
-    }
-    if (safeLocal.length === 0 && safeRemote.length === 0) {
-      return [];
-    }
-
-    const remoteMap = new Map<string, T>();
-    safeRemote.forEach(item => { if (item && item.id) remoteMap.set(String(item.id), item); });
-
-    const mergedMap = new Map<string, T>();
-    safeLocal.forEach(local => {
-      if (!local || !local.id) return;
-      const key = String(local.id);
-      const remote = remoteMap.get(key);
-      if (remote) {
-        const mergedW = mergeWalletPreservingAccountNumber(local as unknown as Wallet, remote as unknown as Wallet);
-        mergedMap.set(key, mergedW as unknown as T);
-        remoteMap.delete(key);
-      } else {
-        const w = local as unknown as Wallet;
-        const acc = w.accountNumber || getCanonicalAccountNumber(w.id, w.name) || '';
-        mergedMap.set(key, { ...w, accountNumber: acc } as unknown as T);
-      }
+    return safeLocal.map(localItem => {
+      const lW = localItem as unknown as Wallet;
+      const acc = lW.accountNumber || getCanonicalAccountNumber(lW.id, lW.name) || '';
+      return { ...lW, accountNumber: acc } as unknown as T;
     });
-    remoteMap.forEach((remote, key) => {
-      const w = remote as unknown as Wallet;
-      const acc = w.accountNumber || getCanonicalAccountNumber(w.id, w.name) || '';
-      mergedMap.set(key, { ...w, accountNumber: acc } as unknown as T);
-    });
-
-    return Array.from(mergedMap.values());
   }
 
-  // Get offline pending queue IDs for non-wallet items
+  // 2. Transactions & Other Entities Cloud-First:
+  // Cloud items + Genuine Pending Offline Queue items = Authoritative State.
   const offlineQueue = StorageService.getOfflineQueue();
   const offlineIds = new Set(offlineQueue.map(q => String(q.id)));
 
-  // If Cloud returns empty array (e.g. 0 transactions in Cloud / unmigrated user_id)
-  if (safeRemote.length === 0) {
-    if (safeLocal.length > 0) {
-      console.log(`[SmartSync] Cloud empty for ${entityName} -> preserving ${safeLocal.length} local items (Local-First fallback)`);
-      return safeLocal;
-    }
-    return [];
-  }
-
-  // If local is empty, use Cloud items
-  if (safeLocal.length === 0) {
-    return safeRemote;
-  }
-
+  // If remote is returned (even empty array for clean/new user in Cloud):
+  // Preserve Cloud items PLUS genuine pending offline items.
+  const pendingOfflineItems = safeLocal.filter(l => l && l.id && offlineIds.has(String(l.id)));
+  
   const remoteMap = new Map<string, T>();
   safeRemote.forEach(item => {
     if (item && item.id) {
@@ -363,50 +323,11 @@ export function safeMergeEntityArray<T extends { id: string; updatedAt?: string;
     }
   });
 
-  const mergedMap = new Map<string, T>();
-
-  const getTs = (item: T): number => {
-    const timeStr = item.updatedAt || item.createdAt || item.timestamp || item.date;
-    if (!timeStr) return 0;
-    const ms = new Date(timeStr).getTime();
-    return isNaN(ms) ? 0 : ms;
-  };
-
-  safeLocal.forEach(local => {
-    if (!local || !local.id) return;
-    const key = String(local.id);
-    const remote = remoteMap.get(key);
-
-    if (!remote) {
-      // Local exists, remote doesn't.
-      // If this item is in the pending offline queue, keep it!
-      if (offlineIds.has(key)) {
-        console.log(`[SmartSync] Preserving pending offline ${entityName} item "${key}"`);
-        mergedMap.set(key, local);
-      } else {
-        // Not in Cloud and not pending offline -> dropped (deleted in Cloud)
-        console.log(`[SmartSync] Dropping stale local ${entityName} item "${key}" (deleted in Cloud)`);
-      }
-    } else {
-      // Exists in both -> Compare timestamps
-      const localTs = getTs(local);
-      const remoteTs = getTs(remote);
-
-      if (localTs > remoteTs) {
-        mergedMap.set(key, local);
-      } else if (remoteTs > localTs) {
-        mergedMap.set(key, remote);
-      } else {
-        mergedMap.set(key, { ...remote, ...local });
-      }
-      remoteMap.delete(key);
+  pendingOfflineItems.forEach(pending => {
+    if (!remoteMap.has(String(pending.id))) {
+      remoteMap.set(String(pending.id), pending);
     }
   });
 
-  // Process remaining remote items (created on another device)
-  remoteMap.forEach((remote, key) => {
-    mergedMap.set(key, remote);
-  });
-
-  return Array.from(mergedMap.values());
+  return Array.from(remoteMap.values());
 }

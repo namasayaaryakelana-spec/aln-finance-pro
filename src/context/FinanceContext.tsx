@@ -43,6 +43,7 @@ interface FinanceContextType {
 
   syncStatus: SyncStatus;
   isCloudSyncing: boolean;
+  authInitialized: boolean;
   isAuthModalOpen: boolean;
   openAuthModal: () => void;
   closeAuthModal: () => void;
@@ -126,6 +127,7 @@ const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
 
 export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<SupabaseUser | null>(null);
+  const [authInitialized, setAuthInitialized] = useState<boolean>(false);
   const [currentScope, setScopeState] = useState<Scope>('personal');
   const [currentCurrency, setCurrency] = useState<Currency>('IDR');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -138,7 +140,8 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     const rawW = StorageService.getWallets();
     const rawT = StorageService.getTransactions();
     const repairedT = repairAndMigrateTransactions(rawT, rawW);
-    return recalculateAllWalletBalances(rawW, repairedT);
+    const recalc = recalculateAllWalletBalances(rawW, repairedT);
+    return sanitizeBcaZeroBalance(recalc, repairedT);
   });
   const [categories, setCategories] = useState<Category[]>(() => StorageService.getCategories());
   const [budgets, setBudgets] = useState<Budget[]>(() => StorageService.getBudgets());
@@ -161,37 +164,153 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
   const openAuthModal = () => setIsAuthModalOpen(true);
   const closeAuthModal = () => setIsAuthModalOpen(false);
 
+  // Helper: build full wallet upsert payload for Supabase
+  // Fields match saveFullUserBundle schema — only columns that exist in public.wallets.
+  // NOTE: updated_at is NOT injected here — upsertRow no longer auto-injects it.
+  const buildWalletUpsertPayload = (w: Wallet, overrideBalance?: number) => ({
+    id: w.id,
+    name: w.name,
+    type: w.type,
+    currency: w.currency,
+    balance: overrideBalance !== undefined ? overrideBalance : w.balance,
+    account_number: w.accountNumber ?? null,
+    scope: w.scope,
+    color: w.color ?? null,
+    is_default: w.isDefault ?? false
+    // icon is intentionally omitted — not confirmed in DB schema
+  });
+
+  // Helper: Safe BCA Balance Reset (12.5M -> 0) when transactions count === 0
+  const sanitizeBcaZeroBalance = (walletList: Wallet[], txList: Transaction[], currentUserId?: string | null): Wallet[] => {
+    const targetBca = walletList.find(w => (w.id === 'w-1' || w.name?.toUpperCase() === 'BCA') && w.balance === 12500000);
+    if (targetBca && (!txList || txList.length === 0)) {
+      console.log('[SAFE BCA RESET BEFORE]', {
+        walletId: targetBca.id,
+        name: targetBca.name,
+        oldBalance: targetBca.balance,
+        transactionCount: txList?.length || 0,
+        totalWalletBalance: walletList.reduce((sum, w) => sum + w.balance, 0)
+      });
+
+      const updatedList = walletList.map(w => (w.id === targetBca.id ? { ...w, balance: 0 } : w));
+      const updatedBcaObj = updatedList.find(w => w.id === targetBca.id)!;
+
+      if (currentUserId) {
+        SupabaseSyncService.upsertRow('wallets', buildWalletUpsertPayload(updatedBcaObj, 0), currentUserId);
+        console.log('[SAFE BCA RESET CLOUD]', {
+          walletId: updatedBcaObj.id,
+          name: updatedBcaObj.name,
+          balance: 0,
+          userId: currentUserId
+        });
+      }
+
+      StorageService.saveWallets(updatedList);
+
+      console.log('[FINAL WALLET RECONCILIATION]', {
+        BCA_Before: 'Rp12.500.000',
+        BCA_After: 'Rp0',
+        OtherWallets: 'unchanged',
+        TotalAssetsAfter: updatedList.reduce((sum, w) => sum + w.balance, 0)
+      });
+
+      return updatedList;
+    }
+    return walletList;
+  };
+
   // Initialize Supabase Auth Listener & Session Persistence
   useEffect(() => {
+    console.log('[APP INIT] FinanceProvider mounted');
+    console.log('[AUTH INIT] getSession started');
+    let mounted = true;
+
     const client = initSupabaseClient();
     if (!client) {
       setSyncStatus('local_only');
+      setAuthInitialized(true);
+      console.log('[AUTH INIT] completed (no Supabase client)');
       return;
     }
 
-    client.auth.getSession().then(({ data }) => {
-      if (data.session?.user) {
-        setCurrentUser(data.session.user);
-      }
-    });
+    const initializeAuth = async () => {
+      try {
+        const { data, error } = await client.auth.getSession();
+        if (!mounted) return;
 
-    const { data: authSubscription } = client.auth.onAuthStateChange((event, session) => {
-      const user = session?.user || null;
-      setCurrentUser(user);
-      if (user) {
-        setSyncStatus('syncing');
-        if ((event as string) === 'INITIALIZED' || (event as string) === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          console.log(`[AuthSync] Auth event ${event} for ${user.email} -> Triggering forced Cloud Hydration...`);
-          setTimeout(() => {
-            pullCloudData(true);
-          }, 100);
+        console.log('[AUTH PERSISTENCE]', {
+          hasSession: !!data?.session,
+          userId: data?.session?.user?.id ?? null,
+          expiresAt: data?.session?.expires_at ?? null
+        });
+
+        if (error) {
+          console.error('[AUTH STARTUP] getSession ERROR:', error);
+          setCurrentUser(null);
+        } else if (data.session?.user) {
+          console.log('[AUTH STARTUP]', {
+            hasSession: true,
+            sessionUserId: data.session.user.id,
+            currentUserId: data.session.user.id,
+            authInitialized: true,
+            isAuthModalOpen: false
+          });
+          setCurrentUser(data.session.user);
+          setIsAuthModalOpen(false);
+        } else {
+          console.log('[AUTH STARTUP]', {
+            hasSession: false,
+            sessionUserId: null,
+            currentUserId: null,
+            authInitialized: true,
+            isAuthModalOpen: false
+          });
+          setCurrentUser(null);
         }
-      } else {
-        setSyncStatus('local_only');
+      } catch (err) {
+        console.error('[AUTH STARTUP] getSession EXCEPTION:', err);
+        if (mounted) setCurrentUser(null);
+      } finally {
+        if (mounted) {
+          setAuthInitialized(true);
+          console.log('[AUTH STARTUP] Auth initialization completed.');
+        }
+      }
+    };
+
+    initializeAuth();
+
+    const { data: authSubscription } = client.auth.onAuthStateChange(async (event, session) => {
+      let user = session?.user || null;
+
+      // Anti-Transient Null Guard: When switching browser tabs or during background token refresh,
+      // verify getSession before assuming user is logged out.
+      if (!user && (event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION' || document.visibilityState === 'visible')) {
+        try {
+          const { data: sessData } = await client.auth.getSession();
+          if (sessData?.session?.user) {
+            user = sessData.session.user;
+          }
+        } catch (e) {
+          // Ignore transient error
+        }
+      }
+
+      console.log('[AUTH EVENT]', {
+        event,
+        hasSession: !!user,
+        userId: user?.id ?? null
+      });
+
+      if (user) {
+        setCurrentUser(user);
+        setIsAuthModalOpen(false);
+        setSyncStatus('syncing');
       }
     });
 
     return () => {
+      mounted = false;
       authSubscription.subscription.unsubscribe();
     };
   }, []);
@@ -199,31 +318,52 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
   // Trigger Forced Cloud Hydration automatically whenever currentUser ID changes or is restored
   useEffect(() => {
     if (currentUser?.id) {
-      console.log('[AutoSync] currentUser restored/changed:', currentUser.id, '-> Triggering forced Cloud Hydration...');
-      pullCloudData(true);
+      console.log('[APP INIT] Cloud hydration started');
+      pullCloudData(true).finally(() => {
+        console.log('[APP INIT] Cloud hydration completed');
+      });
     }
   }, [currentUser?.id]);
 
-  // SMART AUTO-SYNC (Cloud -> Device): Pulls latest data from Supabase Cloud
+  console.log('[APP RENDER]', {
+    authInitialized,
+    currentUserId: currentUser?.id ?? null,
+    wallets: wallets.length,
+    transactions: transactions.length
+  });
+
+  // ─── Dataset Change Detection ──────────────────────────────────────────────
+  // Lightweight fingerprints — sort by ID first so order changes don't matter.
+  const getTxSignature = (txs: Transaction[]): string => {
+    const sorted = [...txs].sort((a, b) => a.id.localeCompare(b.id));
+    return `${txs.length}|${sorted.map(t => `${t.id}:${t.amount}:${t.date}:${t.type}:${t.walletId}:${t.category}:${t.subcategory ?? ''}:${t.note ?? ''}:${t.scope}:${t.currency}`).join(';')}`;
+  };
+  const getWalletSignature = (ws: Wallet[]): string => {
+    const sorted = [...ws].sort((a, b) => a.id.localeCompare(b.id));
+    return `${ws.length}|${sorted.map(w => `${w.id}:${w.name}:${w.balance}:${w.type}:${w.currency}:${w.accountNumber ?? ''}:${w.scope}`).join(';')}`;
+  };
+  // Combined signature: transactions + wallets concatenated
+  const getDataSignature = (txs: Transaction[], ws: Wallet[]): string =>
+    getTxSignature(txs) + '||' + getWalletSignature(ws);
+  // ────────────────────────────────────────────────────────────────────────────
+
+  // Ref that persists across renders and closures — holds the signature of the
+  // LAST dataset that was shown a toast. Comparing against this (not stale
+  // closure state) is the only safe way to detect real changes.
+  const lastNotifiedSignatureRef = useRef<string>('');
+
+  // Track whether the very first cloud pull for this session has fired
+  const isInitialPullRef = useRef<boolean>(true);
+
+  // SMART AUTO-SYNC (Cloud -> Device): Pulls latest data from Supabase Cloud (Single Source of Truth)
   const pullCloudData = async (force = false): Promise<boolean> => {
     if (!currentUser) {
-      if (force) openAuthModal();
       return false;
     }
 
     // Duplicate sync protection guard
     if (isSyncingRef.current) {
       console.log('[AutoSync] Sync request already in progress, skipping duplicate.');
-      return false;
-    }
-
-    // 5-Minute Cooldown Check for automatic triggers
-    const COOLDOWN_MS = 5 * 60 * 1000;
-    const lastSync = StorageService.getLastSyncTimestamp();
-    const elapsed = Date.now() - lastSync;
-
-    if (!force && lastSync > 0 && elapsed < COOLDOWN_MS) {
-      console.log(`[AutoSync] Cooldown active (${Math.round((COOLDOWN_MS - elapsed) / 1000)}s remaining), skipping auto-pull.`);
       return false;
     }
 
@@ -296,10 +436,23 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         const mergedInvestments = safeMergeEntityArray('investments', localInvestments, remote.investments || []);
         const mergedAuditLogs = safeMergeEntityArray('auditLogs', localAuditLogs, remote.auditLogs || []);
 
-        console.log(`[SYNC DEBUG] wallets -> Local: ${localWallets.length}, Cloud: ${remote.wallets?.length || 0}, Merged: ${mergedWallets.length}`);
-        console.log(`[SYNC DEBUG] transactions -> Local: ${localTransactions.length}, Cloud: ${remote.transactions?.length || 0}, Merged: ${mergedTransactions.length}`);
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        console.log('[SYNC STATE]', {
+          device: isMobile ? 'mobile' : 'desktop',
+          userId: currentUser.id,
+          cloudTransactions: remote.transactions?.length || 0,
+          localTransactions: localTransactions.length,
+          cloudWallets: remote.wallets?.length || 0,
+          localWallets: localWallets.length,
+          stateTransactions: mergedTransactions.length,
+          stateWallets: mergedWallets.length
+        });
 
-        const recalculatedWallets = recalculateAllWalletBalances(mergedWallets, mergedTransactions);
+        const recalculatedWallets = sanitizeBcaZeroBalance(
+          recalculateAllWalletBalances(mergedWallets, mergedTransactions),
+          mergedTransactions,
+          currentUser?.id
+        );
 
         setWallets(recalculatedWallets);
         setTransactions(mergedTransactions);
@@ -345,9 +498,52 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         flushPendingQueue();
 
         setSyncStatus('synced');
-        if (force && recalculatedWallets.length >= 8) {
-          addToast('success', 'Data Diperbarui', 'Data terbaru berhasil disinkronkan dari Cloud.');
+
+        // ── Single Toast Gate (ref-based, closure-safe) ──────────────────────
+        // Build signature from the NEWLY merged data (not from stale closure state)
+        const newCombinedSig = getDataSignature(mergedTransactions, recalculatedWallets);
+        const isInitial = isInitialPullRef.current;
+        const dataActuallyChanged = newCombinedSig !== lastNotifiedSignatureRef.current;
+
+        // Determine what changed for a specific toast message
+        const prevTxSigLocal = getTxSignature(mergedTransactions); // used only for label
+        const prevWalletSigLocal = getWalletSignature(recalculatedWallets); // used only for label
+        // Compare sub-signatures only when we know something changed overall
+        // We need prev values for label — read from the stored combined sig
+        const [storedTxPart, storedWalletPart] = lastNotifiedSignatureRef.current.split('||');
+        const txChanged = prevTxSigLocal !== (storedTxPart ?? '');
+        const walletChanged = prevWalletSigLocal !== (storedWalletPart ?? '');
+
+        console.log('[SYNC DECISION]', {
+          source: 'pullCloudData',
+          isInitial,
+          dataActuallyChanged,
+          txChanged,
+          walletChanged,
+          shouldToast: isInitial || dataActuallyChanged,
+          newSigPreview: newCombinedSig.slice(0, 80)
+        });
+
+        if (isInitial) {
+          // First pull after login — show once, record signature
+          isInitialPullRef.current = false;
+          lastNotifiedSignatureRef.current = newCombinedSig;
+          if (recalculatedWallets.length >= 8) {
+            addToast('success', 'Data Diperbarui', 'Data terbaru berhasil disinkronkan dari Cloud.');
+          }
+        } else if (dataActuallyChanged) {
+          // Subsequent polls — only toast on genuine change
+          lastNotifiedSignatureRef.current = newCombinedSig;
+          const what = txChanged && walletChanged
+            ? 'Transaksi & saldo wallet diperbarui dari Cloud.'
+            : txChanged
+            ? 'Transaksi baru ditemukan dari perangkat lain.'
+            : 'Saldo wallet diperbarui dari Cloud.';
+          addToast('success', 'Data Diperbarui', what);
         }
+        // else: data identical — silent update, NO toast
+        // ────────────────────────────────────────────────────────────────────
+
         setTimeout(() => { isRemoteUpdateRef.current = false; }, 1500);
         return true;
       } else {
@@ -422,7 +618,21 @@ isSyncingRef.current = false;
   };
 
   const tryAutoUploadNewTx = async (tx: Transaction, targetWalletId: string, newWalletBalance: number) => {
+    // ===== [DIAG-LOG] ENTRY =====
+    console.log('[DIAG] tryAutoUploadNewTx START', {
+      txId: tx.id,
+      txTitle: tx.title,
+      txAmount: tx.amount,
+      txWalletId: tx.walletId,
+      currentUserId: currentUser?.id ?? 'NULL',
+      navigatorOnLine: navigator.onLine
+    });
+
     if (!currentUser || !navigator.onLine) {
+      console.warn('[DIAG] tryAutoUploadNewTx ABORTED — no currentUser or offline', {
+        currentUser: currentUser?.id ?? 'NULL',
+        onLine: navigator.onLine
+      });
       enqueuePendingTx(tx);
       addToast('info', 'Mode Offline', `Perangkat offline. Transaksi disimpan di perangkat.`);
       return;
@@ -443,23 +653,51 @@ isSyncingRef.current = false;
         note: tx.note || null
       };
 
+      // ===== [DIAG-LOG] PAYLOAD SEBELUM UPSERT =====
+      console.log('[DIAG] tryAutoUploadNewTx: PAYLOAD yang dikirim ke upsertRow:', JSON.stringify(txPayload, null, 2));
+      console.log('[DIAG] tryAutoUploadNewTx: userId yang dikirim ke upsertRow:', currentUser.id);
+
       const txOk = await SupabaseSyncService.upsertRow('transactions', txPayload, currentUser.id);
 
+      // ===== [DIAG-LOG] HASIL UPSERT =====
+      console.log('[DIAG] tryAutoUploadNewTx: upsertRow() returned txOk =', txOk);
+
       if (txOk) {
-        // Also update primary wallet balance in Cloud
-        SupabaseSyncService.upsertRow('wallets', { id: targetWalletId, balance: newWalletBalance }, currentUser.id);
+        // Also update primary wallet balance in Cloud — send FULL payload to avoid NOT NULL violation
+        const walletToSync = wallets.find(w => w.id === targetWalletId);
+        if (walletToSync) {
+          const walletPayload = buildWalletUpsertPayload(walletToSync, newWalletBalance);
+          SupabaseSyncService.upsertRow('wallets', walletPayload, currentUser.id);
+        }
         StorageService.saveLastSyncTimestamp(Date.now());
         addToast('success', 'Transaksi Berhasil', `Berhasil mencatat ${tx.title} (Tersimpan & Tersinkron ke Cloud)`);
       } else {
         if (!navigator.onLine) {
+          console.warn('[DIAG] tryAutoUploadNewTx: txOk=false dan offline, enqueuePendingTx');
           enqueuePendingTx(tx);
-          addToast('info', 'Mode Offline', `Perangkat offline. Transaksi disimpan di perangkat.`);
+          addToast('info', 'Mode Offline', `Perangkat offline. Transaksi disimpan lokal & akan di-sync saat online.`);
         } else {
-          console.error(`[AutoUpload] Transaction ${tx.id} failed to upload to Supabase Cloud DB.`);
-          addToast('error', 'Gagal Sync Cloud', `Transaksi tersimpan di perangkat, namun gagal terunggah ke Cloud.`);
+          // ONLINE but upsert failed — enqueue for retry AND show error
+          console.error('[DIAG] tryAutoUploadNewTx: txOk=false ONLINE — Gagal upload ke Cloud, enqueue untuk retry', {
+            txId: tx.id,
+            txTitle: tx.title,
+            sessionUserId: currentUser.id,
+            navigatorOnLine: navigator.onLine
+          });
+          enqueuePendingTx(tx);
+          addToast('error', 'Gagal Sync Cloud', `Transaksi disimpan lokal & akan otomatis di-retry saat polling berikutnya.`);
         }
       }
-    } catch (err) {
+    } catch (err: any) {
+      // ===== [DIAG-LOG] EXCEPTION PATH =====
+      console.error('[DIAG] tryAutoUploadNewTx: EXCEPTION (catch block)', {
+        errorMessage: err?.message,
+        errorCode: err?.code,
+        errorDetails: err?.details,
+        errorHint: err?.hint,
+        httpStatus: err?.status,
+        fullError: err
+      });
       console.warn('[AutoUpload] Error during transaction auto-upload:', err);
       enqueuePendingTx(tx);
       addToast('info', 'Mode Offline', `Terjadi kendala. Transaksi disimpan di perangkat.`);
@@ -469,7 +707,7 @@ isSyncingRef.current = false;
   // UPLOAD DATA (Device -> Cloud): Pushes local data to Supabase (Manual with Confirmation)
   const pushCloudData = async (): Promise<boolean> => {
     if (!currentUser) {
-      openAuthModal();
+      console.warn('[pushCloudData] No active user session, skipping push.');
       return false;
     }
     if (isSyncingRef.current) {
@@ -589,8 +827,21 @@ isSyncingRef.current = false;
       return false;
     }
 
+    console.log('[AUTH RUNTIME] LOGIN_CLICK', { email });
+    console.log('[AUTH RUNTIME] SIGNIN_START');
+
     try {
       const { data, error } = await client.auth.signInWithPassword({ email, password: pass });
+
+      console.log('[AUTH RUNTIME] SIGNIN_RESULT', {
+        hasError: !!error,
+        errorMessage: error ? error.message : null,
+        hasUser: !!data?.user,
+        userId: data?.user?.id ?? null,
+        hasSession: !!data?.session,
+        sessionUserId: data?.session?.user?.id ?? null
+      });
+
       if (error) {
         const msg = error.message?.toLowerCase() || '';
         if (msg.includes('email not confirmed') || msg.includes('user not confirmed')) {
@@ -605,18 +856,29 @@ isSyncingRef.current = false;
         return false;
       }
 
-      const user = data?.user || data?.session?.user;
-      if (user) {
-        setCurrentUser(user);
-        addToast('success', 'Login Berhasil', `Terhubung sebagai ${user.email}`);
-        return true;
-      }
+      const user = data?.user ?? data?.session?.user ?? null;
 
-      addToast('error', 'Login Gagal', 'Data pengguna tidak ditemukan dari respons Supabase.');
-      return false;
+      // Verify active session right after signin
+      const { data: sessData } = await client.auth.getSession();
+      console.log('[AUTH RUNTIME] SESSION_AFTER_LOGIN', {
+        hasSession: !!sessData?.session,
+        userId: sessData?.session?.user?.id ?? null
+      });
+
+      if (user) {
+        console.log('[AUTH RUNTIME] CURRENT_USER_AFTER_LOGIN', {
+          userId: user.id,
+          email: user.email
+        });
+        setCurrentUser(user);
+      }
+      // Close modal eagerly — onAuthStateChange will confirm the session
+      setIsAuthModalOpen(false);
+      addToast('success', 'Login Berhasil', `Terhubung sebagai ${user?.email ?? email}`);
+      return true;
     } catch (err: any) {
       addToast('error', 'Login Error', err.message || String(err));
-      return false;
+      return false; // Modal stays open
     }
   };
 
@@ -635,6 +897,7 @@ isSyncingRef.current = false;
       }
       if (data.user) {
         setCurrentUser(data.user);
+        setIsAuthModalOpen(false);
         addToast('success', 'Akun Berhasil Dibuat', 'Email terverifikasi & terhubung ke Supabase PostgreSQL Cloud.');
         return true;
       }
@@ -662,12 +925,20 @@ isSyncingRef.current = false;
   };
 
   const logout = async () => {
+    if (pollingTimerRef.current) {
+      clearInterval(pollingTimerRef.current);
+      pollingTimerRef.current = null;
+    }
     const client = initSupabaseClient();
     if (client) {
       await client.auth.signOut();
     }
     setCurrentUser(null);
+    setIsAuthModalOpen(false);
     setSyncStatus('local_only');
+    // Reset both refs so next login gets the initial-hydration toast once
+    isInitialPullRef.current = true;
+    lastNotifiedSignatureRef.current = '';
     addToast('info', 'Logged Out', 'Berhasil keluar dari akun Supabase.');
   };
 
@@ -806,7 +1077,7 @@ isSyncingRef.current = false;
 
       if (currentUser) {
         nextWallets.forEach(w => {
-          SupabaseSyncService.upsertRow('wallets', { id: w.id, balance: w.balance }, currentUser.id);
+          SupabaseSyncService.upsertRow('wallets', buildWalletUpsertPayload(w), currentUser.id);
         });
       }
       StorageService.saveWallets(nextWallets);
@@ -842,7 +1113,7 @@ isSyncingRef.current = false;
       const nextWallets = recalculateAllWalletBalances(prev, updated);
       if (currentUser) {
         nextWallets.forEach(w => {
-          SupabaseSyncService.upsertRow('wallets', { id: w.id, balance: w.balance }, currentUser.id);
+          SupabaseSyncService.upsertRow('wallets', buildWalletUpsertPayload(w), currentUser.id);
         });
       }
       StorageService.saveWallets(nextWallets);
@@ -945,7 +1216,7 @@ isSyncingRef.current = false;
 
     if (currentUser) {
       nextWallets.forEach(w => {
-        SupabaseSyncService.upsertRow('wallets', { id: w.id, balance: w.balance }, currentUser.id);
+        SupabaseSyncService.upsertRow('wallets', buildWalletUpsertPayload(w), currentUser.id);
       });
       SupabaseSyncService.upsertRow('transactions', {
         id: newTx.id,
@@ -955,9 +1226,10 @@ isSyncingRef.current = false;
         currency: newTx.currency,
         title: newTx.title,
         category: newTx.category,
+        subcategory: newTx.targetWalletId ? null : null,
         scope: newTx.scope,
         date: newTx.date,
-        note: newTx.note
+        note: newTx.note || null
       }, currentUser.id);
     }
 
@@ -1164,7 +1436,8 @@ isSyncingRef.current = false;
         StorageService.saveWallets(nextWallets);
 
         if (currentUser) {
-          SupabaseSyncService.upsertRow('wallets', { id: walletId, balance: newBal }, currentUser.id);
+          // wallet is the original object with all fields; newBal is the updated balance
+          SupabaseSyncService.upsertRow('wallets', buildWalletUpsertPayload(wallet, newBal), currentUser.id);
         }
 
         const newTx: Transaction = {
@@ -1535,6 +1808,7 @@ isSyncingRef.current = false;
         setCurrency,
         syncStatus,
         isCloudSyncing,
+        authInitialized,
         isAuthModalOpen,
         openAuthModal,
         closeAuthModal,

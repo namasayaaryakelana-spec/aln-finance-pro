@@ -7,6 +7,7 @@ import { Header } from './components/layout/Header';
 import { MobileNav } from './components/layout/MobileNav';
 import { OfflineNotifier } from './components/layout/OfflineNotifier';
 import { PWAInstallPrompt } from './components/layout/PWAInstallPrompt';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 import { DashboardView } from './components/views/DashboardView';
 import { WalletsView } from './components/views/WalletsView';
@@ -32,7 +33,7 @@ import { AuthModal } from './components/modals/AuthModal';
 import { Invoice } from './types';
 
 const AppContent: React.FC = () => {
-  const { isAuthModalOpen, closeAuthModal } = useFinance();
+  const { currentUser, isAuthModalOpen, closeAuthModal, authInitialized } = useFinance();
   const [showSplash, setShowSplash] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -74,10 +75,29 @@ const AppContent: React.FC = () => {
     });
   };
 
-  if (showSplash) {
+  console.log('[AUTH STARTUP]', {
+    authInitialized,
+    hasSessionUser: !!currentUser,
+    userId: currentUser?.id ?? null,
+    email: currentUser?.email ?? null,
+    isAuthModalOpen
+  });
+
+  // 1. Auth Loading Gate: Must wait until authInitialized is true
+  if (!authInitialized || showSplash) {
     return <SplashScreen onComplete={() => setShowSplash(false)} />;
   }
 
+  // 2. Unauthenticated Gate: Render dedicated Auth Screen
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen ambient-bg text-[var(--text-primary)] flex items-center justify-center p-4 select-none font-sans">
+        <AuthModal isOpen={true} onClose={() => {}} isFullscreenGate={true} />
+      </div>
+    );
+  }
+
+  // 3. Authenticated Gate: Render Main Application Dashboard
   return (
     <div className="min-h-screen ambient-bg text-[var(--text-primary)] flex flex-col antialiased selection:bg-emerald-500 selection:text-slate-950 font-sans transition-colors duration-250">
       {/* Toast Notifier */}
@@ -198,11 +218,13 @@ const AppContent: React.FC = () => {
 
 export function App() {
   return (
-    <ThemeProvider>
-      <FinanceProvider>
-        <AppContent />
-      </FinanceProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <FinanceProvider>
+          <AppContent />
+        </FinanceProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

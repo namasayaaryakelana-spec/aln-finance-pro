@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useFinance } from '../../context/FinanceContext';
 import { useTheme } from '../../context/ThemeContext';
 import { getWalletAccountNumber } from '../../utils/balanceHelper';
@@ -107,55 +107,59 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     }
   }, [quickCategory, quickType]);
 
-  // Calculate monthly cash flow data for Recharts
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
-  const now = new Date();
-  const currentMonth = now.getMonth();
-  const currentYear = now.getFullYear();
+  // Calculate monthly cash flow data for Recharts (Memoized)
+  const chartData = useMemo(() => {
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
 
-  const monthsList: { monthKey: string; monthLabel: string }[] = [];
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(currentYear, currentMonth - i, 1);
-    const yr = d.getFullYear();
-    const mo = String(d.getMonth() + 1).padStart(2, '0');
-    monthsList.push({
-      monthKey: `${yr}-${mo}`,
-      monthLabel: monthNames[d.getMonth()]
+    const monthsList: { monthKey: string; monthLabel: string }[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(currentYear, currentMonth - i, 1);
+      const yr = d.getFullYear();
+      const mo = String(d.getMonth() + 1).padStart(2, '0');
+      monthsList.push({
+        monthKey: `${yr}-${mo}`,
+        monthLabel: monthNames[d.getMonth()]
+      });
+    }
+
+    return monthsList.map(({ monthKey, monthLabel }) => {
+      let income = 0;
+      let expense = 0;
+      filteredTransactions.forEach(t => {
+        if (t.date && t.date.startsWith(monthKey)) {
+          if (t.type === 'income') income += t.amount;
+          if (t.type === 'expense') expense += t.amount;
+        }
+      });
+      return {
+        month: monthLabel,
+        income,
+        expense,
+        net: income - expense
+      };
     });
-  }
+  }, [filteredTransactions]);
 
-  const chartData = monthsList.map(({ monthKey, monthLabel }) => {
-    let income = 0;
-    let expense = 0;
-    filteredTransactions.forEach(t => {
-      if (t.date && t.date.startsWith(monthKey)) {
-        if (t.type === 'income') income += t.amount;
-        if (t.type === 'expense') expense += t.amount;
-      }
-    });
-    return {
-      month: monthLabel,
-      income,
-      expense,
-      net: income - expense
-    };
-  });
+  // Category Pie Chart Data (Memoized)
+  const pieData = useMemo(() => {
+    const categoryExpenses: { [key: string]: number } = {};
+    filteredTransactions
+      .filter(t => t.type === 'expense')
+      .forEach(t => {
+        categoryExpenses[t.category] = (categoryExpenses[t.category] || 0) + t.amount;
+      });
 
-  // Category Pie Chart Data
-  const categoryExpenses: { [key: string]: number } = {};
-  filteredTransactions
-    .filter(t => t.type === 'expense')
-    .forEach(t => {
-      categoryExpenses[t.category] = (categoryExpenses[t.category] || 0) + t.amount;
-    });
+    const COLORS = ['#D4AF37', '#F6D365', '#22C55E', '#3B82F6', '#EF4444', '#A78BFA', '#06B6D4'];
 
-  const COLORS = ['#D4AF37', '#F6D365', '#22C55E', '#3B82F6', '#EF4444', '#A78BFA', '#06B6D4'];
-
-  const pieData = Object.keys(categoryExpenses).map((catName, i) => ({
-    name: catName,
-    value: categoryExpenses[catName],
-    color: COLORS[i % COLORS.length]
-  }));
+    return Object.keys(categoryExpenses).map((catName, i) => ({
+      name: catName,
+      value: categoryExpenses[catName],
+      color: COLORS[i % COLORS.length]
+    }));
+  }, [filteredTransactions]);
 
   const handleQuickSubmit = (e: React.FormEvent) => {
     e.preventDefault();

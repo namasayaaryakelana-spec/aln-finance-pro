@@ -222,41 +222,96 @@ export const SupabaseSyncService = {
   // Save / Upsert Single Record to PostgreSQL
   async upsertRow(tableName: string, record: any, userId: string): Promise<boolean> {
     const client = initSupabaseClient();
-    if (!client) return false;
+    if (!client) {
+      console.error('[DIAG] upsertRow: initSupabaseClient() returned NULL — TITIK GAGAL: client tidak tersedia');
+      return false;
+    }
 
     try {
       // Verify active session for RLS compliance
       const { data: sessionData } = await client.auth.getSession();
       const activeUser = sessionData?.session?.user;
+
+      // ===== [DIAG-LOG] SESSION CHECK =====
+      console.log('[DIAG] upsertRow: SESSION CHECK', {
+        table: tableName,
+        activeUserId: activeUser?.id ?? 'NULL',
+        targetUserId: userId,
+        sessionMatch: activeUser?.id === userId
+      });
       
       if (!activeUser) {
-        console.warn(`[SUPABASE UPSERT WARN] No active session found when upserting to ${tableName}. User ID: ${userId}`);
+        console.warn(`[DIAG] upsertRow: TITIK GAGAL — No active session! table=${tableName}, userId=${userId}`);
       } else if (activeUser.id !== userId) {
-        console.warn(`[SUPABASE UPSERT WARN] Session user ID mismatch (${activeUser.id} vs target ${userId}).`);
+        console.warn(`[DIAG] upsertRow: TITIK GAGAL — Session user ID MISMATCH! session=${activeUser.id} vs target=${userId}`);
       }
 
       const payload = {
         ...record,
-        user_id: userId,
-        updated_at: new Date().toISOString()
+        user_id: userId
+        // NOTE: updated_at is NOT auto-injected here.
+        // If your schema has updated_at, add it explicitly in the record payload.
+        // Auto-injecting it caused HTTP 400 on tables that don't have this column.
       };
 
-      const { error } = await client.from(tableName).upsert(payload, { onConflict: 'id' });
+      // ===== [WALLET SYNC] Specific log for wallet upserts =====
+      if (tableName === 'wallets') {
+        console.log('[WALLET SYNC]', {
+          wallet_id: record.id,
+          wallet_name: record.name ?? 'MISSING_NAME',
+          payload_name: payload.name ?? 'MISSING_NAME',
+          user_id: userId,
+          has_name: payload.name != null
+        });
+      }
+
+      // ===== [DIAG-LOG] UPSERT CALL =====
+      console.log('[DIAG] upsertRow: Calling client.from().upsert()', {
+        table: tableName,
+        payloadKeys: Object.keys(payload),
+        recordId: payload.id
+      });
+
+      const { data: upsertData, error, status, statusText } = await client
+        .from(tableName)
+        .upsert(payload, { onConflict: 'id' })
+        .select();
+
+      // ===== [CLOUD WRITE] Standard Log =====
+      console.log('[CLOUD WRITE]', {
+        operation: 'UPSERT',
+        table: tableName,
+        recordId: payload.id,
+        success: !error,
+        error: error ? error.message : null
+      });
+
       if (error) {
-        console.error(`[SUPABASE UPSERT ERROR]`, {
+        console.error(`[DIAG] upsertRow: UPSERT ERROR — TITIK GAGAL`, {
           table: tableName,
           user_id: userId,
           record_id: record.id,
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint
+          httpStatus: status,
+          httpStatusText: statusText,
+          errorCode: error.code,
+          errorMessage: error.message,
+          errorDetails: error.details,
+          errorHint: error.hint,
+          fullError: error
         });
         return false;
       }
       return true;
     } catch (err: any) {
-      console.error(`[SUPABASE UPSERT EXCEPTION] table=${tableName}:`, err);
+      console.error(`[DIAG] upsertRow: EXCEPTION — TITIK GAGAL`, {
+        table: tableName,
+        userId,
+        recordId: record?.id,
+        errorMessage: err?.message,
+        errorCode: err?.code,
+        errorStatus: err?.status,
+        fullError: err
+      });
       return false;
     }
   },
