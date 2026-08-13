@@ -55,8 +55,19 @@ const setStorageItem = <T>(key: string, value: T): void => {
   }
 };
 
+export const CANONICAL_WALLET_IDS = new Set([
+  'w-1',
+  'w-2',
+  'w-3',
+  'w-4',
+  'w-bni-lana',
+  'w-bni-lina',
+  'w-bpd',
+  'w-bri'
+]);
+
 export const DEMO_IDS = {
-  WALLETS: new Set(['w-1', 'w-2', 'w-3', 'w-4', 'w-5']),
+  WALLETS: new Set<string>([]),
   TRANSACTIONS: new Set(['tx-1', 'tx-2', 'tx-3', 'tx-4', 'tx-5', 'tx-6', 'tx-7', 'tx-8', 'tx-9', 'tx-10']),
   BUDGETS: new Set(['b-1', 'b-2', 'b-3', 'b-4']),
   GOALS: new Set(['g-1', 'g-2', 'g-3']),
@@ -67,7 +78,7 @@ export const DEMO_IDS = {
 };
 
 export function purgeDemoWallets(wallets: Wallet[]): Wallet[] {
-  return wallets.filter(w => !DEMO_IDS.WALLETS.has(w.id));
+  return wallets.filter(w => CANONICAL_WALLET_IDS.has(w.id) || !DEMO_IDS.WALLETS.has(w.id));
 }
 
 export function purgeDemoData(): {
@@ -89,8 +100,9 @@ export function purgeDemoData(): {
   const currentInvestments = StorageService.getInvestments();
   const currentLogs = StorageService.getAuditLogs();
 
-  const cleanWallets = currentWallets.filter(w => !DEMO_IDS.WALLETS.has(w.id));
-  const cleanTx = currentTx.filter(t => !DEMO_IDS.TRANSACTIONS.has(t.id) && !DEMO_IDS.WALLETS.has(t.walletId));
+  const isDemoWallet = (id: string) => DEMO_IDS.WALLETS.has(id) && !CANONICAL_WALLET_IDS.has(id);
+  const cleanWallets = currentWallets.filter(w => CANONICAL_WALLET_IDS.has(w.id) || !isDemoWallet(w.id));
+  const cleanTx = currentTx.filter(t => !DEMO_IDS.TRANSACTIONS.has(t.id) && (CANONICAL_WALLET_IDS.has(t.walletId) || !isDemoWallet(t.walletId)));
   const cleanBudgets = currentBudgets.filter(b => !DEMO_IDS.BUDGETS.has(b.id));
   const cleanGoals = currentGoals.filter(g => !DEMO_IDS.GOALS.has(g.id));
   const cleanDebts = currentDebts.filter(d => !DEMO_IDS.DEBTS.has(d.id));
@@ -123,7 +135,7 @@ export function purgeDemoData(): {
 }
 
 export const StorageService = {
-  getWallets: (): Wallet[] => getStorageItem(KEYS.WALLETS, []),
+  getWallets: (): Wallet[] => getStorageItem(KEYS.WALLETS, initialWallets),
   saveWallets: (wallets: Wallet[]) => setStorageItem(KEYS.WALLETS, wallets),
 
   getTransactions: (): Transaction[] => {
@@ -284,22 +296,68 @@ export function safeMergeEntityArray<T extends { id: string; updatedAt?: string;
     });
   };
 
-  // Rule A: Empty Cloud Protection
-  if (localItems && localItems.length > 0 && (!remoteItems || remoteItems.length === 0)) {
-    console.log(`[SmartSync] Cloud empty for ${entityName} -> preserving local (${localItems.length} items)`);
-    return ensureWalletAccountNumber(localItems);
+  const safeLocal = localItems || [];
+  const safeRemote = remoteItems || [];
+
+  // Wallets special handling: preserve canonical wallets and account numbers
+  if (entityName === 'wallets') {
+    if (safeLocal.length > 0 && safeRemote.length === 0) {
+      return ensureWalletAccountNumber(safeLocal);
+    }
+    if (safeLocal.length === 0 && safeRemote.length > 0) {
+      return ensureWalletAccountNumber(safeRemote);
+    }
+    if (safeLocal.length === 0 && safeRemote.length === 0) {
+      return [];
+    }
+
+    const remoteMap = new Map<string, T>();
+    safeRemote.forEach(item => { if (item && item.id) remoteMap.set(String(item.id), item); });
+
+    const mergedMap = new Map<string, T>();
+    safeLocal.forEach(local => {
+      if (!local || !local.id) return;
+      const key = String(local.id);
+      const remote = remoteMap.get(key);
+      if (remote) {
+        const mergedW = mergeWalletPreservingAccountNumber(local as unknown as Wallet, remote as unknown as Wallet);
+        mergedMap.set(key, mergedW as unknown as T);
+        remoteMap.delete(key);
+      } else {
+        const w = local as unknown as Wallet;
+        const acc = w.accountNumber || getCanonicalAccountNumber(w.id, w.name) || '';
+        mergedMap.set(key, { ...w, accountNumber: acc } as unknown as T);
+      }
+    });
+    remoteMap.forEach((remote, key) => {
+      const w = remote as unknown as Wallet;
+      const acc = w.accountNumber || getCanonicalAccountNumber(w.id, w.name) || '';
+      mergedMap.set(key, { ...w, accountNumber: acc } as unknown as T);
+    });
+
+    return Array.from(mergedMap.values());
   }
 
-  if (!remoteItems || remoteItems.length === 0) {
-    return ensureWalletAccountNumber(localItems || []);
+  // Get offline pending queue IDs for non-wallet items
+  const offlineQueue = StorageService.getOfflineQueue();
+  const offlineIds = new Set(offlineQueue.map(q => String(q.id)));
+
+  // If Cloud returns empty array (e.g. 0 transactions in Cloud / unmigrated user_id)
+  if (safeRemote.length === 0) {
+    if (safeLocal.length > 0) {
+      console.log(`[SmartSync] Cloud empty for ${entityName} -> preserving ${safeLocal.length} local items (Local-First fallback)`);
+      return safeLocal;
+    }
+    return [];
   }
 
-  if (!localItems || localItems.length === 0) {
-    return ensureWalletAccountNumber(remoteItems);
+  // If local is empty, use Cloud items
+  if (safeLocal.length === 0) {
+    return safeRemote;
   }
 
   const remoteMap = new Map<string, T>();
-  remoteItems.forEach(item => {
+  safeRemote.forEach(item => {
     if (item && item.id) {
       remoteMap.set(String(item.id), item);
     }
@@ -314,40 +372,32 @@ export function safeMergeEntityArray<T extends { id: string; updatedAt?: string;
     return isNaN(ms) ? 0 : ms;
   };
 
-  localItems.forEach(local => {
+  safeLocal.forEach(local => {
     if (!local || !local.id) return;
     const key = String(local.id);
     const remote = remoteMap.get(key);
 
     if (!remote) {
-      // Local exists, remote doesn't -> Keep Local item!
-      console.log(`[SmartSync] Preserving local ${entityName} item "${key}" (not in remote)`);
-      if (entityName === 'wallets') {
-        const w = local as unknown as Wallet;
-        const acc = w.accountNumber || getCanonicalAccountNumber(w.id, w.name) || '';
-        mergedMap.set(key, { ...w, accountNumber: acc } as unknown as T);
-      } else {
+      // Local exists, remote doesn't.
+      // If this item is in the pending offline queue, keep it!
+      if (offlineIds.has(key)) {
+        console.log(`[SmartSync] Preserving pending offline ${entityName} item "${key}"`);
         mergedMap.set(key, local);
+      } else {
+        // Not in Cloud and not pending offline -> dropped (deleted in Cloud)
+        console.log(`[SmartSync] Dropping stale local ${entityName} item "${key}" (deleted in Cloud)`);
       }
     } else {
       // Exists in both -> Compare timestamps
       const localTs = getTs(local);
       const remoteTs = getTs(remote);
 
-      if (entityName === 'wallets') {
-        const mergedW = mergeWalletPreservingAccountNumber(local as unknown as Wallet, remote as unknown as Wallet);
-        mergedMap.set(key, mergedW as unknown as T);
+      if (localTs > remoteTs) {
+        mergedMap.set(key, local);
+      } else if (remoteTs > localTs) {
+        mergedMap.set(key, remote);
       } else {
-        if (localTs > remoteTs) {
-          console.log(`[SmartSync] Local ${entityName} "${key}" newer (${localTs} > ${remoteTs}) -> keeping local`);
-          mergedMap.set(key, local);
-        } else if (remoteTs > localTs) {
-          console.log(`[SmartSync] Cloud ${entityName} "${key}" newer (${remoteTs} > ${localTs}) -> applying cloud`);
-          mergedMap.set(key, remote);
-        } else {
-          // Equal or missing timestamps -> Prefer Local (Local-First bias) with safe merge of properties
-          mergedMap.set(key, { ...remote, ...local });
-        }
+        mergedMap.set(key, { ...remote, ...local });
       }
       remoteMap.delete(key);
     }
@@ -355,14 +405,7 @@ export function safeMergeEntityArray<T extends { id: string; updatedAt?: string;
 
   // Process remaining remote items (created on another device)
   remoteMap.forEach((remote, key) => {
-    console.log(`[SmartSync] New ${entityName} item "${key}" from Cloud applied`);
-    if (entityName === 'wallets') {
-      const w = remote as unknown as Wallet;
-      const acc = w.accountNumber || getCanonicalAccountNumber(w.id, w.name) || '';
-      mergedMap.set(key, { ...w, accountNumber: acc } as unknown as T);
-    } else {
-      mergedMap.set(key, remote);
-    }
+    mergedMap.set(key, remote);
   });
 
   return Array.from(mergedMap.values());

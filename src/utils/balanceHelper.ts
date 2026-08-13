@@ -173,6 +173,10 @@ export function calculateWalletBalance(
   transactions: Transaction[],
   initialBalanceMap?: { [walletId: string]: number }
 ): number {
+  if (!transactions || transactions.length === 0) {
+    return wallet.balance !== undefined ? wallet.balance : (wallet.initialBalance || 0);
+  }
+
   const baseBalance = initialBalanceMap && initialBalanceMap[wallet.id] !== undefined
     ? initialBalanceMap[wallet.id]
     : (wallet.initialBalance !== undefined ? wallet.initialBalance : 0);

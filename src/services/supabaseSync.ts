@@ -225,19 +225,38 @@ export const SupabaseSyncService = {
     if (!client) return false;
 
     try {
+      // Verify active session for RLS compliance
+      const { data: sessionData } = await client.auth.getSession();
+      const activeUser = sessionData?.session?.user;
+      
+      if (!activeUser) {
+        console.warn(`[SUPABASE UPSERT WARN] No active session found when upserting to ${tableName}. User ID: ${userId}`);
+      } else if (activeUser.id !== userId) {
+        console.warn(`[SUPABASE UPSERT WARN] Session user ID mismatch (${activeUser.id} vs target ${userId}).`);
+      }
+
       const payload = {
         ...record,
         user_id: userId,
         updated_at: new Date().toISOString()
       };
+
       const { error } = await client.from(tableName).upsert(payload, { onConflict: 'id' });
       if (error) {
-        console.error(`[SupabaseSyncService] Error upserting ${tableName}:`, error.message);
+        console.error(`[SUPABASE UPSERT ERROR]`, {
+          table: tableName,
+          user_id: userId,
+          record_id: record.id,
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
         return false;
       }
       return true;
-    } catch (err) {
-      console.error(`[SupabaseSyncService] Exception upserting ${tableName}:`, err);
+    } catch (err: any) {
+      console.error(`[SUPABASE UPSERT EXCEPTION] table=${tableName}:`, err);
       return false;
     }
   },
@@ -387,14 +406,14 @@ export const SupabaseSyncService = {
       }));
 
       await Promise.all([
-        walletsPayload.length ? client.from('wallets').upsert(walletsPayload) : Promise.resolve(),
-        txsPayload.length ? client.from('transactions').upsert(txsPayload) : Promise.resolve(),
-        catsPayload.length ? client.from('categories').upsert(catsPayload) : Promise.resolve(),
-        budgetsPayload.length ? client.from('budgets').upsert(budgetsPayload) : Promise.resolve(),
-        goalsPayload.length ? client.from('goals').upsert(goalsPayload) : Promise.resolve(),
-        debtsPayload.length ? client.from('debts').upsert(debtsPayload) : Promise.resolve(),
-        invoicesPayload.length ? client.from('invoices').upsert(invoicesPayload) : Promise.resolve(),
-        invsPayload.length ? client.from('investments').upsert(invsPayload) : Promise.resolve()
+        chunkedUpsert(client, 'wallets', walletsPayload),
+        chunkedUpsert(client, 'transactions', txsPayload),
+        chunkedUpsert(client, 'categories', catsPayload),
+        chunkedUpsert(client, 'budgets', budgetsPayload),
+        chunkedUpsert(client, 'goals', goalsPayload),
+        chunkedUpsert(client, 'debts', debtsPayload),
+        chunkedUpsert(client, 'invoices', invoicesPayload),
+        chunkedUpsert(client, 'investments', invsPayload)
       ]);
 
       return true;
@@ -402,5 +421,65 @@ export const SupabaseSyncService = {
       console.error('[SupabaseSyncService] Error saving full user bundle:', err);
       return false;
     }
+  },
+
+  /**
+   * Checks if Cloud has 0/incomplete transactions for a user.
+   * Background automatic re-upload is disabled to prevent stale device data from overwriting Cloud.
+   */
+  async ensureCloudDataInitialized(_userId: string, _bundle: SupabaseUserBundle, _remoteBundle: SupabaseUserBundle | null): Promise<boolean> {
+    // Disabled background auto-seed to protect Cloud authority and prevent stale cache loops
+    return false;
+  },
+
+  /**
+   * Bulk-delete ALL transactions for a given user from Supabase PostgreSQL.
+   * Does NOT touch wallets, categories, budgets, goals, debts, invoices, investments, or audit_logs.
+   */
+  async deleteAllUserTransactions(userId: string): Promise<{ success: boolean; deletedCount: number }> {
+    const client = initSupabaseClient();
+    if (!client || !userId) {
+      console.warn('[SupabaseSyncService] deleteAllUserTransactions: no client or userId');
+      return { success: false, deletedCount: 0 };
+    }
+
+    try {
+      // First count how many rows exist for this user
+      const { count: beforeCount } = await client
+        .from('transactions')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId);
+
+      const totalBefore = beforeCount || 0;
+      console.log(`[SupabaseSyncService] deleteAllUserTransactions: ${totalBefore} rows found for user ${userId}`);
+
+      // Bulk delete all transactions for this user in a single query
+      const { error } = await client
+        .from('transactions')
+        .delete()
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error('[SupabaseSyncService] deleteAllUserTransactions error:', error.message);
+        return { success: false, deletedCount: 0 };
+      }
+
+      console.log(`[SupabaseSyncService] deleteAllUserTransactions: successfully deleted ${totalBefore} rows from Supabase`);
+      return { success: true, deletedCount: totalBefore };
+    } catch (err) {
+      console.error('[SupabaseSyncService] deleteAllUserTransactions exception:', err);
+      return { success: false, deletedCount: 0 };
+    }
   }
 };
+
+async function chunkedUpsert(client: any, tableName: string, payload: any[], chunkSize = 200) {
+  if (!payload || payload.length === 0) return;
+  for (let i = 0; i < payload.length; i += chunkSize) {
+    const chunk = payload.slice(i, i + chunkSize);
+    const { error } = await client.from(tableName).upsert(chunk, { onConflict: 'id' });
+    if (error) {
+      console.warn(`[SupabaseSyncService] Error upserting chunk on ${tableName}:`, error.message);
+    }
+  }
+}

@@ -99,6 +99,7 @@ interface FinanceContextType {
   deleteInvestment: (id: string) => void;
 
   resetAllData: () => void;
+  clearAllTransactions: () => Promise<void>;
   restoreData: (jsonData: any) => void;
 
   // Computed metrics
@@ -216,14 +217,41 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     setSyncStatus('syncing');
 
     try {
-      const remote = await SupabaseSyncService.fetchUserData(currentUser.id);
+      let remote = await SupabaseSyncService.fetchUserData(currentUser.id);
+      
+      // Ensure Cloud has the 8 canonical wallets & 18 master categories initialized for currentUser.id
+      const isCloudMissingMaster = !remote || !remote.wallets || remote.wallets.length < 8;
+      if (isCloudMissingMaster) {
+        console.log('[AutoSync] Supabase Cloud missing master wallets/categories for current user ID -> Initializing 8 canonical wallets & 18 categories...');
+        const {
+          initialWallets,
+          initialCategories,
+          initialBudgets,
+          initialGoals,
+          initialBillsAndDebts,
+          initialInvoices,
+          initialInvestments,
+          initialAuditLogs
+        } = await import('../data/initialData');
+
+        const canonicalMasterBundle = {
+          wallets: initialWallets,
+          transactions: [],
+          categories: initialCategories,
+          budgets: initialBudgets,
+          goals: initialGoals,
+          debts: initialBillsAndDebts,
+          invoices: initialInvoices,
+          investments: initialInvestments,
+          auditLogs: initialAuditLogs
+        };
+
+        await SupabaseSyncService.saveFullUserBundle(currentUser.id, canonicalMasterBundle);
+        remote = await SupabaseSyncService.fetchUserData(currentUser.id);
+      }
+
       if (remote) {
         isRemoteUpdateRef.current = true;
-
-        // For authenticated users, execute centralized purgeDemoData to clean up legacy demo items from localStorage
-        if (currentUser) {
-          purgeDemoData();
-        }
 
         // Retrieve FRESH local state from StorageService
         const localWallets = StorageService.getWallets();
@@ -252,15 +280,6 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         const mergedInvoices = safeMergeEntityArray('invoices', localInvoices, remote.invoices || []);
         const mergedInvestments = safeMergeEntityArray('investments', localInvestments, remote.investments || []);
         const mergedAuditLogs = safeMergeEntityArray('auditLogs', localAuditLogs, remote.auditLogs || []);
-
-        console.log('[STARTUP DEBUG]', {
-          currentUser: currentUser?.email || currentUser?.id || null,
-          authLoading: false,
-          localWalletCount: localWallets.length,
-          cloudWalletCount: remote.wallets?.length || 0,
-          mergedWalletCount: mergedWallets.length,
-          demoDataInjected: false
-        });
 
         console.log(`[SYNC DEBUG] wallets -> Local: ${localWallets.length}, Cloud: ${remote.wallets?.length || 0}, Merged: ${mergedWallets.length}`);
         console.log(`[SYNC DEBUG] transactions -> Local: ${localTransactions.length}, Cloud: ${remote.transactions?.length || 0}, Merged: ${mergedTransactions.length}`);
@@ -307,20 +326,12 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
           });
         }
 
-        // Auto-enqueue preserved local transactions to pending queue for auto-upload
-        if (remote.transactions) {
-          const remoteTxIds = new Set((remote.transactions || []).map(t => t.id));
-          mergedTransactions.forEach(tx => {
-            if (!remoteTxIds.has(tx.id)) {
-              enqueuePendingTx(tx);
-            }
-          });
-          flushPendingQueue();
-        }
+        // Flush genuine offline-created pending transactions if any exist in queue
+        flushPendingQueue();
 
         setSyncStatus('synced');
-        if (force) {
-          addToast('success', 'Data Diperbarui', 'Data terbaru berhasil disinkronkan dari Cloud (Safe Merge Aktif).');
+        if (force && recalculatedWallets.length >= 8) {
+          addToast('success', 'Data Diperbarui', 'Data terbaru berhasil disinkronkan dari Cloud.');
         }
         setTimeout(() => { isRemoteUpdateRef.current = false; }, 1500);
         return true;
@@ -398,7 +409,7 @@ isSyncingRef.current = false;
   const tryAutoUploadNewTx = async (tx: Transaction, targetWalletId: string, newWalletBalance: number) => {
     if (!currentUser || !navigator.onLine) {
       enqueuePendingTx(tx);
-      addToast('info', 'Transaksi Disimpan Lokal', `Disimpan di perangkat. Akan disinkronkan saat koneksi tersedia.`);
+      addToast('info', 'Mode Offline', `Perangkat offline. Transaksi disimpan di perangkat.`);
       return;
     }
 
@@ -408,31 +419,35 @@ isSyncingRef.current = false;
         wallet_id: tx.walletId,
         type: tx.type,
         amount: tx.amount,
-        currency: tx.currency,
+        currency: tx.currency || 'IDR',
         title: tx.title,
         category: tx.category,
-        subcategory: tx.subcategory,
-        scope: tx.scope,
+        subcategory: tx.subcategory || null,
+        scope: tx.scope || 'all',
         date: tx.date,
-        note: tx.note
+        note: tx.note || null
       };
 
-      const [txOk] = await Promise.all([
-        SupabaseSyncService.upsertRow('transactions', txPayload, currentUser.id),
-        SupabaseSyncService.upsertRow('wallets', { id: targetWalletId, balance: newWalletBalance }, currentUser.id)
-      ]);
+      const txOk = await SupabaseSyncService.upsertRow('transactions', txPayload, currentUser.id);
 
       if (txOk) {
+        // Also update primary wallet balance in Cloud
+        SupabaseSyncService.upsertRow('wallets', { id: targetWalletId, balance: newWalletBalance }, currentUser.id);
         StorageService.saveLastSyncTimestamp(Date.now());
         addToast('success', 'Transaksi Berhasil', `Berhasil mencatat ${tx.title} (Tersimpan & Tersinkron ke Cloud)`);
       } else {
-        enqueuePendingTx(tx);
-        addToast('info', 'Transaksi Disimpan Lokal', `Disimpan di perangkat. Akan disinkronkan saat koneksi tersedia.`);
+        if (!navigator.onLine) {
+          enqueuePendingTx(tx);
+          addToast('info', 'Mode Offline', `Perangkat offline. Transaksi disimpan di perangkat.`);
+        } else {
+          console.error(`[AutoUpload] Transaction ${tx.id} failed to upload to Supabase Cloud DB.`);
+          addToast('error', 'Gagal Sync Cloud', `Transaksi tersimpan di perangkat, namun gagal terunggah ke Cloud.`);
+        }
       }
     } catch (err) {
       console.warn('[AutoUpload] Error during transaction auto-upload:', err);
       enqueuePendingTx(tx);
-      addToast('info', 'Transaksi Disimpan Lokal', `Disimpan di perangkat. Akan disinkronkan saat koneksi tersedia.`);
+      addToast('info', 'Mode Offline', `Terjadi kendala. Transaksi disimpan di perangkat.`);
     }
   };
 
@@ -496,8 +511,8 @@ isSyncingRef.current = false;
 
     let isSubscribed = true;
 
-    // Trigger initial smart pull when session is ready
-    pullCloudData(false);
+    // Trigger initial forced smart pull when session is ready (bypasses cooldown)
+    pullCloudData(true);
     flushPendingQueue();
 
     // Subscribe to Realtime Postgres changes with 2-second debounce
@@ -1402,6 +1417,44 @@ isSyncingRef.current = false;
     addToast('info', 'Reset Database', 'Seluruh data aplikasi telah dibersihkan.');
   };
 
+  /**
+   * SURGICAL: Hapus HANYA semua transaksi milik user yang sedang login.
+   * Tidak menyentuh wallet, kategori, budget, goals, debts, invoices, investments, audit logs.
+   */
+  const clearAllTransactions = async (): Promise<void> => {
+    const beforeCount = transactions.length;
+    const walletsBefore = wallets.length;
+    console.log(`[clearAllTransactions] BEFORE: transactions=${beforeCount}, wallets=${walletsBefore}`);
+
+    // 1. Clear React state immediately
+    setTransactions([]);
+
+    // 2. Clear localStorage transactions
+    StorageService.saveTransactions([]);
+
+    // 3. Clear offline/pending queue so old transactions cannot re-appear
+    StorageService.saveOfflineQueue([]);
+
+    // 4. Bulk delete from Supabase (only for logged-in user)
+    let cloudResult = { success: false, deletedCount: 0 };
+    if (currentUser) {
+      cloudResult = await SupabaseSyncService.deleteAllUserTransactions(currentUser.id);
+    }
+
+    const walletIds = wallets.map(w => `${w.name}(${w.id})`).join(', ');
+    console.log(`[clearAllTransactions] AFTER: transactions=0, wallets=${wallets.length}`);
+    console.log(`[clearAllTransactions] Wallets preserved: ${walletIds}`);
+    console.log(`[clearAllTransactions] Supabase result:`, cloudResult);
+
+    addToast(
+      cloudResult.success ? 'success' : 'info',
+      'Transaksi Dihapus',
+      currentUser
+        ? `${beforeCount} transaksi lokal dihapus. Cloud: ${cloudResult.deletedCount} baris dihapus dari Supabase.`
+        : `${beforeCount} transaksi lokal dihapus. (Offline mode — Supabase tidak tersentuh.)`
+    );
+  };
+
   const restoreData = (jsonData: any) => {
     try {
       StorageService.importFullBackup(jsonData);
@@ -1485,6 +1538,7 @@ isSyncingRef.current = false;
         updateInvestment,
         deleteInvestment,
         resetAllData,
+        clearAllTransactions,
         restoreData,
         filteredTransactions,
         filteredWallets,

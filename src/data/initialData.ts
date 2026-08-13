@@ -13,58 +13,99 @@ import {
 export const initialWallets: Wallet[] = [
   {
     id: 'w-1',
-    name: 'BCA Utama Bisnis',
+    name: 'BCA',
     type: 'bank',
     accountNumber: '8830192841',
-    balance: 145800000,
+    initialBalance: 0,
+    balance: 0,
     currency: 'IDR',
     icon: 'Building2',
     color: '#10B981',
     isDefault: true,
-    scope: 'business'
+    scope: 'all'
   },
   {
     id: 'w-2',
-    name: 'Mandiri Payroll & Tabungan',
-    type: 'bank',
-    accountNumber: '1420018294021',
-    balance: 38450000,
-    currency: 'IDR',
-    icon: 'Landmark',
-    color: '#3B82F6',
-    scope: 'personal'
-  },
-  {
-    id: 'w-3',
-    name: 'Gopay & QRIS Pro',
+    name: 'GOPAY',
     type: 'ewallet',
     accountNumber: '081298765432',
-    balance: 4250000,
+    initialBalance: 0,
+    balance: 0,
     currency: 'IDR',
     icon: 'Smartphone',
     color: '#06B6D4',
     scope: 'all'
   },
   {
+    id: 'w-3',
+    name: 'JAGO',
+    type: 'ewallet',
+    accountNumber: '1420018294021',
+    initialBalance: 0,
+    balance: 0,
+    currency: 'IDR',
+    icon: 'Landmark',
+    color: '#3B82F6',
+    scope: 'all'
+  },
+  {
     id: 'w-4',
-    name: 'Kas Tunai / Cash Box',
+    name: 'CASH',
     type: 'cash',
-    balance: 3150000,
+    initialBalance: 0,
+    balance: 0,
     currency: 'IDR',
     icon: 'Banknote',
     color: '#F59E0B',
     scope: 'all'
   },
   {
-    id: 'w-5',
-    name: 'Kartu Kredit Mandiri Signature',
-    type: 'credit',
-    accountNumber: '4181 **** **** 9012',
-    balance: -8500000, // Limit terpakai
+    id: 'w-bni-lina',
+    name: 'BNI LINA',
+    type: 'bank',
+    accountNumber: '9912048201',
+    initialBalance: 0,
+    balance: 0,
     currency: 'IDR',
-    icon: 'CreditCard',
+    icon: 'Building2',
+    color: '#6366F1',
+    scope: 'all'
+  },
+  {
+    id: 'w-bni-lana',
+    name: 'BNI LANA',
+    type: 'bank',
+    accountNumber: '9912048202',
+    initialBalance: 0,
+    balance: 0,
+    currency: 'IDR',
+    icon: 'Building2',
+    color: '#8B5CF6',
+    scope: 'all'
+  },
+  {
+    id: 'w-bpd',
+    name: 'BPD DIY',
+    type: 'bank',
+    accountNumber: '5501928401',
+    initialBalance: 0,
+    balance: 0,
+    currency: 'IDR',
+    icon: 'Building2',
     color: '#EC4899',
-    scope: 'personal'
+    scope: 'all'
+  },
+  {
+    id: 'w-bri',
+    name: 'BRI',
+    type: 'bank',
+    accountNumber: '7712049281',
+    initialBalance: 0,
+    balance: 0,
+    currency: 'IDR',
+    icon: 'Building2',
+    color: '#14B8A6',
+    scope: 'all'
   }
 ];
 
