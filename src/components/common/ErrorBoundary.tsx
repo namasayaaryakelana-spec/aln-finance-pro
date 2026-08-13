@@ -38,9 +38,12 @@ export class ErrorBoundary extends React.Component<Props, State> {
             <h2 className="text-xl font-bold text-white mb-2 tracking-tight">
               ALN Finance Pro mengalami kesalahan saat memuat.
             </h2>
-            <p className="text-xs text-slate-400 mb-6 leading-relaxed">
-              Terjadi kesalahan yang tidak terduga pada interface. Silakan tekan tombol di bawah untuk memuat ulang sistem secara aman.
+            <p className="text-xs text-slate-400 mb-2 leading-relaxed">
+              Terjadi kesalahan yang tidak terduga pada interface:
             </p>
+            <div className="p-3 bg-red-950/40 border border-red-500/30 rounded-xl text-[11px] text-red-300 font-mono mb-6 text-left overflow-x-auto max-w-full">
+              {this.state.error?.message || String(this.state.error)}
+            </div>
 
             <button
               onClick={() => window.location.reload()}
