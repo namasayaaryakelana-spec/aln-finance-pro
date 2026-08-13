@@ -1,5 +1,5 @@
 // ALN Finance Pro — Production Service Worker
-const CACHE_NAME = 'aln-finance-pro-v4';
+const CACHE_NAME = 'aln-finance-pro-v5-network-first-auth';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -7,59 +7,58 @@ const STATIC_ASSETS = [
   '/logo.svg'
 ];
 
-// Install Event: Pre-cache core shell
+// Install Event: Pre-cache core shell & skip waiting
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       console.log('[SW] Pre-caching offline App Shell');
       return cache.addAll(STATIC_ASSETS);
-    }).then(() => self.skipWaiting())
+    })
   );
 });
 
-// Activate Event: Clean up old caches
+// Activate Event: Clean up all old caches & claim clients immediately
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames
           .filter((name) => name !== CACHE_NAME)
-          .map((name) => caches.delete(name))
+          .map((name) => {
+            console.log('[SW] Deleting old cache:', name);
+            return caches.delete(name);
+          })
       );
     }).then(() => self.clients.claim())
   );
 });
 
-// Fetch Event
+// Fetch Event: Network-First for Navigation & HTML/JS to ensure instant updates
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Network-First for API requests
-  if (url.pathname.startsWith('/api/')) {
+  // Network-First for API requests & App Navigation/Scripts
+  if (url.pathname.startsWith('/api/') || event.request.mode === 'navigate' || url.pathname.endsWith('.js') || url.pathname.endsWith('.html')) {
     event.respondWith(
       fetch(event.request)
-        .then((response) => {
-          // Clone and cache successful API reads if needed
-          return response;
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
+          }
+          return networkResponse;
         })
         .catch(() => {
-          return new Response(
-            JSON.stringify({
-              error: 'Offline mode active',
-              offline: true,
-              timestamp: new Date().toISOString()
-            }),
-            {
-              status: 503,
-              headers: { 'Content-Type': 'application/json' }
-            }
-          );
+          return caches.match(event.request).then(cached => cached || caches.match('/index.html'));
         })
     );
     return;
   }
 
-  // Stale-While-Revalidate for Static Assets & Navigation
+  // Stale-While-Revalidate for images / static assets
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       const fetchPromise = fetch(event.request)
@@ -73,7 +72,6 @@ self.addEventListener('fetch', (event) => {
           return networkResponse;
         })
         .catch(() => {
-          // If navigation fetch fails and not cached, return index.html shell
           if (event.request.mode === 'navigate') {
             return caches.match('/index.html');
           }
