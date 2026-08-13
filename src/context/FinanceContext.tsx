@@ -174,11 +174,17 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
       }
     });
 
-    const { data: authSubscription } = client.auth.onAuthStateChange((_event, session) => {
+    const { data: authSubscription } = client.auth.onAuthStateChange((event, session) => {
       const user = session?.user || null;
       setCurrentUser(user);
       if (user) {
         setSyncStatus('syncing');
+        if ((event as string) === 'INITIALIZED' || (event as string) === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          console.log(`[AuthSync] Auth event ${event} for ${user.email} -> Triggering forced Cloud Hydration...`);
+          setTimeout(() => {
+            pullCloudData(true);
+          }, 100);
+        }
       } else {
         setSyncStatus('local_only');
       }
@@ -188,6 +194,14 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
       authSubscription.subscription.unsubscribe();
     };
   }, []);
+
+  // Trigger Forced Cloud Hydration automatically whenever currentUser ID changes or is restored
+  useEffect(() => {
+    if (currentUser?.id) {
+      console.log('[AutoSync] currentUser restored/changed:', currentUser.id, '-> Triggering forced Cloud Hydration...');
+      pullCloudData(true);
+    }
+  }, [currentUser?.id]);
 
   // SMART AUTO-SYNC (Cloud -> Device): Pulls latest data from Supabase Cloud
   const pullCloudData = async (force = false): Promise<boolean> => {
