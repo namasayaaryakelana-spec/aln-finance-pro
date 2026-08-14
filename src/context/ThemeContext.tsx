@@ -16,28 +16,40 @@ const THEME_STORAGE_KEY = 'aln_theme_mode';
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [themeMode, setThemeModeState] = useState<ThemeMode>(() => {
-    const saved = localStorage.getItem(THEME_STORAGE_KEY) as ThemeMode;
-    if (saved === 'light' || saved === 'dark' || saved === 'system') {
-      return saved;
+    try {
+      const saved = localStorage.getItem(THEME_STORAGE_KEY) as ThemeMode;
+      if (saved === 'light' || saved === 'dark' || saved === 'system') {
+        return saved;
+      }
+    } catch (e) {
+      // Safe fallback for restricted storage access
     }
     return 'system';
   });
 
   const [systemIsDark, setSystemIsDark] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      try {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches;
+      } catch (e) {
+        return true;
+      }
     }
     return true;
   });
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = (e: MediaQueryListEvent) => {
-      setSystemIsDark(e.matches);
-    };
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    try {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handleChange = (e: MediaQueryListEvent) => {
+        setSystemIsDark(e.matches);
+      };
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    } catch (e) {
+      // Ignore media query errors
+    }
   }, []);
 
   const effectiveTheme: EffectiveTheme =
@@ -59,7 +71,11 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const setThemeMode = (mode: ThemeMode) => {
     setThemeModeState(mode);
-    localStorage.setItem(THEME_STORAGE_KEY, mode);
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, mode);
+    } catch (e) {
+      // Safe fallback
+    }
   };
 
   return (

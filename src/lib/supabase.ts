@@ -100,6 +100,3 @@ export function initSupabaseClient(): SupabaseClient | null {
     return null;
   }
 }
-
-// Initial client instance
-export const supabase = initSupabaseClient();
