@@ -15,6 +15,17 @@ import {
   Investment,
   AuditLog
 } from '../types';
+import {
+  initialWallets,
+  initialTransactions,
+  initialCategories,
+  initialBudgets,
+  initialGoals,
+  initialBillsAndDebts,
+  initialInvoices,
+  initialInvestments,
+  initialAuditLogs
+} from '../data/initialData';
 import { StorageService, safeMergeEntityArray, purgeDemoData } from '../services/storage';
 import { normalizeTransactions, upgradeMasterCategories, FINAL_MASTER_CATEGORIES } from '../utils/masterCategoryHelper';
 import { calculateWalletBalance, recalculateAllWalletBalances, repairAndMigrateTransactions } from '../utils/balanceHelper';
@@ -378,17 +389,6 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
       const isCloudMissingMaster = !remote || !remote.wallets || remote.wallets.length < 8;
       if (isCloudMissingMaster) {
         console.log('[AutoSync] Supabase Cloud missing master wallets/categories for current user ID -> Initializing 8 canonical wallets & 18 categories...');
-        const {
-          initialWallets,
-          initialCategories,
-          initialBudgets,
-          initialGoals,
-          initialBillsAndDebts,
-          initialInvoices,
-          initialInvestments,
-          initialAuditLogs
-        } = await import('../data/initialData');
-
         const canonicalMasterBundle = {
           wallets: initialWallets,
           transactions: [],
