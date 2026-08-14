@@ -190,7 +190,6 @@ const AppContent: React.FC = () => {
       <PWAInstallPrompt deferredPrompt={deferredPrompt} onInstall={triggerPwaInstall} />
 
       {/* MODALS */}
-      <AuthModal isOpen={isAuthModalOpen} onClose={closeAuthModal} />
       <AddTransactionModal isOpen={isAddTxOpen} onClose={() => setIsAddTxOpen(false)} />
       <FastAITransactionModal isOpen={isFastAITxOpen} onClose={() => setIsFastAITxOpen(false)} />
       <AddWalletModal isOpen={isAddWalletOpen} onClose={() => setIsAddWalletOpen(false)} />
