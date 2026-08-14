@@ -291,21 +291,8 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     initializeAuth();
 
-    const { data: authSubscription } = client.auth.onAuthStateChange(async (event, session) => {
-      let user = session?.user || null;
-
-      // Anti-Transient Null Guard: When switching browser tabs or during background token refresh,
-      // verify getSession before assuming user is logged out.
-      if (!user && (event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION' || document.visibilityState === 'visible')) {
-        try {
-          const { data: sessData } = await client.auth.getSession();
-          if (sessData?.session?.user) {
-            user = sessData.session.user;
-          }
-        } catch (e) {
-          // Ignore transient error
-        }
-      }
+    const { data: authSubscription } = client.auth.onAuthStateChange((event, session) => {
+      const user = session?.user || null;
 
       console.log('[AUTH EVENT]', {
         event,
@@ -317,6 +304,9 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         setCurrentUser(user);
         setIsAuthModalOpen(false);
         setSyncStatus('syncing');
+      } else if (event === 'SIGNED_OUT') {
+        setCurrentUser(null);
+        setSyncStatus('local_only');
       }
     });
 
